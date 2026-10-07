@@ -203,3 +203,5 @@ async function convertSpecial(file,kind){
     showResult('Background removed','A transparent PNG was downloaded. Best results come from simple, uniform backgrounds.');
   }
 }
+
+render();
