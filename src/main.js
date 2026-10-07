@@ -6,7 +6,7 @@ import './style.css';
 const app=document.querySelector('#app');
 const UPDATE_API='https://api.github.com/repos/gba45684-lab/ImageFileConverterSuperApp/releases/latest';
 const UPDATE_APK='https://github.com/gba45684-lab/ImageFileConverterSuperApp/releases/latest/download/ImageMate.apk';
-const APP_VERSION=packageJson.version;\nlet updateChecked=false;
+const APP_VERSION=packageJson.version;
 const tools=[
   ['convert','⇄','Convert','JPG, PNG, WebP, AVIF'],
   ['compress','◒','Compress','Reduce image size'],
@@ -32,6 +32,7 @@ function render(){
   app.innerHTML='<div class="shell '+(S.dark?'dark':'')+'"><header class="topbar"><div class="brand"><div class="logo">IM</div><div><b>ImageMate</b><span>Image & File Converter</span></div></div><div class="top-actions"><button id="theme" class="icon-btn">'+(S.dark?'☀':'☾')+'</button><button class="pro">Remove Ads <small>PRO</small></button><button id="update-btn" class="update-btn" hidden>Update</button></div></header><main><section class="hero"><div><p class="eyebrow">FAST • PRIVATE • BROWSER-BASED</p><h1>Everything you need to<br><em>work with images.</em></h1><p class="sub">Convert, compress, resize and prepare images for forms — without uploading your files.</p></div><div class="hero-badge"><strong>100%</strong><span>local processing</span></div></section><nav class="tool-grid">'+tools.map(t=>'<button class="tool '+(S.tool===t[0]?'active':'')+'" data-tool="'+t[0]+'"><span>'+t[1]+'</span><b>'+t[2]+'</b><small>'+t[3]+'</small></button>').join('')+'</nav><section class="workspace"><div class="workspace-head"><div><p class="eyebrow">WORKSPACE</p><h2>'+tool[2]+'</h2></div><span class="privacy">🔒 Files stay on your device</span></div><div id="drop" class="dropzone"><input id="file" type="file" accept="'+(S.tool==='pdf2image'?'application/pdf':'image/*,.heic,.heif')+'" multiple hidden><div class="upload-icon">↑</div><h3>Drop images here</h3><p>or choose files from your device</p><button id="choose" class="primary">Choose Images</button><small>JPG, PNG, WebP, AVIF • Batch supported</small></div><div id="queue"></div><div id="settings"></div><div class="ad-slot"><span>ADVERTISEMENT</span></div></section><section class="feature-row"><div><b>Private by design</b><span>Images are processed in your browser.</span></div><div><b>Batch ready</b><span>Work with multiple images at once.</span></div><div><b>Mobile friendly</b><span>Install as a PWA on Android.</span></div></section></main><footer>© 2026 ImageMate <span>•</span> Free image tools for everyone</footer></div>';
   bind(); settings(); queue();
   checkForAndroidUpdate();
+  initNativeAds().catch(()=>{});
 }
 async function checkForAndroidUpdate(){
   if(!isNativeAndroid())return;
@@ -43,7 +44,10 @@ async function checkForAndroidUpdate(){
     if(!latest||!isNewerVersion(latest,APP_VERSION))return;
     const b=document.querySelector('#update-btn');
     if(!b)return;
-    b.hidden=false;b.textContent='Update available';\n    try{await notifyAndroidUpdate(latest)}catch(e){console.debug('Update notification skipped',e)}\n    b.onclick=async()=>{
+    b.hidden=false;b.textContent='Update available';
+    try{await notifyAndroidUpdate(latest)}catch(e){console.debug('Update notification skipped',e)}
+    if(navigator.vibrate) navigator.vibrate([250,120,250]);
+    b.onclick=async()=>{
       b.disabled=true;b.textContent='Downloading…';
       try{await installLatestAndroidUpdate(UPDATE_APK);b.textContent='Installing…'}
       catch(e){console.error(e);b.disabled=false;b.textContent='Update available';alert('Unable to start the update. Please try again.');}
@@ -70,7 +74,7 @@ function isHeic(f){return /\.(heic|heif)$/i.test(f.name)||/image\/(heic|heif)/i.
 function load(list){
   const files=[...list];
   S.files=S.tool==='pdf2image'
-    ? files.filter(f=>f.type==='application/pdf'||/\\.pdf$/i.test(f.name))
+    ? files.filter(f=>f.type==='application/pdf'||/\.pdf$/i.test(f.name))
     : files.filter(f=>f.type.startsWith('image/')||isHeic(f));
   queue()
 }
