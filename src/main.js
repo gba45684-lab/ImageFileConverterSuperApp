@@ -1,5 +1,5 @@
 import { initNativeAds, maybeShowTestInterstitial } from './ads.js';
-import { installLatestAndroidUpdate, isNativeAndroid } from './updater.js';
+import { installLatestAndroidUpdate, notifyAndroidUpdate, isNativeAndroid } from './updater.js';
 import packageJson from '../package.json';
 import './style.css';
 
@@ -43,7 +43,7 @@ async function checkForAndroidUpdate(){
     if(!latest||!isNewerVersion(latest,APP_VERSION))return;
     const b=document.querySelector('#update-btn');
     if(!b)return;
-    b.hidden=false;b.textContent='Update available';b.onclick=async()=>{
+    b.hidden=false;b.textContent='Update available';\n    try{await notifyAndroidUpdate(latest)}catch(e){console.debug('Update notification skipped',e)}\n    b.onclick=async()=>{
       b.disabled=true;b.textContent='Downloading…';
       try{await installLatestAndroidUpdate(UPDATE_APK);b.textContent='Installing…'}
       catch(e){console.error(e);b.disabled=false;b.textContent='Update available';alert('Unable to start the update. Please try again.');}
