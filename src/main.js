@@ -22,9 +22,11 @@ const tools=[
   ['signature','✎','Signature Resize','Prepare signatures for forms'],
   ['crop','⌗','Crop & Rotate','Crop, rotate and export'],
   ['ocr','T','OCR Text','Extract text from images'],
-  ['background','✦','Background Remover','Remove simple backgrounds']
+  ['background','✦','Background Remover','Remove simple backgrounds'],
+  ['pdfmerge','⊞','Merge PDFs','Combine multiple PDFs into one'],
+  ['editor','✧','Image Editor','Brightness, contrast & rotate']
 ];
-const S={tool:'convert',files:[],format:'image/webp',quality:.88,width:'',height:'',target:100,pdfFormat:'image/png',pdfScale:1.5,rotation:0,dark:localStorage.getItem('imagemate-dark')==='1',view:'tools'};
+const S={tool:'convert',files:[],format:'image/webp',quality:.88,width:'',height:'',target:100,pdfFormat:'image/png',pdfScale:1.5,rotation:0,brightness:0,contrast:0,dark:localStorage.getItem('imagemate-dark')==='1',view:'tools'};
 
 const esc=s=>String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const label=t=>t==='application/pdf'?'PDF':t==='image/jpeg'?'JPG':t==='image/png'?'PNG':t==='image/webp'?'WebP':t==='image/avif'?'AVIF':t==='image/heic'?'HEIC':t==='image/heif'?'HEIF':'Image';
@@ -32,7 +34,7 @@ const size=n=>n<1024?n+' B':n<1048576?(n/1024).toFixed(1)+' KB':(n/1048576).toFi
 
 function render(){
   const tool=tools.find(x=>x[0]===S.tool)||tools[0];
-  app.innerHTML='<div class="shell '+(S.dark?'dark':'')+'"><header class="topbar"><div class="brand"><div class="logo">IM</div><div><b>ImageMate</b><span>Image & File Converter</span></div></div><div class="top-actions"><button id="theme" class="icon-btn">'+(S.dark?'☀':'☾')+'</button><button id="downloads-tab" class="icon-btn">Downloaded files</button><button class="pro">Remove Ads <small>PRO</small></button><button id="update-btn" class="update-btn" hidden>Update</button></div></header><main><section class="hero"><div><p class="eyebrow">FAST • PRIVATE • BROWSER-BASED</p><h1>Everything you need to<br><em>work with images.</em></h1><p class="sub">Convert, compress, resize and prepare images for forms — without uploading your files.</p></div><div class="hero-badge"><strong>100%</strong><span>local processing</span></div></section><nav class="tool-grid">'+tools.map(t=>'<button class="tool '+(S.tool===t[0]?'active':'')+'" data-tool="'+t[0]+'"><span>'+t[1]+'</span><b>'+t[2]+'</b><small>'+t[3]+'</small></button>').join('')+'</nav><section class="workspace"><div class="workspace-head"><div><p class="eyebrow">WORKSPACE</p><h2>'+tool[2]+'</h2></div><span class="privacy">🔒 Files stay on your device</span></div><div id="drop" class="dropzone"><input id="file" type="file" accept="'+(S.tool==='pdf2image'?'application/pdf':'image/*,.heic,.heif')+'" multiple hidden><div class="upload-icon">↑</div><h3>Drop images here</h3><p>or choose files from your device</p><button id="choose" class="primary">Choose Images</button><small>JPG, PNG, WebP, AVIF • Batch supported</small></div><div id="queue"></div><div id="progress-wrap" class="progress-wrap" hidden><div class="progress-top"><b class="progress-text">Processing 0%</b><span>Local</span></div><div class="progress-track"><div class="progress-bar" style="width:0%"></div></div></div><div id="settings"></div><div class="ad-slot"><span>ADVERTISEMENT</span></div></section><section class="feature-row"><div><b>Private by design</b><span>Images are processed in your browser.</span></div><div><b>Batch ready</b><span>Work with multiple images at once.</span></div><div><b>Mobile friendly</b><span>Install as a PWA on Android.</span></div></section></main><footer>© 2026 ImageMate <span>•</span> Free image tools for everyone</footer></div>';
+  app.innerHTML='<div class="shell '+(S.dark?'dark':'')+'"><header class="topbar"><div class="brand"><div class="logo">IM</div><div><b>ImageMate</b><span>Image & File Converter</span></div></div><div class="top-actions"><button id="theme" class="icon-btn">'+(S.dark?'☀':'☾')+'</button><button id="downloads-tab" class="icon-btn">Downloaded files</button><button class="pro">Remove Ads <small>PRO</small></button><button id="update-btn" class="update-btn" hidden>Update</button></div></header><main><section class="hero"><div><p class="eyebrow">FAST • PRIVATE • BROWSER-BASED</p><h1>Everything you need to<br><em>work with images.</em></h1><p class="sub">Convert, compress, resize and prepare images for forms — without uploading your files.</p></div><div class="hero-badge"><strong>100%</strong><span>local processing</span></div></section><nav class="tool-grid">'+tools.map(t=>'<button class="tool '+(S.tool===t[0]?'active':'')+'" data-tool="'+t[0]+'"><span>'+t[1]+'</span><b>'+t[2]+'</b><small>'+t[3]+'</small></button>').join('')+'</nav><section class="workspace"><div class="workspace-head"><div><p class="eyebrow">WORKSPACE</p><h2>'+tool[2]+'</h2></div><span class="privacy">🔒 Files stay on your device</span></div><div id="drop" class="dropzone"><input id="file" type="file" accept="'+(S.tool==='pdf2image'||S.tool==='pdfmerge'?'application/pdf':'image/*,.heic,.heif')+'" multiple hidden><div class="upload-icon">↑</div><h3>Drop images here</h3><p>or choose files from your device</p><button id="choose" class="primary">Choose Images</button><small>JPG, PNG, WebP, AVIF • Batch supported</small></div><div id="queue"></div><div id="progress-wrap" class="progress-wrap" hidden><div class="progress-top"><b class="progress-text">Processing 0%</b><span>Local</span></div><div class="progress-track"><div class="progress-bar" style="width:0%"></div></div></div><div id="settings"></div><div class="ad-slot"><span>ADVERTISEMENT</span></div></section><section class="feature-row"><div><b>Private by design</b><span>Images are processed in your browser.</span></div><div><b>Batch ready</b><span>Work with multiple images at once.</span></div><div><b>Mobile friendly</b><span>Install as a PWA on Android.</span></div></section></main><footer>© 2026 ImageMate <span>•</span> Free image tools for everyone</footer></div>';
   bind(); settings(); queue();
   const dt=document.querySelector('#downloads-tab'); if(dt) dt.onclick=()=>{S.view=S.view==='downloads'?'tools':'downloads'; render()};
   if(S.view==='downloads') renderDownloads();
@@ -127,7 +129,7 @@ function bind(){
   document.querySelector('#choose').onclick=()=>document.querySelector('#file').click();
   document.querySelector('#file').onchange=e=>load(e.target.files);
   const d=document.querySelector('#drop');
-  if(S.tool==='pdf2image')d.querySelector('h3').textContent='Drop a PDF here';
+  if(S.tool==='pdf2image'||S.tool==='pdfmerge')d.querySelector('h3').textContent='Drop PDF files here';
   d.addEventListener('dragover',e=>{e.preventDefault();d.classList.add('drag')});
   d.addEventListener('dragleave',()=>d.classList.remove('drag'));
   d.addEventListener('drop',e=>{e.preventDefault();d.classList.remove('drag');load(e.dataTransfer.files)});
@@ -135,16 +137,16 @@ function bind(){
 function isHeic(f){return /\.(heic|heif)$/i.test(f.name)||/image\/(heic|heif)/i.test(f.type)}
 function load(list){
   const files=[...list];
-  S.files=S.tool==='pdf2image'
+  S.files=(S.tool==='pdf2image'||S.tool==='pdfmerge')
     ? files.filter(f=>f.type==='application/pdf'||/\.pdf$/i.test(f.name))
     : files.filter(f=>f.type.startsWith('image/')||isHeic(f));
   queue()
 }
 function queue(){
   const q=document.querySelector('#queue');if(!q)return;
-  q.innerHTML=S.files.map((f,i)=>'<div class="file-row"><div class="thumb">'+(S.tool==='pdf2image'?'PDF':'<img src="'+URL.createObjectURL(f)+'">')+'</div><div class="file-meta"><b>'+esc(f.name)+'</b><span>'+label(f.type)+' • '+size(f.size)+'</span></div><button class="remove" data-i="'+i+'">×</button></div>').join('');
+  q.innerHTML=S.files.map((f,i)=>'<div class="file-row"><div class="thumb">'+((S.tool==='pdf2image'||S.tool==='pdfmerge')?'PDF':'<img src="'+URL.createObjectURL(f)+'">')+'</div><div class="file-meta"><b>'+esc(f.name)+'</b><span>'+label(f.type)+' • '+size(f.size)+'</span></div><button class="remove" data-i="'+i+'">×</button></div>').join('');
   q.querySelectorAll('.remove').forEach(b=>b.onclick=()=>{S.files.splice(+b.dataset.i,1);queue()});
-  if(S.files.length){q.insertAdjacentHTML('beforeend','<div class="actionbar"><span><b>'+S.files.length+'</b> '+(S.tool==='pdf2image'?'PDF':'file')+(S.files.length>1?'s':'')+' ready</span><button id="clear" class="remove">Clear</button>'+(S.files.length>1&&!['pdf','pdf2image','ocr','exif','background'].includes(S.tool)?'<button id="zip" class="secondary">Download ZIP</button>':'')+'<button id="process" class="primary">'+(S.tool==='ocr'?'Extract Text':S.tool==='pdf2image'?'Convert Pages':'Process & Download')+'</button></div>');document.querySelector('#clear').onclick=()=>{S.files=[];queue()};const zip=document.querySelector('#zip');if(zip)zip.onclick=processBatchZip;document.querySelector('#process').onclick=process}
+  if(S.files.length){q.insertAdjacentHTML('beforeend','<div class="actionbar"><span><b>'+S.files.length+'</b> '+((S.tool==='pdf2image'||S.tool==='pdfmerge')?'PDF':'file')+(S.files.length>1?'s':'')+' ready</span><button id="clear" class="remove">Clear</button>'+(S.files.length>1&&!['pdf','pdf2image','ocr','exif','background'].includes(S.tool)?'<button id="zip" class="secondary">Download ZIP</button>':'')+'<button id="process" class="primary">'+(S.tool==='ocr'?'Extract Text':(S.tool==='pdf2image'||S.tool==='pdfmerge')?'Convert PDFs':'Process & Download')+'</button></div>');document.querySelector('#clear').onclick=()=>{S.files=[];queue()};const zip=document.querySelector('#zip');if(zip)zip.onclick=processBatchZip;document.querySelector('#process').onclick=process}
 }
 function settings(){
   const s=document.querySelector('#settings');if(!s)return;let h='';
@@ -156,10 +158,13 @@ function settings(){
     if(S.tool==='crop')h+='<label>Rotation<select id="rotation"><option value="0">0°</option><option value="90">90°</option><option value="180">180°</option><option value="270">270°</option></select></label>';
   }
   if(S.tool==='pdf')h='<div class="info">Images are placed on A4 pages and downloaded as one PDF. Everything stays on this device.</div>';
+  if(S.tool==='pdfmerge')h='<div class="info">PDFs are rendered locally and merged into one A4 PDF. Your files never leave this device.</div>';
   if(S.tool==='pdf2image')h='<label>Output format<select id="pdfFormat"><option value="image/png">PNG — lossless</option><option value="image/jpeg">JPG — smaller</option></select></label><label>Render scale<select id="pdfScale"><option value="1">1×</option><option value="1.5" selected>1.5×</option><option value="2">2×</option></select></label><div class="info">Every PDF page becomes a separate image.</div>';
   if(S.tool==='exif')h='<div class="info">The image will be re-encoded as PNG to remove embedded metadata.</div>';
   if(S.tool==='ocr')h='<div class="info">OCR runs locally in your browser. Select an image, then click Extract Text.</div>';
   if(S.tool==='background')h='<div class="info">Removes a simple near-uniform background locally. Best on documents, signatures and product photos.</div>';
+  if(S.tool==='editor')h='<label>Brightness <output id="bv">0</output><input id="brightness" type="range" min="-100" max="100" value="0"></label><label>Contrast <output id="cv">0</output><input id="contrast" type="range" min="-100" max="100" value="0"></label><label>Rotation<select id="rotation"><option value="0">0°</option><option value="90">90°</option><option value="180">180°</option><option value="270">270°</option></select></label><div class="info">Apply basic corrections locally, then export a clean JPG.</div>';
+  if(S.tool==='pdfmerge')h+='<div class="info">Select two or more PDFs to combine them in order.</div>';
   s.innerHTML=h;
   const f=document.querySelector('#format');if(f)f.onchange=e=>S.format=e.target.value;
   const q=document.querySelector('#quality');if(q)q.oninput=e=>{S.quality=e.target.value/100;document.querySelector('#qv').textContent=e.target.value+'%'};
@@ -169,6 +174,8 @@ function settings(){
   const pf=document.querySelector('#pdfFormat');if(pf)pf.onchange=e=>S.pdfFormat=e.target.value;
   const ps=document.querySelector('#pdfScale');if(ps)ps.onchange=e=>S.pdfScale=+e.target.value;
   const rot=document.querySelector('#rotation');if(rot)rot.onchange=e=>S.rotation=+e.target.value;
+  const br=document.querySelector('#brightness');if(br)br.oninput=e=>{S.brightness=+e.target.value;const o=document.querySelector('#bv');if(o)o.textContent=e.target.value};
+  const co=document.querySelector('#contrast');if(co)co.oninput=e=>{S.contrast=+e.target.value;const o=document.querySelector('#cv');if(o)o.textContent=e.target.value};
 }
 async function normalizeImageFile(file){
   if(!isHeic(file))return file;
@@ -212,6 +219,7 @@ async function process(){
   const progress=document.querySelector('#progress-wrap');if(progress)progress.hidden=false;setProgress(0,'Processing');
   try{
     if(S.tool==='pdf'){await pdf(S.files);setProgress(100,'Downloaded');showResult('PDF created','Your PDF has been downloaded and saved to local history.');return}
+    if(S.tool==='pdfmerge'){await mergePdfs(S.files);setProgress(100,'Downloaded');showResult('PDFs merged','Your combined PDF has been downloaded.');return}
     if(['pdf2image','ocr','exif','background'].includes(S.tool)){
       for(let n=0;n<S.files.length;n++){await convertSpecial(S.files[n],S.tool);setProgress(((n+1)/S.files.length)*100,'Downloaded')}
       showResult(S.tool==='ocr'?'OCR complete':'Files ready','Your processed files were downloaded and saved to local history.');
@@ -225,7 +233,7 @@ async function process(){
         h=+S.height||(S.tool==='signature'?200:S.tool==='passport'?531:Math.round(i.naturalHeight*w/i.naturalWidth));
       }
       let type=S.tool==='convert'?S.format:'image/jpeg';
-      let b=await blob(i,type,S.quality,w,h);
+      let b=S.tool==='editor'?await editBlob(i,S.brightness,S.contrast,S.rotation):await blob(i,type,S.quality,w,h);
       if(S.tool==='crop'&&S.rotation)b=await rotatedBlob(i,S.rotation,type,S.quality);
       if(S.tool==='target'){
         const max=S.target*1024;let lo=.05,hi=.95;
@@ -239,8 +247,40 @@ async function process(){
     setProgress(100,'Downloaded');
     showResult('Files ready','Your processed files have been downloaded and saved to local history.');
   }catch(e){console.error(e);alert('Could not process the selected file(s). '+(e?.message||'Please try another file.'))}
-  finally{if(btn){btn.disabled=false;btn.textContent=S.tool==='ocr'?'Extract Text':S.tool==='pdf2image'?'Convert Pages':'Process & Download'}}
+  finally{if(btn){btn.disabled=false;btn.textContent=S.tool==='ocr'?'Extract Text':(S.tool==='pdf2image'||S.tool==='pdfmerge')?'Convert PDFs':'Process & Download'}}
 }
+async function editBlob(i,brightness,contrast,rotation){
+  const swap=rotation%180!==0;
+  const c=document.createElement('canvas');
+  c.width=swap?i.naturalHeight:i.naturalWidth;c.height=swap?i.naturalWidth:i.naturalHeight;
+  const x=c.getContext('2d');
+  x.translate(c.width/2,c.height/2);x.rotate(rotation*Math.PI/180);
+  x.filter='brightness('+(100+Number(brightness||0))+'%) contrast('+(100+Number(contrast||0))+'%)';
+  x.drawImage(i,-i.naturalWidth/2,-i.naturalHeight/2);
+  return new Promise(r=>c.toBlob(r,'image/jpeg',.92));
+}
+async function mergePdfs(files){
+  const {getDocument,GlobalWorkerOptions}=await import('pdfjs-dist');
+  const {jsPDF}=await import('jspdf');
+  GlobalWorkerOptions.workerSrc=new URL('pdfjs-dist/build/pdf.worker.mjs',import.meta.url).toString();
+  const doc=new jsPDF({unit:'mm',format:'a4'});
+  let added=0;
+  for(const file of files){
+    const source=await getDocument({data:await file.arrayBuffer()}).promise;
+    for(let pageNo=1;pageNo<=source.numPages;pageNo++){
+      const page=await source.getPage(pageNo);
+      const viewport=page.getViewport({scale:1.4});
+      const canvas=document.createElement('canvas');canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);
+      await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;
+      if(added++)doc.addPage();
+      const maxW=190,maxH=277,scale=Math.min(maxW/canvas.width,maxH/canvas.height);
+      const w=canvas.width*scale,h=canvas.height*scale;
+      doc.addImage(canvas.toDataURL('image/jpeg',.9),'JPEG',(210-w)/2,(297-h)/2,w,h);
+    }
+  }
+  doc.save('imagemate-merged.pdf');
+}
+
 function rotatedBlob(i,deg,type,q){
   const swap=deg%180!==0,c=document.createElement('canvas');c.width=swap?i.naturalHeight:i.naturalWidth;c.height=swap?i.naturalWidth:i.naturalHeight;
   const x=c.getContext('2d');x.translate(c.width/2,c.height/2);x.rotate(deg*Math.PI/180);x.drawImage(i,-i.naturalWidth/2,-i.naturalHeight/2);
