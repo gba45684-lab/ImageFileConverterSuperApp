@@ -1,5 +1,5 @@
 import { initNativeAds, maybeShowTestInterstitial } from './ads.js';
-import { installLatestAndroidUpdate, notifyAndroidUpdate, isNativeAndroid, saveProcessedFile } from './updater.js';
+import { downloadLatestAndroidUpdate, installDownloadedAndroidUpdate, hasDownloadedAndroidUpdate, notifyAndroidUpdate, isNativeAndroid, saveProcessedFile } from './updater.js';
 import packageJson from '../package.json';
 import './style.css';
 
@@ -37,20 +37,35 @@ function render(){
 async function checkForAndroidUpdate(){
   if(!isNativeAndroid())return;
   try{
+    const ready=await hasDownloadedAndroidUpdate().catch(()=>({ready:false}));
+    const b=document.querySelector('#update-btn');
+    if(ready?.ready&&b){
+      b.hidden=false;b.disabled=false;b.textContent='Install update';
+      b.onclick=async()=>{
+        b.disabled=true;b.textContent='Installing…';
+        try{await installDownloadedAndroidUpdate();}catch(e){console.error(e);b.disabled=false;b.textContent='Install update';}
+      };
+      return;
+    }
     const r=await fetch(UPDATE_API,{headers:{Accept:'application/vnd.github+json'}});
     if(!r.ok)return;
     const release=await r.json();
     const latest=String(release.tag_name||'').replace(/^v/i,'');
     if(!latest||!isNewerVersion(latest,APP_VERSION))return;
-    const b=document.querySelector('#update-btn');
     if(!b)return;
-    b.hidden=false;b.textContent='Update available';
+    b.hidden=false;b.disabled=false;b.textContent='Update available';
     try{await notifyAndroidUpdate(latest)}catch(e){console.debug('Update notification skipped',e)}
     if(navigator.vibrate) navigator.vibrate([250,120,250]);
     b.onclick=async()=>{
       b.disabled=true;b.textContent='Downloading…';
-      try{await installLatestAndroidUpdate(UPDATE_APK);b.textContent='Installing…'}
-      catch(e){console.error(e);b.disabled=false;b.textContent='Update available';alert('Unable to start the update. Please try again.');}
+      try{
+        await downloadLatestAndroidUpdate(UPDATE_APK);
+        b.textContent='Downloading in background…';
+        setTimeout(()=>{if(b)b.disabled=false},1200);
+      }catch(e){
+        console.error(e);b.disabled=false;b.textContent='Update available';
+        alert('Unable to start the background download. Please try again.');
+      }
     };
   }catch(e){console.debug('ImageMate update check skipped',e)}
 }
