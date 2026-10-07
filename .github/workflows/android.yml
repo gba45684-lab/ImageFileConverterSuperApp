@@ -348,6 +348,9 @@ jobs:
           context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putString(APK_PATH, target.getAbsolutePath()).apply();
           postUpdateReadyNotification(context);
+          try { launchDownloadedInstaller(context, target); } catch (Exception installError) {
+          android.util.Log.e("ImageMateUpdater", "Could not auto-open installer", installError);
+          }
           } catch (Exception e) {
           android.util.Log.e("ImageMateUpdater", "Update download failed", e);
           } finally {
@@ -389,6 +392,21 @@ jobs:
             if(Build.VERSION.SDK_INT>=26)v.vibrate(VibrationEffect.createWaveform(new long[]{0,250,120,250},-1));
             else v.vibrate(new long[]{0,250,120,250},-1);
           }
+          }
+
+          private void launchDownloadedInstaller(Context context, File apk) {
+          if (apk == null || !apk.exists()) return;
+          if (Build.VERSION.SDK_INT >= 26 && !context.getPackageManager().canRequestPackageInstalls()) {
+          Intent settings = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + context.getPackageName()));
+          settings.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+          context.startActivity(settings);
+          return;
+          }
+          Uri uri = FileProvider.getUriForFile(context, context.getPackageName() + ".fileprovider", apk);
+          Intent installer = new Intent(Intent.ACTION_VIEW);
+          installer.setDataAndType(uri, "application/vnd.android.package-archive");
+          installer.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+          context.startActivity(installer);
           }
 
           @PluginMethod
