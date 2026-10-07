@@ -10,9 +10,19 @@ export async function notifyAndroidUpdate(version) {
   return ImageMateUpdater.notifyUpdate({ version });
 }
 
-export async function installLatestAndroidUpdate(url) {
+export async function downloadLatestAndroidUpdate(url) {
   if (!isNativeAndroid()) return { supported: false };
-  return ImageMateUpdater.downloadAndInstall({ url });
+  return ImageMateUpdater.downloadUpdate({ url });
+}
+
+export async function installDownloadedAndroidUpdate() {
+  if (!isNativeAndroid()) return { supported: false };
+  return ImageMateUpdater.installDownloadedUpdate();
+}
+
+export async function hasDownloadedAndroidUpdate() {
+  if (!isNativeAndroid()) return { supported: false, ready: false };
+  return ImageMateUpdater.hasDownloadedUpdate();
 }
 
 export async function saveProcessedFile(name, mime, base64) {
