@@ -245,6 +245,175 @@ jobs:
           }
           }
 
+          private static final String PREFS = "imagemate_updater";
+          private static final String APK_PATH = "apk_path";
+          private static final String APK_VERSION = "apk_version";
+
+          private File downloadedApk(Context context) {
+          String path = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(APK_PATH, "");
+          return path.isEmpty() ? null : new File(path);
+          }
+
+          @PluginMethod
+          public void downloadUpdate(PluginCall call) {
+          String url = call.getString("url");
+          if (url == null || url.isEmpty()) { call.reject("Update URL is missing"); return; }
+          Context context = getContext();
+          DownloadManager dm = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
+          File target = new File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "ImageMate-latest.apk");
+          if (target.exists()) target.delete();
+          DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
+          request.setTitle("ImageMate update");
+          request.setDescription("Downloading the latest ImageMate update in background");
+          request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+          request.setMimeType("application/vnd.android.package-archive");
+          request.setDestinationUri(Uri.fromFile(target));
+          final long id = dm.enqueue(request);
+          context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString("download_id", String.valueOf(id)).apply();
+
+          final BroadcastReceiver receiver = new BroadcastReceiver() {
+          @Override public void onReceive(Context c, Intent intent) {
+          if (intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1) != id) return;
+          try {
+          DownloadManager.Query q = new DownloadManager.Query().setFilterById(id);
+          android.database.Cursor cursor = dm.query(q);
+          if (cursor == null || !cursor.moveToFirst()) { if (cursor != null) cursor.close(); return; }
+          int status = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS));
+          cursor.close();
+          if (status != DownloadManager.STATUS_SUCCESSFUL || !target.exists()) return;
+          context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putString(APK_PATH, target.getAbsolutePath()).apply();
+          postUpdateReadyNotification(context);
+          } catch (Exception e) {
+          android.util.Log.e("ImageMateUpdater", "Update download failed", e);
+          } finally {
+          try { context.unregisterReceiver(this); } catch (Exception ignored) {}
+          }
+          }
+          };
+          ContextCompat.registerReceiver(context, receiver,
+          new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
+          ContextCompat.RECEIVER_NOT_EXPORTED);
+          JSObject result = new JSObject();
+          result.put("started", true);
+          result.put("downloadId", id);
+          call.resolve(result);
+          }
+
+          private void postUpdateReadyNotification(Context context) {
+          NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+          if (Build.VERSION.SDK_INT >= 26) {
+          NotificationChannel channel = new NotificationChannel(CHANNEL_ID, "ImageMate updates", NotificationManager.IMPORTANCE_HIGH);
+          channel.enableVibration(true);
+          channel.setVibrationPattern(new long[]{0,250,120,250});
+          channel.setSound(android.provider.Settings.System.DEFAULT_NOTIFICATION_URI,
+            new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION).setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build());
+          nm.createNotificationChannel(channel);
+          }
+          Intent launch = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
+          PendingIntent pending = launch == null ? null : PendingIntent.getActivity(context, 2408, launch,
+            PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 23 ? PendingIntent.FLAG_IMMUTABLE : 0));
+          NotificationCompat.Builder b = new NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(context.getApplicationInfo().icon)
+            .setContentTitle("ImageMate update downloaded")
+            .setContentText("Update is ready. Open ImageMate and tap Install update.")
+            .setAutoCancel(true).setPriority(NotificationCompat.PRIORITY_HIGH);
+          if (pending != null) b.setContentIntent(pending);
+          nm.notify(NOTIFICATION_ID + 1, b.build());
+          Vibrator v=(Vibrator)context.getSystemService(Context.VIBRATOR_SERVICE);
+          if(v!=null) {
+            if(Build.VERSION.SDK_INT>=26)v.vibrate(VibrationEffect.createWaveform(new long[]{0,250,120,250},-1));
+            else v.vibrate(new long[]{0,250,120,250},-1);
+          }
+          }
+
+          @PluginMethod
+          public void hasDownloadedUpdate(PluginCall call) {
+          Context context=getContext(); File apk=downloadedApk(context);
+          JSObject out=new JSObject(); out.put("ready", apk!=null && apk.exists()); call.resolve(out);
+          }
+
+          @PluginMethod
+          public void installDownloadedUpdate(PluginCall call) {
+          Context context=getContext();
+          if (Build.VERSION.SDK_INT >= 26 && !context.getPackageManager().canRequestPackageInstalls()) {
+          Intent settings=new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:"+context.getPackageName()));
+          settings.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); context.startActivity(settings); call.resolve(); return;
+          }
+          File apk=downloadedApk(context);
+          if(apk==null || !apk.exists()){ call.reject("Downloaded update is not ready"); return; }
+          try {
+          Uri contentUri=FileProvider.getUriForFile(context, context.getPackageName()+".fileprovider", apk);
+          Intent install=new Intent(Intent.ACTION_VIEW);
+          install.setDataAndType(contentUri,"application/vnd.android.package-archive");
+          install.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+          context.startActivity(install);
+          } catch(Exception e) { call.reject("Could not open Android installer: "+e.getMessage()); }
+          }
+          }
+          @PluginMethod
+          public void saveProcessedFile(PluginCall call) {
+          String name = call.getString("name", "ImageMate-output.bin");
+          String mime = call.getString("mime", "application/octet-stream");
+          String base64 = call.getString("base64", "");
+          if (base64 == null || base64.isEmpty()) { call.reject("File data is missing"); return; }
+          Context context = getContext();
+          try {
+          byte[] data = android.util.Base64.decode(base64, android.util.Base64.DEFAULT);
+          File dir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+          if (dir == null) { call.reject("Device storage is unavailable"); return; }
+          if (!dir.exists()) dir.mkdirs();
+          File out = new File(dir, name);
+          try (java.io.FileOutputStream stream = new java.io.FileOutputStream(out)) {
+          stream.write(data);
+          }
+          Uri contentUri = FileProvider.getUriForFile(context, context.getPackageName() + ".fileprovider", out);
+          Intent open = new Intent(Intent.ACTION_VIEW);
+          open.setDataAndType(contentUri, mime);
+          open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+          try { context.startActivity(open); } catch (Exception ignored) {}
+          
+          NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+          if (Build.VERSION.SDK_INT >= 26) {
+          NotificationChannel channel = new NotificationChannel(
+          "imagemate_files", "ImageMate downloads", NotificationManager.IMPORTANCE_HIGH
+          );
+          channel.enableVibration(true);
+          channel.setVibrationPattern(new long[]{0,180,100,180});
+          channel.setSound(
+          android.provider.Settings.System.DEFAULT_NOTIFICATION_URI,
+          new AudioAttributes.Builder()
+          .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+          .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+          .build()
+          );
+          nm.createNotificationChannel(channel);
+          }
+          Intent launch = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
+          PendingIntent pending = launch == null ? null : PendingIntent.getActivity(
+          context, 2408, launch,
+          PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 23 ? PendingIntent.FLAG_IMMUTABLE : 0)
+          );
+          NotificationCompat.Builder builder = new NotificationCompat.Builder(context, "imagemate_files")
+          .setSmallIcon(context.getApplicationInfo().icon)
+          .setContentTitle("ImageMate download complete")
+          .setContentText(name + " is saved on your device.")
+          .setPriority(NotificationCompat.PRIORITY_HIGH)
+          .setAutoCancel(true)
+          .setVibrate(new long[]{0,180,100,180});
+          if (pending != null) builder.setContentIntent(pending);
+          nm.notify((int)(System.currentTimeMillis() & 0x7fffffff), builder.build());
+          
+          JSObject result = new JSObject();
+          result.put("saved", true);
+          result.put("name", name);
+          result.put("path", out.getAbsolutePath());
+          call.resolve(result);
+          } catch (Exception e) {
+          call.reject("Could not save or open the file", e);
+          }
+          }
+
           @PluginMethod
           public void downloadAndInstall(PluginCall call) {
           String url = call.getString("url");
