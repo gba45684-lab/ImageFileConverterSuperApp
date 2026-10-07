@@ -1,5 +1,5 @@
 import { initNativeAds, maybeShowTestInterstitial } from './ads.js';
-import { downloadLatestAndroidUpdate, installDownloadedAndroidUpdate, hasDownloadedAndroidUpdate, notifyAndroidUpdate, isNativeAndroid, saveProcessedFile } from './updater.js';
+import { downloadLatestAndroidUpdate, installDownloadedAndroidUpdate, hasDownloadedAndroidUpdate, notifyAndroidUpdate, requestAndroidNotificationPermission, isNativeAndroid, saveProcessedFile } from './updater.js';
 import packageJson from '../package.json';
 import './style.css';
 
