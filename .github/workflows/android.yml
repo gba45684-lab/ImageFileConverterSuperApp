@@ -349,7 +349,7 @@ jobs:
           request.setMimeType("application/vnd.android.package-archive");
           request.setAllowedOverMetered(true);
           request.setAllowedOverRoaming(false);
-          request.setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, "ImageMate-latest.apk");
+          request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "ImageMate-latest.apk");
           final long id = dm.enqueue(request);
           context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString("download_id", String.valueOf(id)).apply();
 
@@ -362,7 +362,16 @@ jobs:
           if (cursor == null || !cursor.moveToFirst()) { if (cursor != null) cursor.close(); return; }
           int status = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS));
           cursor.close();
-          if (status != DownloadManager.STATUS_SUCCESSFUL || !target.exists()) return;
+          if (status != DownloadManager.STATUS_SUCCESSFUL) return;
+          Uri downloadedUri = dm.getUriForDownloadedFile(id);
+          if (downloadedUri == null) throw new java.io.IOException("Download completed without a readable file");
+          try (java.io.InputStream in = context.getContentResolver().openInputStream(downloadedUri);
+               java.io.FileOutputStream out = new java.io.FileOutputStream(target)) {
+            if (in == null) throw new java.io.IOException("Downloaded APK stream is unavailable");
+            byte[] buf = new byte[8192]; int n;
+            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+          }
+          if (!target.exists() || target.length() == 0) throw new java.io.IOException("Downloaded APK is empty");
           context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putString(APK_PATH, target.getAbsolutePath()).apply();
           postUpdateReadyNotification(context);
