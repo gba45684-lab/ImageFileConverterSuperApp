@@ -50,22 +50,22 @@ jobs:
           manifest=Path('android/app/src/main/AndroidManifest.xml')
           text=manifest.read_text()
           if 'android.permission.REQUEST_INSTALL_PACKAGES' not in text:
-              text=text.replace('<application ', '<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />\\n\\n    <application ', 1)
+              text=text.replace('<application ', '<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />\n\n    <application ', 1)
           marker='<meta-data android:name="com.google.android.gms.ads.APPLICATION_ID"'
           if marker not in text:
-              text=text.replace('</application>', '    <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="@string/admob_app_id" />\\n  </application>')
+              text=text.replace('</application>', '    <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="@string/admob_app_id" />\n  </application>')
           if 'android:name="androidx.core.content.FileProvider"' not in text:
-              provider='''    <provider android:name="androidx.core.content.FileProvider" android:authorities="\${applicationId}.fileprovider" android:exported="false" android:grantUriPermissions="true">\\n      <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />\\n    </provider>\\n'''
+              provider='''    <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.fileprovider" android:exported="false" android:grantUriPermissions="true">\n      <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />\n    </provider>\n'''
               text=text.replace('</application>',provider+'  </application>')
           manifest.write_text(text)
           values=Path('android/app/src/main/res/values/strings.xml')
           vt=values.read_text()
           if 'name="admob_app_id"' not in vt:
-              vt=vt.replace('</resources>','    <string name="admob_app_id">ca-app-pub-3940256099942544~3347511713</string>\\n</resources>')
+              vt=vt.replace('</resources>','    <string name="admob_app_id">ca-app-pub-3940256099942544~3347511713</string>\n</resources>')
           values.write_text(vt)
           xml=Path('android/app/src/main/res/xml')
           xml.mkdir(parents=True,exist_ok=True)
-          (xml/'file_paths.xml').write_text('''<?xml version="1.0" encoding="utf-8"?>\\n<paths xmlns:android="http://schemas.android.com/apk/res/android">\\n  <external-files-path name="downloads" path="Download/" />\\n</paths>\\n''')
+          (xml/'file_paths.xml').write_text('''<?xml version="1.0" encoding="utf-8"?>\n<paths xmlns:android="http://schemas.android.com/apk/res/android">\n  <external-files-path name="downloads" path="Download/" />\n</paths>\n''')
           PY
       - name: Install Android updater bridge
         shell: bash
