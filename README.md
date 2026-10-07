@@ -31,4 +31,4 @@ npm run dev
 npm run build
 
 ## Roadmap
-HEIC decoding, OCR, background removal, image-to-PDF, SEO landing pages, AdSense/AdMob, premium no-ads plan, Capacitor Android APK.
+HEIC decoding, production OCR, AI background removal, PDF→image rendering, SEO landing pages, AdSense/AdMob activation, premium no-ads plan, Capacitor Android APK. Image→PDF, batch ZIP, metadata cleaning, compression, resize and target-size tools are already in the current build.
