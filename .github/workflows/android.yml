@@ -363,7 +363,7 @@ jobs:
           connection.setReadTimeout(60000);
           connection.setRequestMethod("GET");
           connection.setRequestProperty("Accept", "application/vnd.android.package-archive,application/octet-stream");
-          connection.setRequestProperty("User-Agent", "ImageMate/"+BuildConfig.VERSION_NAME);
+          connection.setRequestProperty("User-Agent", "ImageMate-Android");
           int code = connection.getResponseCode();
           if (code < 200 || code >= 300) throw new java.io.IOException("Update server returned HTTP " + code);
           String contentType = connection.getContentType();
