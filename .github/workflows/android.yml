@@ -8,138 +8,239 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: imagemate-android
+  cancel-in-progress: true
+
 jobs:
   android:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+
       - name: Read app version
         id: version
-        run: echo "version=$(node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).version")" >> "$GITHUB_OUTPUT"
+        shell: bash
+        run: |
+          VERSION="$(node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).version")"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Building ImageMate v$VERSION"
+
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+
       - name: Build web app
         run: npm run build
+
       - name: Initialize Capacitor
         run: npx cap init ImageMate com.gba45684.imagemate --web-dir dist
+
       - name: Add Android
         run: npx cap add android
-      - name: Configure Android version
+
+      - name: Configure Android
         env:
           APP_VERSION: ${{ steps.version.outputs.version }}
+        shell: bash
         run: |
           python3 - <<'PY'
           import os,re
           from pathlib import Path
           p=Path('android/app/build.gradle')
           s=p.read_text()
-          s=re.sub(r'versionCode\\s+\\d+',f'versionCode {os.environ.get("GITHUB_RUN_NUMBER","1")}',s,count=1)
-          s=re.sub(r'versionName\\s+"[^"]+"',f'versionName "{os.environ["APP_VERSION"]}"',s,count=1)
+          s=re.sub(r'versionCode\s+\d+', f'versionCode {os.environ.get("GITHUB_RUN_NUMBER","1")}', s, count=1)
+          s=re.sub(r'versionName\s+"[^"]+"', f'versionName "{os.environ["APP_VERSION"]}"', s, count=1)
           p.write_text(s)
-          PY
-      - name: Configure Google AdMob test app and APK installer permission
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
+
           manifest=Path('android/app/src/main/AndroidManifest.xml')
           text=manifest.read_text()
           if 'android.permission.REQUEST_INSTALL_PACKAGES' not in text:
-              text=text.replace('<application ', '<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />\n\n    <application ', 1)
-          marker='<meta-data android:name="com.google.android.gms.ads.APPLICATION_ID"'
-          if marker not in text:
+              text=text.replace('<application ', '<uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.VIBRATE" />\n    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />\n    <application ', 1)
+          if 'android.permission.VIBRATE' not in text:
+              text=text.replace('<application ', '<uses-permission android:name="android.permission.VIBRATE" />\n    <application ', 1)
+          if 'android.permission.POST_NOTIFICATIONS' not in text:
+              text=text.replace('<application ', '<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n    <application ', 1)
+          if 'com.google.android.gms.ads.APPLICATION_ID' not in text:
               text=text.replace('</application>', '    <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="@string/admob_app_id" />\n  </application>')
           if 'android:name="androidx.core.content.FileProvider"' not in text:
-              provider='''    <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.fileprovider" android:exported="false" android:grantUriPermissions="true">\n      <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />\n    </provider>\n'''
-              text=text.replace('</application>',provider+'  </application>')
+              provider='''    <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.fileprovider" android:exported="false" android:grantUriPermissions="true">
+              <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
+            </provider>
+          '''
+              text=text.replace('</application>', provider+'  </application>')
           manifest.write_text(text)
+
           values=Path('android/app/src/main/res/values/strings.xml')
           vt=values.read_text()
           if 'name="admob_app_id"' not in vt:
-              vt=vt.replace('</resources>','    <string name="admob_app_id">ca-app-pub-3940256099942544~3347511713</string>\n</resources>')
+              vt=vt.replace('</resources>', '    <string name="admob_app_id">ca-app-pub-3940256099942544~3347511713</string>\n</resources>')
           values.write_text(vt)
+
           xml=Path('android/app/src/main/res/xml')
           xml.mkdir(parents=True,exist_ok=True)
-          (xml/'file_paths.xml').write_text('''<?xml version="1.0" encoding="utf-8"?>\n<paths xmlns:android="http://schemas.android.com/apk/res/android">\n  <external-files-path name="downloads" path="Download/" />\n</paths>\n''')
+          (xml/'file_paths.xml').write_text('''<?xml version="1.0" encoding="utf-8"?>
+          <paths xmlns:android="http://schemas.android.com/apk/res/android">
+            <external-files-path name="downloads" path="Download/" />
+          </paths>
+          ''')
           PY
-      - name: Install Android updater bridge
+
+      - name: Install updater bridge
         shell: bash
         run: |
           mkdir -p android/app/src/main/java/com/gba45684/imagemate
           cat > android/app/src/main/java/com/gba45684/imagemate/ImageMateUpdaterPlugin.java <<'JAVA'
           package com.gba45684.imagemate;
-          import android.app.DownloadManager;\n          import android.app.NotificationChannel;\n          import android.app.NotificationManager;\n          import android.app.PendingIntent;\n          import android.os.Build;\n          import androidx.core.app.NotificationCompat;
-          import android.content.BroadcastReceiver;
-          import android.content.Context;
-          import android.content.Intent;
-          import android.content.IntentFilter;
-          import android.net.Uri;
-          import android.os.Environment;
-          import android.provider.Settings;
-          import androidx.core.content.ContextCompat;
-          import androidx.core.content.FileProvider;
-          import com.getcapacitor.JSObject;
-          import com.getcapacitor.Plugin;
-          import com.getcapacitor.PluginCall;
-          import com.getcapacitor.PluginMethod;
-          import com.getcapacitor.annotation.CapacitorPlugin;
-          import java.io.File;
 
-          @CapacitorPlugin(name = "ImageMateUpdater")
-          public class ImageMateUpdaterPlugin extends Plugin {
-            @PluginMethod
-            public void downloadAndInstall(PluginCall call) {
-              String url=call.getString("url");
-              if(url==null||url.isEmpty()){call.reject("Update URL is missing");return;}
-              Context context=getContext();
-              if(android.os.Build.VERSION.SDK_INT>=26&&!context.getPackageManager().canRequestPackageInstalls()){
-                Intent settings=new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,Uri.parse("package:"+context.getPackageName()));
-                settings.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                context.startActivity(settings);
-                call.resolve();
-                return;
-              }
-              DownloadManager dm=(DownloadManager)context.getSystemService(Context.DOWNLOAD_SERVICE);
-              DownloadManager.Request request=new DownloadManager.Request(Uri.parse(url));
-              request.setTitle("ImageMate update");
-              request.setDescription("Downloading the latest ImageMate APK");
-              request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-              request.setMimeType("application/vnd.android.package-archive");
-              request.setDestinationInExternalFilesDir(context,Environment.DIRECTORY_DOWNLOADS,"ImageMate-latest.apk");
-              final long id=dm.enqueue(request);
-              final BroadcastReceiver receiver=new BroadcastReceiver(){
-                @Override public void onReceive(Context c,Intent intent){
-                  if(intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID,-1)!=id)return;
-                  try{
-                    DownloadManager.Query q=new DownloadManager.Query().setFilterById(id);
-                    android.database.Cursor cursor=dm.query(q);
-                    if(cursor==null||!cursor.moveToFirst()){if(cursor!=null)cursor.close();return;}
-                    int status=cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS));
-                    String localUri=cursor.getString(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_LOCAL_URI));
-                    cursor.close();
-                    if(status!=DownloadManager.STATUS_SUCCESSFUL||localUri==null)return;
-                    File apk=new File(Uri.parse(localUri).getPath());
-                    Uri contentUri=FileProvider.getUriForFile(context,context.getPackageName()+".fileprovider",apk);
-                    Intent install=new Intent(Intent.ACTION_VIEW);
-                    install.setDataAndType(contentUri,"application/vnd.android.package-archive");
-                    install.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                    context.startActivity(install);
-                  }catch(Exception e){android.util.Log.e("ImageMateUpdater","Install failed",e);}
-                  finally{try{context.unregisterReceiver(this);}catch(Exception ignored){}}
-                }
-              };
-              ContextCompat.registerReceiver(context,receiver,new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),ContextCompat.RECEIVER_NOT_EXPORTED);
-              JSObject result=new JSObject();
-              result.put("started",true);
-              result.put("downloadId",id);
-              call.resolve(result);
-            }
-          }
+import android.app.DownloadManager;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.media.AudioAttributes;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.Environment;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
+import android.provider.Settings;
+import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
+import com.getcapacitor.JSObject;
+import com.getcapacitor.Plugin;
+import com.getcapacitor.PluginCall;
+import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.CapacitorPlugin;
+import java.io.File;
+
+@CapacitorPlugin(name = "ImageMateUpdater")
+public class ImageMateUpdaterPlugin extends Plugin {
+  private static final String CHANNEL_ID = "imagemate_updates";
+  private static final int NOTIFICATION_ID = 2407;
+
+  @PluginMethod
+  public void notifyUpdate(PluginCall call) {
+    String version = call.getString("version", "");
+    Context context = getContext();
+    NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+
+    if (Build.VERSION.SDK_INT >= 26) {
+      NotificationChannel channel = new NotificationChannel(
+        CHANNEL_ID, "ImageMate updates", NotificationManager.IMPORTANCE_HIGH
+      );
+      channel.setDescription("Notifications for new ImageMate app versions");
+      channel.enableVibration(true);
+      channel.setVibrationPattern(new long[]{0,250,120,250});
+      channel.setSound(
+        android.provider.Settings.System.DEFAULT_NOTIFICATION_URI,
+        new AudioAttributes.Builder()
+          .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+          .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+          .build()
+      );
+      nm.createNotificationChannel(channel);
+    }
+
+    Intent launch = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
+    PendingIntent pending = launch == null ? null : PendingIntent.getActivity(
+      context, 2407, launch,
+      PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 23 ? PendingIntent.FLAG_IMMUTABLE : 0)
+    );
+
+    NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
+      .setSmallIcon(context.getApplicationInfo().icon)
+      .setContentTitle("ImageMate update available")
+      .setContentText("Version " + version + " is ready. Tap Update in ImageMate to install it.")
+      .setPriority(NotificationCompat.PRIORITY_HIGH)
+      .setAutoCancel(true)
+      .setVibrate(new long[]{0,250,120,250});
+    if (pending != null) builder.setContentIntent(pending);
+    nm.notify(NOTIFICATION_ID, builder.build());
+
+    try {
+      Vibrator vibrator = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
+      if (vibrator != null && vibrator.hasVibrator()) {
+        if (Build.VERSION.SDK_INT >= 26) vibrator.vibrate(VibrationEffect.createWaveform(new long[]{0,250,120,250}, -1));
+        else vibrator.vibrate(new long[]{0,250,120,250}, -1);
+      }
+    } catch (Exception ignored) {}
+
+    JSObject result = new JSObject();
+    result.put("notified", true);
+    result.put("version", version);
+    call.resolve(result);
+  }
+
+  @PluginMethod
+  public void downloadAndInstall(PluginCall call) {
+    String url = call.getString("url");
+    if (url == null || url.isEmpty()) { call.reject("Update URL is missing"); return; }
+    Context context = getContext();
+
+    if (Build.VERSION.SDK_INT >= 26 && !context.getPackageManager().canRequestPackageInstalls()) {
+      Intent settings = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+        Uri.parse("package:" + context.getPackageName()));
+      settings.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+      context.startActivity(settings);
+      call.resolve();
+      return;
+    }
+
+    DownloadManager dm = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
+    DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
+    request.setTitle("ImageMate update");
+    request.setDescription("Downloading the latest ImageMate APK");
+    request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+    request.setMimeType("application/vnd.android.package-archive");
+    request.setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, "ImageMate-latest.apk");
+    final long id = dm.enqueue(request);
+
+    final BroadcastReceiver receiver = new BroadcastReceiver() {
+      @Override public void onReceive(Context c, Intent intent) {
+        if (intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1) != id) return;
+        try {
+          DownloadManager.Query q = new DownloadManager.Query().setFilterById(id);
+          android.database.Cursor cursor = dm.query(q);
+          if (cursor == null || !cursor.moveToFirst()) { if (cursor != null) cursor.close(); return; }
+          int status = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS));
+          String localUri = cursor.getString(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_LOCAL_URI));
+          cursor.close();
+          if (status != DownloadManager.STATUS_SUCCESSFUL || localUri == null) return;
+          File apk = new File(Uri.parse(localUri).getPath());
+          Uri contentUri = FileProvider.getUriForFile(context, context.getPackageName() + ".fileprovider", apk);
+          Intent install = new Intent(Intent.ACTION_VIEW);
+          install.setDataAndType(contentUri, "application/vnd.android.package-archive");
+          install.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+          context.startActivity(install);
+        } catch (Exception e) {
+          android.util.Log.e("ImageMateUpdater", "Install failed", e);
+        } finally {
+          try { context.unregisterReceiver(this); } catch (Exception ignored) {}
+        }
+      }
+    };
+    ContextCompat.registerReceiver(context, receiver,
+      new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
+      ContextCompat.RECEIVER_NOT_EXPORTED);
+
+    JSObject result = new JSObject();
+    result.put("started", true);
+    result.put("downloadId", id);
+    call.resolve(result);
+  }
+}
           JAVA
           cat > android/app/src/main/java/com/gba45684/imagemate/MainActivity.java <<'JAVA'
           package com.gba45684.imagemate;
@@ -151,25 +252,39 @@ jobs:
             }
           }
           JAVA
-      - name: Sync Capacitor plugins
+
+      - name: Sync Capacitor
         run: npx cap sync android
+
       - name: Setup Java 21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
+
       - name: Build debug APK
         working-directory: android
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Verify APK
+        shell: bash
+        run: |
+          test -s android/app/build/outputs/apk/debug/app-debug.apk
+          ls -lh android/app/build/outputs/apk/debug/app-debug.apk
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: ImageMate-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
           APP_VERSION: ${{ steps.version.outputs.version }}
+        shell: bash
         run: |
           cp android/app/build/outputs/apk/debug/app-debug.apk ImageMate.apk
           if gh release view "v$APP_VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
@@ -177,3 +292,4 @@ jobs:
           else
             gh release create "v$APP_VERSION" ImageMate.apk --repo "$GITHUB_REPOSITORY" --title "ImageMate v$APP_VERSION" --generate-notes
           fi
+          echo "Stable APK: https://github.com/$GITHUB_REPOSITORY/releases/latest/download/ImageMate.apk"
