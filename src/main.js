@@ -6,7 +6,7 @@ import './style.css';
 const app=document.querySelector('#app');
 const UPDATE_API='https://api.github.com/repos/gba45684-lab/ImageFileConverterSuperApp/releases/latest';
 const UPDATE_APK='https://github.com/gba45684-lab/ImageFileConverterSuperApp/releases/latest/download/ImageMate.apk';
-const APP_VERSION=packageJson.version;
+const APP_VERSION=packageJson.version;\nlet updateChecked=false;
 const tools=[
   ['convert','⇄','Convert','JPG, PNG, WebP, AVIF'],
   ['compress','◒','Compress','Reduce image size'],
