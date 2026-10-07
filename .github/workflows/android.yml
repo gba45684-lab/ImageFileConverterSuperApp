@@ -438,6 +438,35 @@ jobs:
           }
           }
 
+          private void postUpdateFailedNotification(Context context, String reason) {
+          NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+          if (Build.VERSION.SDK_INT >= 26) {
+          NotificationChannel channel = new NotificationChannel(CHANNEL_ID, "ImageMate updates", NotificationManager.IMPORTANCE_HIGH);
+          channel.enableVibration(true);
+          channel.setVibrationPattern(new long[]{0,250,120,250});
+          channel.setSound(android.provider.Settings.System.DEFAULT_NOTIFICATION_URI,
+            new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION).setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build());
+          nm.createNotificationChannel(channel);
+          }
+          Intent launch = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
+          PendingIntent pending = launch == null ? null : PendingIntent.getActivity(context, 2409, launch,
+            PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 23 ? PendingIntent.FLAG_IMMUTABLE : 0));
+          String detail = (reason == null || reason.isEmpty()) ? "Please try again." : reason;
+          NotificationCompat.Builder b = new NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(context.getApplicationInfo().icon)
+            .setContentTitle("ImageMate update failed")
+            .setContentText(detail)
+            .setAutoCancel(true).setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setVibrate(new long[]{0,250,120,250});
+          if (pending != null) b.setContentIntent(pending);
+          nm.notify(NOTIFICATION_ID + 2, b.build());
+          Vibrator v=(Vibrator)context.getSystemService(Context.VIBRATOR_SERVICE);
+          if(v!=null) {
+            if(Build.VERSION.SDK_INT>=26)v.vibrate(VibrationEffect.createWaveform(new long[]{0,250,120,250},-1));
+            else v.vibrate(new long[]{0,250,120,250},-1);
+          }
+          }
+
           private void launchDownloadedInstaller(Context context, File apk) {
           if (apk == null || !apk.exists()) return;
           if (Build.VERSION.SDK_INT >= 26 && !context.getPackageManager().canRequestPackageInstalls()) {
