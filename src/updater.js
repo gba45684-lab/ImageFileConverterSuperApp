@@ -5,6 +5,11 @@ const ImageMateUpdater = registerPlugin('ImageMateUpdater');
 export const isNativeAndroid = () =>
   Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
 
+export async function requestAndroidNotificationPermission() {
+  if (!isNativeAndroid()) return { supported: false, granted: true };
+  return ImageMateUpdater.requestNotificationPermission();
+}
+
 export async function notifyAndroidUpdate(version) {
   if (!isNativeAndroid()) return { supported: false };
   return ImageMateUpdater.notifyUpdate({ version });
