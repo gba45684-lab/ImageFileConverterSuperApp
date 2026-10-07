@@ -77,20 +77,19 @@ async function process(){
   }catch(e){console.error(e);alert('Could not process the selected image(s). Please try another format or smaller file.')}finally{btn.disabled=false;btn.textContent='Process & Download'}
 }
 
-const EXTRA_TOOLS=[['pdf2image','▣','PDF to Image','Export PDF pages as PNG or JPG'],['exif','◎','Metadata Cleaner','Create a metadata report before sharing'],['signature','✎','Signature Resize','Prepare signatures for forms'],['crop','⌗','Crop & Rotate','Quick image framing'],['ocr','T','OCR Text','Extract text from images'],['background','✦','Background Remover','Create clean subject images']];
+const EXTRA_TOOLS=[['pdf2image','▣','PDF to Image','Export PDF pages as PNG or JPG'],['exif','◎','Metadata Cleaner','Strip image metadata before sharing'],['signature','✎','Signature Resize','Prepare signatures for forms'],['crop','⌗','Crop & Rotate','Quick image framing'],['ocr','T','OCR Text','Extract text from images'],['background','✦','Background Remover','Create clean subject images']];
 function extraMarkup(){return '<section class="advanced"><div class="section-head"><div><span class="eyebrow">More utilities</span><h2>Everyday image tools</h2></div><span class="muted">Private by default</span></div><div class="tool-grid">'+EXTRA_TOOLS.map(t=>'<button class="tool-card" data-extra="'+t[0]+'"><span class="tool-icon">'+t[1]+'</span><strong>'+t[2]+'</strong><small>'+t[3]+'</small></button>').join('')+'</div></section>'}
 const _render=render;
-render=function(){_render();const main=document.querySelector('main');if(main&&!document.querySelector('.advanced')){main.insertAdjacentHTML('beforeend',extraMarkup());document.querySelectorAll('[data-extra]').forEach(b=>b.onclick=()=>{if(b.dataset.extra==='exif'){if(!S.files.length)return alert('Choose an image first.');convertSpecial(S.files[0],'exif')}else if(b.dataset.extra==='signature'||b.dataset.extra==='crop'){S.tool='resize';render()}else alert(b.textContent.trim()+' is queued for the next engine module.')})}};
+render=function(){_render();const main=document.querySelector('main');if(main&&!document.querySelector('.advanced')){main.insertAdjacentHTML('beforeend',extraMarkup());document.querySelectorAll('[data-extra]').forEach(b=>b.onclick=async()=>{const k=b.dataset.extra;if(k==='exif'){if(!S.files.length)return alert('Choose an image first.');await convertSpecial(S.files[0],'exif')}else if(k==='signature'){S.tool='resize';S.width='600';S.height='200';render()}else if(k==='crop'){S.tool='resize';render()}else if(k==='pdf2image'||k==='ocr'||k==='background'){await convertSpecial(S.files[0],k)}})}};
 render();
 // --- Advanced local utilities ---
 async function convertSpecial(file, kind){
-  if(kind==='pdf2image'){
-    alert('PDF → Image is coming next; current release safely handles image inputs only.');
-    return;
-  }
+  if(!file && kind!=='pdf2image')return alert('Choose a file first.');
+  if(kind==='pdf2image'){return alert('PDF → Image requires a PDF rendering engine; this release keeps PDF input disabled rather than pretending the conversion succeeded.');}
+  if(kind==='ocr'){return alert('OCR requires a language model/worker. The app currently keeps processing local and does not upload your image.');}
+  if(kind==='background'){return alert('Background removal requires a segmentation model. No image is uploaded in this release.');}
   if(kind==='exif'){
-    const meta='File: '+file.name+'\nType: '+file.type+'\nSize: '+Math.round(file.size/1024)+' KB';
-    const blob=new Blob([meta],{type:'text/plain'});
-    dl(blob,file.name.replace(/\.[^.]+$/,'')+'-metadata.txt');
+    const i=await img(file); const c=canvasFor(i); const out=await new Promise(r=>c.toBlob(r,'image/png'));
+    dl(out,file.name.replace(/\.[^.]+$/,'')+'-clean.png');
   }
 }
