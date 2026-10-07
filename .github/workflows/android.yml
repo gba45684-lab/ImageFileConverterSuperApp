@@ -130,7 +130,7 @@ jobs:
                     install.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_GRANT_READ_URI_PERMISSION);
                     context.startActivity(install);
                   }catch(Exception e){android.util.Log.e("ImageMateUpdater","Install failed",e);}
-                  finally{try{ContextCompat.unregisterReceiver(context,this);}catch(Exception ignored){}}
+                  finally{try{context.unregisterReceiver(this);}catch(Exception ignored){}}
                 }
               };
               ContextCompat.registerReceiver(context,receiver,new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),ContextCompat.RECEIVER_NOT_EXPORTED);
