@@ -350,9 +350,6 @@ jobs:
           context.startActivity(install);
           } catch(Exception e) { call.reject("Could not open Android installer: "+e.getMessage()); }
           }
-          }
-          }
-          }
           JAVA
 
       - name: Sync Capacitor
