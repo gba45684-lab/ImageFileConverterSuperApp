@@ -7,6 +7,8 @@ const app=document.querySelector('#app');
 const UPDATE_API='https://api.github.com/repos/gba45684-lab/ImageFileConverterSuperApp/releases/latest';
 const UPDATE_APK='https://github.com/gba45684-lab/ImageFileConverterSuperApp/releases/latest/download/ImageMate.apk';
 const APP_VERSION=packageJson.version;
+let updateCheckInFlight=false;
+let updateMonitorStarted=false;
 const tools=[
   ['convert','⇄','Convert','JPG, PNG, WebP, AVIF'],
   ['compress','◒','Compress','Reduce image size'],
@@ -34,6 +36,7 @@ function render(){
   const dt=document.querySelector('#downloads-tab'); if(dt) dt.onclick=()=>{S.view=S.view==='downloads'?'tools':'downloads'; render()};
   if(S.view==='downloads') renderDownloads();
   checkForAndroidUpdate();
+  startUpdateMonitor();
   initNativeAds().catch(()=>{});
 }
 function showInstantUpdatePopup(version, mode='download'){
@@ -70,7 +73,8 @@ function showInstantUpdatePopup(version, mode='download'){
   if(navigator.vibrate)navigator.vibrate([250,120,250]);
 }
 async function checkForAndroidUpdate(){
-  if(!isNativeAndroid())return;
+  if(!isNativeAndroid()||updateCheckInFlight)return;
+  updateCheckInFlight=true;
   try{
     const ready=await hasDownloadedAndroidUpdate().catch(()=>({ready:false}));
     const b=document.querySelector('#update-btn');
@@ -80,7 +84,7 @@ async function checkForAndroidUpdate(){
       showInstantUpdatePopup('downloaded update','install');
       return;
     }
-    const r=await fetch(UPDATE_API,{headers:{Accept:'application/vnd.github+json'}});
+    const r=await fetch(UPDATE_API+'?imagemate='+Date.now(),{cache:'no-store',headers:{Accept:'application/vnd.github+json'}});
     if(!r.ok)return;
     const release=await r.json();
     const latest=String(release.tag_name||'').replace(/^v/i,'');
@@ -100,6 +104,13 @@ async function checkForAndroidUpdate(){
       }
     };
   }catch(e){console.debug('ImageMate update check skipped',e)}
+  finally{updateCheckInFlight=false}
+}
+function startUpdateMonitor(){
+  if(updateMonitorStarted||!isNativeAndroid())return;
+  updateMonitorStarted=true;
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkForAndroidUpdate()});
+  setInterval(()=>{if(document.visibilityState==='visible')checkForAndroidUpdate()},60000);
 }
 function isNewerVersion(latest,current){
   const a=String(latest).split('.').map(n=>parseInt(n,10)||0),b=String(current).split('.').map(n=>parseInt(n,10)||0);
