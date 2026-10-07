@@ -29,3 +29,8 @@ export async function saveProcessedFile(name, mime, base64) {
   if (!isNativeAndroid()) return { supported: false };
   return ImageMateUpdater.saveProcessedFile({ name, mime, base64 });
 }
+
+export async function listDownloadedFiles() { if (!isNativeAndroid()) return { supported:false, files:[] }; return ImageMateUpdater.listDownloadedFiles(); }
+export async function openDownloadedFile(path) { if (!isNativeAndroid()) return { supported:false }; return ImageMateUpdater.openDownloadedFile({ path }); }
+export async function shareDownloadedFile(path) { if (!isNativeAndroid()) return { supported:false }; return ImageMateUpdater.shareDownloadedFile({ path }); }
+export async function exportDownloadedFile(path,name,mime) { if (!isNativeAndroid()) return { supported:false }; return ImageMateUpdater.exportDownloadedFile({ path,name,mime }); }
