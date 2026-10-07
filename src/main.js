@@ -93,57 +93,85 @@ async function pdf(files){const {jsPDF}=await import('jspdf');const doc=new jsPD
 function name(n,e){return n.replace(/\.[^.]+$/,'')+'.'+e}
 async function processBatchZip(){if(!S.files.length)return alert('Choose at least one image.');const btn=document.querySelector('#zip');btn.disabled=true;btn.textContent='Creating ZIP…';try{const {default:JSZip}=await import('jszip');const zip=new JSZip();for(const f of S.files){const i=await img(f);let w=i.naturalWidth,h=i.naturalHeight;if(S.tool==='resize'){w=+S.width||w;h=+S.height||Math.round(i.naturalHeight*w/i.naturalWidth)}if(S.tool==='passport'){w=+S.width||413;h=+S.height||531}let type=S.tool==='convert'?S.format:'image/jpeg';let b=await blob(i,type,S.quality,w,h);if(S.tool==='target'){const max=S.target*1024;let lo=.05,hi=.95;for(let x=0;x<10&&b.size>max;x++){const qq=(lo+hi)/2;b=await blob(i,'image/jpeg',qq,w,h);if(b.size>max)hi=qq;else lo=qq}}zip.file(name(f.name,label(type).toLowerCase()),b)}dl(await zip.generateAsync({type:'blob',compression:'DEFLATE'}),'imagemate-'+S.tool+'-batch.zip');await maybeShowTestInterstitial()}catch(e){console.error(e);alert('Could not create the ZIP. Please try fewer or smaller images.')}finally{btn.disabled=false;btn.textContent='Download ZIP'}}
 async function process(){
-  if(!S.files.length)return alert('Choose at least one image.');
-  const btn=document.querySelector('#process');btn.disabled=true;btn.textContent='Processing…';
+  if(!S.files.length)return alert(S.tool==='pdf2image'?'Choose a PDF first.':'Choose at least one file.');
+  const btn=document.querySelector('#process');if(btn){btn.disabled=true;btn.textContent='Processing…'}
   try{
-    if(S.tool==='pdf'){await pdf(S.files);return}
+    if(S.tool==='pdf'){await pdf(S.files);showResult('PDF created','Your PDF has been downloaded.');return}
+    if(['pdf2image','ocr','exif','background'].includes(S.tool)){
+      for(const f of S.files)await convertSpecial(f,S.tool);
+      return;
+    }
     for(const f of S.files){
       const i=await img(f);let w=i.naturalWidth,h=i.naturalHeight;
-      if(S.tool==='resize'){w=+S.width||w;h=+S.height||Math.round(i.naturalHeight*w/i.naturalWidth)}
-      if(S.tool==='passport'){w=+S.width||413;h=+S.height||531}
-      let type=S.tool==='convert'?S.format:'image/jpeg';let b=await blob(i,type,S.quality,w,h);
-      if(S.tool==='target'){const max=S.target*1024;let lo=.05,hi=.95;for(let x=0;x<8&&b.size>max;x++){const qq=(lo+hi)/2;b=await blob(i,'image/jpeg',qq,w,h);if(b.size>max)hi=qq;else lo=qq}}
+      if(['resize','signature','passport','crop'].includes(S.tool)){
+        w=+S.width||w;
+        h=+S.height||(S.tool==='signature'?200:S.tool==='passport'?531:Math.round(i.naturalHeight*w/i.naturalWidth));
+      }
+      let type=S.tool==='convert'?S.format:'image/jpeg';
+      let b=await blob(i,type,S.quality,w,h);
+      if(S.tool==='crop'&&S.rotation)b=await rotatedBlob(i,S.rotation,type,S.quality);
+      if(S.tool==='target'){
+        const max=S.target*1024;let lo=.05,hi=.95;
+        for(let x=0;x<10&&b.size>max;x++){const qq=(lo+hi)/2;b=await blob(i,'image/jpeg',qq,w,h);if(b.size>max)hi=qq;else lo=qq}
+      }
       dl(b,name(f.name,label(type).toLowerCase()));
     }
     localStorage.setItem('imagemate-last-used',new Date().toISOString());
     await maybeShowTestInterstitial();
-  }catch(e){console.error(e);alert('Could not process the selected image(s). Please try another format or smaller file.')}finally{btn.disabled=false;btn.textContent='Process & Download'}
+    showResult('Files ready','Your processed files have been downloaded.');
+  }catch(e){console.error(e);alert('Could not process the selected file(s). '+(e?.message||'Please try another file.'))}
+  finally{if(btn){btn.disabled=false;btn.textContent=S.tool==='ocr'?'Extract Text':S.tool==='pdf2image'?'Convert Pages':'Process & Download'}}
 }
-
-async function convertSpecial(file, kind){
-  if(!file && kind!=='pdf2image')return alert('Choose a file first.');
+function rotatedBlob(i,deg,type,q){
+  const swap=deg%180!==0,c=document.createElement('canvas');c.width=swap?i.naturalHeight:i.naturalWidth;c.height=swap?i.naturalWidth:i.naturalHeight;
+  const x=c.getContext('2d');x.translate(c.width/2,c.height/2);x.rotate(deg*Math.PI/180);x.drawImage(i,-i.naturalWidth/2,-i.naturalHeight/2);
+  return new Promise(r=>c.toBlob(r,type,q));
+}
+function showResult(title,body){
+  const old=document.querySelector('.result-card');if(old)old.remove();
+  document.querySelector('.workspace').insertAdjacentHTML('beforeend','<div class="result-card"><div class="result-head"><b>'+esc(title)+'</b><span class="success">✓ Done</span></div><div class="result-body">'+body+'</div></div>');
+}
+async function convertSpecial(file,kind){
+  if(!file)return;
   if(kind==='pdf2image'){
-    if(!file)return alert('Choose a PDF first.');
     const {getDocument,GlobalWorkerOptions}=await import('pdfjs-dist');
     GlobalWorkerOptions.workerSrc=new URL('pdfjs-dist/build/pdf.worker.mjs',import.meta.url).toString();
-    const data=await file.arrayBuffer();
-    const doc=await getDocument({data}).promise;
+    const doc=await getDocument({data:await file.arrayBuffer()}).promise;
     for(let pageNo=1;pageNo<=doc.numPages;pageNo++){
-      const page=await doc.getPage(pageNo);
-      const viewport=page.getViewport({scale:S.pdfScale});
+      const page=await doc.getPage(pageNo),viewport=page.getViewport({scale:S.pdfScale});
       const canvas=document.createElement('canvas');canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);
       await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;
-      const blob=await new Promise(r=>canvas.toBlob(r,S.pdfFormat,S.pdfFormat==='image/jpeg'?.92:undefined));
-      dl(blob,file.name.replace(/\\.pdf$/i,'')+'-page-'+pageNo+'.'+(S.pdfFormat==='image/png'?'png':'jpg'));
+      const out=await new Promise(r=>canvas.toBlob(r,S.pdfFormat,S.pdfFormat==='image/jpeg'?.92:undefined));
+      dl(out,file.name.replace(/\.pdf$/i,'')+'-page-'+pageNo+'.'+(S.pdfFormat==='image/png'?'png':'jpg'));
     }
+    showResult('PDF converted','Downloaded '+doc.numPages+' page image'+(doc.numPages===1?'':'s')+'.');
     return;
   }
   if(kind==='ocr'){
-    if(!file)return alert('Choose an image first.');
     const {createWorker}=await import('tesseract.js');
-    const worker=await createWorker('eng',{logger:m=>{if(m.status)console.log('OCR',m.status,Math.round((m.progress||0)*100)+'%')}});
+    const worker=await createWorker('eng');
     try{
       const result=await worker.recognize(await normalizeImageFile(file));
       const text=result.data.text.trim();
-      const box=document.createElement('div');box.className='result-card';box.innerHTML='<div class="result-head"><b>OCR result</b><button class="secondary" id="download-ocr">Download TXT</button></div><textarea id="ocr-output" rows="12"></textarea>';
-      document.querySelector('.workspace').appendChild(box);document.querySelector('#ocr-output').value=text||'No text detected.';
-      document.querySelector('#download-ocr').onclick=()=>{const blob=new Blob([text||'No text detected.'],{type:'text/plain;charset=utf-8'});dl(blob,file.name.replace(/\\.[^.]+$/,'')+'-ocr.txt')};
+      showResult('OCR result','<textarea id="ocr-output" rows="12">'+esc(text||'No text detected.')+'</textarea><div class="result-actions"><button class="secondary" id="download-ocr">Download TXT</button></div>');
+      document.querySelector('#download-ocr').onclick=()=>dl(new Blob([text||'No text detected.'],{type:'text/plain;charset=utf-8'}),file.name.replace(/\.[^.]+$/,'')+'-ocr.txt');
     }finally{await worker.terminate()}
     return;
   }
-  if(kind==='background'){return alert('Background removal is staged for the next release while the commercial model/license is finalized. No image is uploaded.');}
   if(kind==='exif'){
-    const i=await img(file); const c=canvasFor(i); const out=await new Promise(r=>c.toBlob(r,'image/png'));
+    const i=await img(file),out=await new Promise(r=>canvasFor(i).toBlob(r,'image/png'));
     dl(out,file.name.replace(/\.[^.]+$/,'')+'-clean.png');
+    showResult('Metadata removed','A clean PNG copy was downloaded without the original embedded metadata.');
+    return;
+  }
+  if(kind==='background'){
+    const i=await img(file),c=document.createElement('canvas');c.width=i.naturalWidth;c.height=i.naturalHeight;
+    const x=c.getContext('2d');x.drawImage(i,0,0);const d=x.getImageData(0,0,c.width,c.height),p=d.data;
+    const samples=[];for(const [xx,yy] of [[0,0],[c.width-1,0],[0,c.height-1],[c.width-1,c.height-1]]){const n=(yy*c.width+xx)*4;samples.push([p[n],p[n+1],p[n+2]])}
+    const bg=samples.reduce((a,b)=>a.map((v,j)=>v+b[j]/samples.length),[0,0,0]);
+    for(let n=0;n<p.length;n+=4){const dist=Math.abs(p[n]-bg[0])+Math.abs(p[n+1]-bg[1])+Math.abs(p[n+2]-bg[2]);if(dist<42)p[n+3]=0}
+    x.putImageData(d,0,0);const out=await new Promise(r=>c.toBlob(r,'image/png'));
+    dl(out,file.name.replace(/\.[^.]+$/,'')+'-background-removed.png');
+    showResult('Background removed','A transparent PNG was downloaded. Best results come from simple, uniform backgrounds.');
   }
 }
