@@ -36,6 +36,39 @@ function render(){
   checkForAndroidUpdate();
   initNativeAds().catch(()=>{});
 }
+function showInstantUpdatePopup(version, mode='download'){
+  if(document.querySelector('#update-popup'))return;
+  const installMode=mode==='install';
+  const overlay=document.createElement('div');
+  overlay.id='update-popup';
+  overlay.innerHTML='<div style="position:fixed;inset:0;z-index:99999;background:rgba(7,8,18,.62);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px">'+
+    '<div style="width:min(440px,100%);background:var(--card,#fff);color:var(--text,#111);border-radius:24px;padding:26px;box-shadow:0 24px 80px rgba(0,0,0,.35)">'+
+    '<div style="font-size:34px;margin-bottom:8px">🚀</div>'+
+    '<div style="font-size:12px;font-weight:800;letter-spacing:.12em;opacity:.65">IMAGEMATE UPDATE</div>'+
+    '<h2 style="margin:7px 0 8px">New version '+esc(version)+' is available</h2>'+
+    '<p style="margin:0 0 20px;line-height:1.55;opacity:.72">'+(installMode?'The update is already downloaded and ready to install.':'A new ImageMate version is ready. Update now to get the latest fixes and features.')+'</p>'+
+    '<div style="display:flex;gap:10px;justify-content:flex-end">'+
+    '<button id="update-later" class="secondary">Later</button>'+
+    '<button id="update-now" class="primary">'+(installMode?'Install now':'Update now')+'</button>'+
+    '</div></div></div>';
+  document.body.appendChild(overlay);
+  const close=()=>overlay.remove();
+  document.querySelector('#update-later').onclick=close;
+  document.querySelector('#update-now').onclick=async()=>{
+    const btn=document.querySelector('#update-now');if(!btn)return;
+    btn.disabled=true;btn.textContent=installMode?'Opening installer…':'Downloading…';
+    try{
+      if(installMode){await installDownloadedAndroidUpdate();return;}
+      await downloadLatestAndroidUpdate(UPDATE_APK);
+      btn.textContent='Downloading in background…';
+      setTimeout(close,700);
+    }catch(e){
+      console.error(e);btn.disabled=false;btn.textContent=installMode?'Install now':'Update now';
+      alert('Unable to start the update. Please try again.');
+    }
+  };
+  if(navigator.vibrate)navigator.vibrate([250,120,250]);
+}
 async function checkForAndroidUpdate(){
   if(!isNativeAndroid())return;
   try{
@@ -43,32 +76,23 @@ async function checkForAndroidUpdate(){
     const b=document.querySelector('#update-btn');
     if(ready?.ready&&b){
       b.hidden=false;b.disabled=false;b.textContent='Install update';
-      b.onclick=async()=>{
-        b.disabled=true;b.textContent='Installing…';
-        try{await installDownloadedAndroidUpdate();}catch(e){console.error(e);b.disabled=false;b.textContent='Install update';}
-      };
+      b.onclick=async()=>{b.disabled=true;b.textContent='Installing…';try{await installDownloadedAndroidUpdate();}catch(e){console.error(e);b.disabled=false;b.textContent='Install update';}};
+      showInstantUpdatePopup('downloaded update','install');
       return;
     }
     const r=await fetch(UPDATE_API,{headers:{Accept:'application/vnd.github+json'}});
     if(!r.ok)return;
     const release=await r.json();
     const latest=String(release.tag_name||'').replace(/^v/i,'');
-    if(!latest||!isNewerVersion(latest,APP_VERSION))return;
-    if(!b)return;
+    if(!latest||!isNewerVersion(latest,APP_VERSION)||!b)return;
     b.hidden=false;b.disabled=false;b.textContent='Update available';
-    try{
-      const permission=await requestAndroidNotificationPermission();
-      if(permission?.requested) await new Promise(resolve=>setTimeout(resolve,900));
-      await notifyAndroidUpdate(latest);
-    }catch(e){console.debug('Update notification skipped',e)}
-    if(navigator.vibrate) navigator.vibrate([250,120,250]);
+    showInstantUpdatePopup(latest,'download');
+    try{await notifyAndroidUpdate(latest);}catch(e){console.debug('Update notification skipped',e)}
     b.onclick=async()=>{
       b.disabled=true;b.textContent='Downloading…';
       try{
         await downloadLatestAndroidUpdate(UPDATE_APK);
-        b.textContent='Downloading…';
-        // Native Android automatically opens the installer when the download finishes.
-        // Keep the app screen open while DownloadManager handles the background download.
+        b.textContent='Update downloading…';
         setTimeout(()=>{if(b){b.disabled=false;b.textContent='Update downloading…'}},1500);
       }catch(e){
         console.error(e);b.disabled=false;b.textContent='Update available';
