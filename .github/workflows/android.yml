@@ -16,17 +16,32 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Install
+      - name: Install dependencies
         run: npm install
       - name: Build web app
         run: npm run build
-      - name: Install Capacitor
-        run: npm install @capacitor/core @capacitor/cli @capacitor/android
       - name: Initialize Capacitor
         run: npx cap init ImageMate com.gba45684.imagemate --web-dir dist
       - name: Add Android
         run: npx cap add android
-      - name: Sync Android
+      - name: Configure Google AdMob test app
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          manifest = Path('android/app/src/main/AndroidManifest.xml')
+          text = manifest.read_text()
+          marker = '<meta-data android:name="com.google.android.gms.ads.APPLICATION_ID"'
+          if marker not in text:
+              text = text.replace('</application>', '    <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="@string/admob_app_id" />\\n  </application>')
+          manifest.write_text(text)
+          values = Path('android/app/src/main/res/values/strings.xml')
+          values_text = values.read_text()
+          if 'name="admob_app_id"' not in values_text:
+              values_text = values_text.replace('</resources>', '    <string name="admob_app_id">ca-app-pub-3940256099942544~3347511713</string>\\n</resources>')
+          values.write_text(values_text)
+          PY
+      - name: Sync Capacitor plugins
         run: npx cap sync android
       - name: Build debug APK
         working-directory: android
