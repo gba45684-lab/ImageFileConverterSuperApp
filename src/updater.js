@@ -14,3 +14,8 @@ export async function installLatestAndroidUpdate(url) {
   if (!isNativeAndroid()) return { supported: false };
   return ImageMateUpdater.downloadAndInstall({ url });
 }
+
+export async function saveProcessedFile(name, mime, base64) {
+  if (!isNativeAndroid()) return { supported: false };
+  return ImageMateUpdater.saveProcessedFile({ name, mime, base64 });
+}
