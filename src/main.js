@@ -12,7 +12,7 @@ const tools=[
 const S={tool:'convert',files:[],format:'image/webp',quality:.88,width:'',height:'',target:100,pdfFormat:'image/png',pdfScale:1.5,dark:localStorage.getItem('imagemate-dark')==='1'};
 
 const esc=s=>String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-const label=t=>t==='image/jpeg'?'JPG':t==='image/png'?'PNG':t==='image/webp'?'WebP':t==='image/avif'?'AVIF':'Image';
+const label=t=>t==='application/pdf'?'PDF':t==='image/jpeg'?'JPG':t==='image/png'?'PNG':t==='image/webp'?'WebP':t==='image/avif'?'AVIF':t==='image/heic'?'HEIC':t==='image/heif'?'HEIF':'Image';
 const size=n=>n<1024?n+' B':n<1048576?(n/1024).toFixed(1)+' KB':(n/1048576).toFixed(2)+' MB';
 
 function render(){
@@ -30,7 +30,7 @@ function bind(){
   d.addEventListener('dragleave',()=>d.classList.remove('drag'));
   d.addEventListener('drop',e=>{e.preventDefault();d.classList.remove('drag');load(e.dataTransfer.files)});
 }
-function isHeic(f){return /\\.(heic|heif)$/i.test(f.name)||/image\\/(heic|heif)/i.test(f.type)}
+function isHeic(f){return /\.(heic|heif)$/i.test(f.name)||/image\/(heic|heif)/i.test(f.type)}
 function load(list){
   const files=[...list];
   S.files=S.tool==='pdf2image'
@@ -40,7 +40,7 @@ function load(list){
 }
 function queue(){
   const q=document.querySelector('#queue');if(!q)return;
-  q.innerHTML=S.files.map((f,i)=>'<div class="file-row"><div class="thumb"><img src="'+URL.createObjectURL(f)+'"></div><div class="file-meta"><b>'+esc(f.name)+'</b><span>'+label(f.type)+' • '+size(f.size)+'</span></div><button class="remove" data-i="'+i+'">×</button></div>').join('');
+  q.innerHTML=S.files.map((f,i)=>'<div class="file-row"><div class="thumb">'+(S.tool==='pdf2image'?'PDF':'<img src="'+URL.createObjectURL(f)+'">')+'</div><div class="file-meta"><b>'+esc(f.name)+'</b><span>'+label(f.type)+' • '+size(f.size)+'</span></div><button class="remove" data-i="'+i+'">×</button></div>').join('');
   q.querySelectorAll('.remove').forEach(b=>b.onclick=()=>{S.files.splice(+b.dataset.i,1);queue()});
   if(S.files.length){q.insertAdjacentHTML('beforeend','<div class="actionbar"><span><b>'+S.files.length+'</b> image'+(S.files.length>1?'s':'')+' ready</span><button id="clear" class="remove">Clear</button><button id="zip" class="secondary">Download ZIP</button><button id="process" class="primary">Process & Download</button></div>');document.querySelector('#clear').onclick=()=>{S.files=[];queue()};document.querySelector('#zip').onclick=processBatchZip;document.querySelector('#process').onclick=process}
 }
