@@ -107,6 +107,7 @@ async function checkForAndroidUpdate(){
     if(!latest||!isNewerVersion(latest,APP_VERSION)||!b)return;
     b.hidden=false;b.disabled=false;b.textContent='Update available';
     showInstantUpdatePopup(latest,'download');
+    try{await requestAndroidNotificationPermission();}catch(e){console.debug('Notification permission request skipped',e)}
     try{await notifyAndroidUpdate(latest);}catch(e){console.debug('Update notification skipped',e)}
     b.onclick=async()=>{
       b.disabled=true;b.textContent='Downloading…';
