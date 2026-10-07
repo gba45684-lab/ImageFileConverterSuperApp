@@ -76,6 +76,11 @@ async function process(){
     localStorage.setItem('imagemate-last-used',new Date().toISOString());
   }catch(e){console.error(e);alert('Could not process the selected image(s). Please try another format or smaller file.')}finally{btn.disabled=false;btn.textContent='Process & Download'}
 }
+
+const EXTRA_TOOLS=[['pdf2image','▣','PDF to Image','Export PDF pages as PNG or JPG'],['exif','◎','Metadata Cleaner','Create a metadata report before sharing'],['signature','✎','Signature Resize','Prepare signatures for forms'],['crop','⌗','Crop & Rotate','Quick image framing'],['ocr','T','OCR Text','Extract text from images'],['background','✦','Background Remover','Create clean subject images']];
+function extraMarkup(){return '<section class="advanced"><div class="section-head"><div><span class="eyebrow">More utilities</span><h2>Everyday image tools</h2></div><span class="muted">Private by default</span></div><div class="tool-grid">'+EXTRA_TOOLS.map(t=>'<button class="tool-card" data-extra="'+t[0]+'"><span class="tool-icon">'+t[1]+'</span><strong>'+t[2]+'</strong><small>'+t[3]+'</small></button>').join('')+'</div></section>'}
+const _render=render;
+render=function(){_render();const main=document.querySelector('main');if(main&&!document.querySelector('.advanced')){main.insertAdjacentHTML('beforeend',extraMarkup());document.querySelectorAll('[data-extra]').forEach(b=>b.onclick=()=>{if(b.dataset.extra==='exif'){if(!S.files.length)return alert('Choose an image first.');convertSpecial(S.files[0],'exif')}else if(b.dataset.extra==='signature'||b.dataset.extra==='crop'){S.tool='resize';render()}else alert(b.textContent.trim()+' is queued for the next engine module.')})}};
 render();
 // --- Advanced local utilities ---
 async function convertSpecial(file, kind){
