@@ -547,7 +547,8 @@ jobs:
 
       - name: Build debug APK
         working-directory: android
-        run: ./gradlew assembleDebug --stacktrace
+        timeout-minutes: 15
+        run: ./gradlew assembleDebug --stacktrace --no-daemon
 
       - name: Verify APK
         shell: bash
