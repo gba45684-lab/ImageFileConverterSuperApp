@@ -99,118 +99,118 @@ jobs:
           cat > android/app/src/main/java/com/gba45684/imagemate/ImageMateUpdaterPlugin.java <<'JAVA'
           package com.gba45684.imagemate;
 
-import android.app.DownloadManager;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.media.AudioAttributes;
-import android.net.Uri;
-import android.os.Build;
-import android.os.Bundle;
-import android.os.Environment;
-import android.os.VibrationEffect;
-import android.os.Vibrator;
-import android.provider.Settings;
-import androidx.core.app.NotificationCompat;
-import androidx.core.content.ContextCompat;
-import androidx.core.content.FileProvider;
-import com.getcapacitor.JSObject;
-import com.getcapacitor.Plugin;
-import com.getcapacitor.PluginCall;
-import com.getcapacitor.PluginMethod;
-import com.getcapacitor.annotation.CapacitorPlugin;
-import java.io.File;
+          import android.app.DownloadManager;
+          import android.app.NotificationChannel;
+          import android.app.NotificationManager;
+          import android.app.PendingIntent;
+          import android.content.BroadcastReceiver;
+          import android.content.Context;
+          import android.content.Intent;
+          import android.content.IntentFilter;
+          import android.media.AudioAttributes;
+          import android.net.Uri;
+          import android.os.Build;
+          import android.os.Bundle;
+          import android.os.Environment;
+          import android.os.VibrationEffect;
+          import android.os.Vibrator;
+          import android.provider.Settings;
+          import androidx.core.app.NotificationCompat;
+          import androidx.core.content.ContextCompat;
+          import androidx.core.content.FileProvider;
+          import com.getcapacitor.JSObject;
+          import com.getcapacitor.Plugin;
+          import com.getcapacitor.PluginCall;
+          import com.getcapacitor.PluginMethod;
+          import com.getcapacitor.annotation.CapacitorPlugin;
+          import java.io.File;
 
-@CapacitorPlugin(name = "ImageMateUpdater")
-public class ImageMateUpdaterPlugin extends Plugin {
-  private static final String CHANNEL_ID = "imagemate_updates";
-  private static final int NOTIFICATION_ID = 2407;
+          @CapacitorPlugin(name = "ImageMateUpdater")
+          public class ImageMateUpdaterPlugin extends Plugin {
+          private static final String CHANNEL_ID = "imagemate_updates";
+          private static final int NOTIFICATION_ID = 2407;
 
-  @PluginMethod
-  public void notifyUpdate(PluginCall call) {
-    String version = call.getString("version", "");
-    Context context = getContext();
-    NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+          @PluginMethod
+          public void notifyUpdate(PluginCall call) {
+          String version = call.getString("version", "");
+          Context context = getContext();
+          NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 
-    if (Build.VERSION.SDK_INT >= 26) {
-      NotificationChannel channel = new NotificationChannel(
-        CHANNEL_ID, "ImageMate updates", NotificationManager.IMPORTANCE_HIGH
-      );
-      channel.setDescription("Notifications for new ImageMate app versions");
-      channel.enableVibration(true);
-      channel.setVibrationPattern(new long[]{0,250,120,250});
-      channel.setSound(
-        android.provider.Settings.System.DEFAULT_NOTIFICATION_URI,
-        new AudioAttributes.Builder()
+          if (Build.VERSION.SDK_INT >= 26) {
+          NotificationChannel channel = new NotificationChannel(
+          CHANNEL_ID, "ImageMate updates", NotificationManager.IMPORTANCE_HIGH
+          );
+          channel.setDescription("Notifications for new ImageMate app versions");
+          channel.enableVibration(true);
+          channel.setVibrationPattern(new long[]{0,250,120,250});
+          channel.setSound(
+          android.provider.Settings.System.DEFAULT_NOTIFICATION_URI,
+          new AudioAttributes.Builder()
           .setUsage(AudioAttributes.USAGE_NOTIFICATION)
           .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
           .build()
-      );
-      nm.createNotificationChannel(channel);
-    }
+          );
+          nm.createNotificationChannel(channel);
+          }
 
-    Intent launch = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
-    PendingIntent pending = launch == null ? null : PendingIntent.getActivity(
-      context, 2407, launch,
-      PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 23 ? PendingIntent.FLAG_IMMUTABLE : 0)
-    );
+          Intent launch = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
+          PendingIntent pending = launch == null ? null : PendingIntent.getActivity(
+          context, 2407, launch,
+          PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 23 ? PendingIntent.FLAG_IMMUTABLE : 0)
+          );
 
-    NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
-      .setSmallIcon(context.getApplicationInfo().icon)
-      .setContentTitle("ImageMate update available")
-      .setContentText("Version " + version + " is ready. Tap Update in ImageMate to install it.")
-      .setPriority(NotificationCompat.PRIORITY_HIGH)
-      .setAutoCancel(true)
-      .setVibrate(new long[]{0,250,120,250});
-    if (pending != null) builder.setContentIntent(pending);
-    nm.notify(NOTIFICATION_ID, builder.build());
+          NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
+          .setSmallIcon(context.getApplicationInfo().icon)
+          .setContentTitle("ImageMate update available")
+          .setContentText("Version " + version + " is ready. Tap Update in ImageMate to install it.")
+          .setPriority(NotificationCompat.PRIORITY_HIGH)
+          .setAutoCancel(true)
+          .setVibrate(new long[]{0,250,120,250});
+          if (pending != null) builder.setContentIntent(pending);
+          nm.notify(NOTIFICATION_ID, builder.build());
 
-    try {
-      Vibrator vibrator = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
-      if (vibrator != null && vibrator.hasVibrator()) {
-        if (Build.VERSION.SDK_INT >= 26) vibrator.vibrate(VibrationEffect.createWaveform(new long[]{0,250,120,250}, -1));
-        else vibrator.vibrate(new long[]{0,250,120,250}, -1);
-      }
-    } catch (Exception ignored) {}
+          try {
+          Vibrator vibrator = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
+          if (vibrator != null && vibrator.hasVibrator()) {
+          if (Build.VERSION.SDK_INT >= 26) vibrator.vibrate(VibrationEffect.createWaveform(new long[]{0,250,120,250}, -1));
+          else vibrator.vibrate(new long[]{0,250,120,250}, -1);
+          }
+          } catch (Exception ignored) {}
 
-    JSObject result = new JSObject();
-    result.put("notified", true);
-    result.put("version", version);
-    call.resolve(result);
-  }
+          JSObject result = new JSObject();
+          result.put("notified", true);
+          result.put("version", version);
+          call.resolve(result);
+          }
 
-  @PluginMethod
-  public void downloadAndInstall(PluginCall call) {
-    String url = call.getString("url");
-    if (url == null || url.isEmpty()) { call.reject("Update URL is missing"); return; }
-    Context context = getContext();
+          @PluginMethod
+          public void downloadAndInstall(PluginCall call) {
+          String url = call.getString("url");
+          if (url == null || url.isEmpty()) { call.reject("Update URL is missing"); return; }
+          Context context = getContext();
 
-    if (Build.VERSION.SDK_INT >= 26 && !context.getPackageManager().canRequestPackageInstalls()) {
-      Intent settings = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-        Uri.parse("package:" + context.getPackageName()));
-      settings.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-      context.startActivity(settings);
-      call.resolve();
-      return;
-    }
+          if (Build.VERSION.SDK_INT >= 26 && !context.getPackageManager().canRequestPackageInstalls()) {
+          Intent settings = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+          Uri.parse("package:" + context.getPackageName()));
+          settings.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+          context.startActivity(settings);
+          call.resolve();
+          return;
+          }
 
-    DownloadManager dm = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
-    DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
-    request.setTitle("ImageMate update");
-    request.setDescription("Downloading the latest ImageMate APK");
-    request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-    request.setMimeType("application/vnd.android.package-archive");
-    request.setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, "ImageMate-latest.apk");
-    final long id = dm.enqueue(request);
+          DownloadManager dm = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
+          DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
+          request.setTitle("ImageMate update");
+          request.setDescription("Downloading the latest ImageMate APK");
+          request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+          request.setMimeType("application/vnd.android.package-archive");
+          request.setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, "ImageMate-latest.apk");
+          final long id = dm.enqueue(request);
 
-    final BroadcastReceiver receiver = new BroadcastReceiver() {
-      @Override public void onReceive(Context c, Intent intent) {
-        if (intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1) != id) return;
-        try {
+          final BroadcastReceiver receiver = new BroadcastReceiver() {
+          @Override public void onReceive(Context c, Intent intent) {
+          if (intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1) != id) return;
+          try {
           DownloadManager.Query q = new DownloadManager.Query().setFilterById(id);
           android.database.Cursor cursor = dm.query(q);
           if (cursor == null || !cursor.moveToFirst()) { if (cursor != null) cursor.close(); return; }
@@ -224,32 +224,32 @@ public class ImageMateUpdaterPlugin extends Plugin {
           install.setDataAndType(contentUri, "application/vnd.android.package-archive");
           install.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
           context.startActivity(install);
-        } catch (Exception e) {
+          } catch (Exception e) {
           android.util.Log.e("ImageMateUpdater", "Install failed", e);
-        } finally {
+          } finally {
           try { context.unregisterReceiver(this); } catch (Exception ignored) {}
-        }
-      }
-    };
-    ContextCompat.registerReceiver(context, receiver,
-      new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
-      ContextCompat.RECEIVER_NOT_EXPORTED);
+          }
+          }
+          };
+          ContextCompat.registerReceiver(context, receiver,
+          new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
+          ContextCompat.RECEIVER_NOT_EXPORTED);
 
-    JSObject result = new JSObject();
-    result.put("started", true);
-    result.put("downloadId", id);
-    call.resolve(result);
-  }
-}
+          JSObject result = new JSObject();
+          result.put("started", true);
+          result.put("downloadId", id);
+          call.resolve(result);
+          }
+          }
           JAVA
           cat > android/app/src/main/java/com/gba45684/imagemate/MainActivity.java <<'JAVA'
           package com.gba45684.imagemate;
           import com.getcapacitor.BridgeActivity;
           public class MainActivity extends BridgeActivity {
-            @Override public void onCreate(android.os.Bundle savedInstanceState) {
-              registerPlugin(ImageMateUpdaterPlugin.class);
-              super.onCreate(savedInstanceState);
-            }
+          @Override public void onCreate(android.os.Bundle savedInstanceState) {
+          registerPlugin(ImageMateUpdaterPlugin.class);
+          super.onCreate(savedInstanceState);
+          }
           }
           JAVA
 
