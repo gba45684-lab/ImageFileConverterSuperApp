@@ -77,3 +77,15 @@ async function process(){
   }catch(e){console.error(e);alert('Could not process the selected image(s). Please try another format or smaller file.')}finally{btn.disabled=false;btn.textContent='Process & Download'}
 }
 render();
+// --- Advanced local utilities ---
+async function convertSpecial(file, kind){
+  if(kind==='pdf2image'){
+    alert('PDF → Image is coming next; current release safely handles image inputs only.');
+    return;
+  }
+  if(kind==='exif'){
+    const meta='File: '+file.name+'\nType: '+file.type+'\nSize: '+Math.round(file.size/1024)+' KB';
+    const blob=new Blob([meta],{type:'text/plain'});
+    dl(blob,file.name.replace(/\.[^.]+$/,'')+'-metadata.txt');
+  }
+}
