@@ -33,6 +33,7 @@ function bind(){
   document.querySelector('#choose').onclick=()=>document.querySelector('#file').click();
   document.querySelector('#file').onchange=e=>load(e.target.files);
   const d=document.querySelector('#drop');
+  if(S.tool==='pdf2image')d.querySelector('h3').textContent='Drop a PDF here';
   d.addEventListener('dragover',e=>{e.preventDefault();d.classList.add('drag')});
   d.addEventListener('dragleave',()=>d.classList.remove('drag'));
   d.addEventListener('drop',e=>{e.preventDefault();d.classList.remove('drag');load(e.dataTransfer.files)});
@@ -49,24 +50,31 @@ function queue(){
   const q=document.querySelector('#queue');if(!q)return;
   q.innerHTML=S.files.map((f,i)=>'<div class="file-row"><div class="thumb">'+(S.tool==='pdf2image'?'PDF':'<img src="'+URL.createObjectURL(f)+'">')+'</div><div class="file-meta"><b>'+esc(f.name)+'</b><span>'+label(f.type)+' • '+size(f.size)+'</span></div><button class="remove" data-i="'+i+'">×</button></div>').join('');
   q.querySelectorAll('.remove').forEach(b=>b.onclick=()=>{S.files.splice(+b.dataset.i,1);queue()});
-  if(S.files.length){q.insertAdjacentHTML('beforeend','<div class="actionbar"><span><b>'+S.files.length+'</b> image'+(S.files.length>1?'s':'')+' ready</span><button id="clear" class="remove">Clear</button><button id="zip" class="secondary">Download ZIP</button><button id="process" class="primary">Process & Download</button></div>');document.querySelector('#clear').onclick=()=>{S.files=[];queue()};document.querySelector('#zip').onclick=processBatchZip;document.querySelector('#process').onclick=process}
+  if(S.files.length){q.insertAdjacentHTML('beforeend','<div class="actionbar"><span><b>'+S.files.length+'</b> '+(S.tool==='pdf2image'?'PDF':'file')+(S.files.length>1?'s':'')+' ready</span><button id="clear" class="remove">Clear</button>'+(S.files.length>1&&!['pdf','pdf2image','ocr','exif','background'].includes(S.tool)?'<button id="zip" class="secondary">Download ZIP</button>':'')+'<button id="process" class="primary">'+(S.tool==='ocr'?'Extract Text':S.tool==='pdf2image'?'Convert Pages':'Process & Download')+'</button></div>');document.querySelector('#clear').onclick=()=>{S.files=[];queue()};const zip=document.querySelector('#zip');if(zip)zip.onclick=processBatchZip;document.querySelector('#process').onclick=process}
 }
 function settings(){
-  const s=document.querySelector('#settings');let h='';
+  const s=document.querySelector('#settings');if(!s)return;let h='';
   if(S.tool==='convert')h='<label>Output format<select id="format"><option value="image/webp">WebP — recommended</option><option value="image/jpeg">JPG</option><option value="image/png">PNG</option><option value="image/avif">AVIF</option></select></label>';
-  if(['compress','target','resize','passport'].includes(S.tool)){
-    if(S.tool==='resize'||S.tool==='passport')h+='<label>Width (px)<input id="width" type="number" placeholder="'+(S.tool==='passport'?'413':'Original')+'"></label><label>Height (px)<input id="height" type="number" placeholder="'+(S.tool==='passport'?'531':'Auto')+'"></label>';
-    if(S.tool!=='passport')h+='<label>Quality <output id="qv">'+Math.round(S.quality*100)+'%</output><input id="quality" type="range" min="10" max="100" value="'+S.quality*100+'"></label>';
+  if(['compress','target','resize','passport','signature','crop'].includes(S.tool)){
+    if(['resize','passport','signature','crop'].includes(S.tool))h+='<label>Width (px)<input id="width" type="number" placeholder="'+(S.tool==='passport'?'413':S.tool==='signature'?'600':'Original')+'"></label><label>Height (px)<input id="height" type="number" placeholder="'+(S.tool==='passport'?'531':S.tool==='signature'?'200':'Auto')+'"></label>';
+    if(!['passport','signature'].includes(S.tool))h+='<label>Quality <output id="qv">'+Math.round(S.quality*100)+'%</output><input id="quality" type="range" min="10" max="100" value="'+S.quality*100+'"></label>';
     if(S.tool==='target')h+='<label>Target size<select id="target"><option>20</option><option>50</option><option selected>100</option><option>200</option></select> KB</label>';
+    if(S.tool==='crop')h+='<label>Rotation<select id="rotation"><option value="0">0°</option><option value="90">90°</option><option value="180">180°</option><option value="270">270°</option></select></label>';
   }
-  if(S.tool==='pdf')h='<div class="info">Images will be placed on A4 pages and downloaded as a PDF. Processing stays local.</div>';
-  if(S.tool==='pdf2image')h='<label>Output format<select id="pdfFormat"><option value="image/png">PNG — lossless</option><option value="image/jpeg">JPG — smaller</option></select></label><label>Render scale<select id="pdfScale"><option value="1">1×</option><option value="1.5" selected>1.5×</option><option value="2">2×</option></select></label><div class="info">PDF pages are rendered in your browser. No PDF is uploaded.</div>';
+  if(S.tool==='pdf')h='<div class="info">Images are placed on A4 pages and downloaded as one PDF. Everything stays on this device.</div>';
+  if(S.tool==='pdf2image')h='<label>Output format<select id="pdfFormat"><option value="image/png">PNG — lossless</option><option value="image/jpeg">JPG — smaller</option></select></label><label>Render scale<select id="pdfScale"><option value="1">1×</option><option value="1.5" selected>1.5×</option><option value="2">2×</option></select></label><div class="info">Every PDF page becomes a separate image.</div>';
+  if(S.tool==='exif')h='<div class="info">The image will be re-encoded as PNG to remove embedded metadata.</div>';
+  if(S.tool==='ocr')h='<div class="info">OCR runs locally in your browser. Select an image, then click Extract Text.</div>';
+  if(S.tool==='background')h='<div class="info">Removes a simple near-uniform background locally. Best on documents, signatures and product photos.</div>';
   s.innerHTML=h;
   const f=document.querySelector('#format');if(f)f.onchange=e=>S.format=e.target.value;
   const q=document.querySelector('#quality');if(q)q.oninput=e=>{S.quality=e.target.value/100;document.querySelector('#qv').textContent=e.target.value+'%'};
   const w=document.querySelector('#width');if(w)w.oninput=e=>S.width=e.target.value;
   const ht=document.querySelector('#height');if(ht)ht.oninput=e=>S.height=e.target.value;
-  const t=document.querySelector('#target');if(t)t.onchange=e=>S.target=+e.target.value;const pf=document.querySelector('#pdfFormat');if(pf)pf.onchange=e=>S.pdfFormat=e.target.value;const ps=document.querySelector('#pdfScale');if(ps)ps.onchange=e=>S.pdfScale=+e.target.value;
+  const t=document.querySelector('#target');if(t)t.onchange=e=>S.target=+e.target.value;
+  const pf=document.querySelector('#pdfFormat');if(pf)pf.onchange=e=>S.pdfFormat=e.target.value;
+  const ps=document.querySelector('#pdfScale');if(ps)ps.onchange=e=>S.pdfScale=+e.target.value;
+  const rot=document.querySelector('#rotation');if(rot)rot.onchange=e=>S.rotation=+e.target.value;
 }
 async function normalizeImageFile(file){
   if(!isHeic(file))return file;
