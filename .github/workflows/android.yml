@@ -132,8 +132,22 @@ jobs:
 
           @CapacitorPlugin(name = "ImageMateUpdater")
           public class ImageMateUpdaterPlugin extends Plugin {
-          private static final String CHANNEL_ID = "imagemate_updates";
+          private static final String CHANNEL_ID = "imagemate_updates_v2";
           private static final int NOTIFICATION_ID = 2407;
+
+          @PluginMethod
+          public void requestNotificationPermission(PluginCall call) {
+          Context context = getContext();
+          boolean granted = Build.VERSION.SDK_INT < 33 ||
+            androidx.core.content.ContextCompat.checkSelfPermission(context, "android.permission.POST_NOTIFICATIONS") == android.content.pm.PackageManager.PERMISSION_GRANTED;
+          if (!granted && Build.VERSION.SDK_INT >= 33) {
+            getActivity().requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 9182);
+          }
+          JSObject out = new JSObject();
+          out.put("granted", granted);
+          out.put("requested", !granted && Build.VERSION.SDK_INT >= 33);
+          call.resolve(out);
+          }
 
           @PluginMethod
           public void notifyUpdate(PluginCall call) {
