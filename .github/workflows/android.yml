@@ -183,6 +183,69 @@ jobs:
           }
 
           @PluginMethod
+          public void saveProcessedFile(PluginCall call) {
+          String name = call.getString("name", "ImageMate-output.bin");
+          String mime = call.getString("mime", "application/octet-stream");
+          String base64 = call.getString("base64", "");
+          if (base64 == null || base64.isEmpty()) { call.reject("File data is missing"); return; }
+          Context context = getContext();
+          try {
+          byte[] data = android.util.Base64.decode(base64, android.util.Base64.DEFAULT);
+          File dir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+          if (dir == null) { call.reject("Device storage is unavailable"); return; }
+          if (!dir.exists()) dir.mkdirs();
+          File out = new File(dir, name);
+          try (java.io.FileOutputStream stream = new java.io.FileOutputStream(out)) {
+          stream.write(data);
+          }
+          Uri contentUri = FileProvider.getUriForFile(context, context.getPackageName() + ".fileprovider", out);
+          Intent open = new Intent(Intent.ACTION_VIEW);
+          open.setDataAndType(contentUri, mime);
+          open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+          try { context.startActivity(open); } catch (Exception ignored) {}
+          
+          NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+          if (Build.VERSION.SDK_INT >= 26) {
+          NotificationChannel channel = new NotificationChannel(
+          "imagemate_files", "ImageMate downloads", NotificationManager.IMPORTANCE_HIGH
+          );
+          channel.enableVibration(true);
+          channel.setVibrationPattern(new long[]{0,180,100,180});
+          channel.setSound(
+          android.provider.Settings.System.DEFAULT_NOTIFICATION_URI,
+          new AudioAttributes.Builder()
+          .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+          .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+          .build()
+          );
+          nm.createNotificationChannel(channel);
+          }
+          Intent launch = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
+          PendingIntent pending = launch == null ? null : PendingIntent.getActivity(
+          context, 2408, launch,
+          PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 23 ? PendingIntent.FLAG_IMMUTABLE : 0)
+          );
+          NotificationCompat.Builder builder = new NotificationCompat.Builder(context, "imagemate_files")
+          .setSmallIcon(context.getApplicationInfo().icon)
+          .setContentTitle("ImageMate download complete")
+          .setContentText(name + " is saved on your device.")
+          .setPriority(NotificationCompat.PRIORITY_HIGH)
+          .setAutoCancel(true)
+          .setVibrate(new long[]{0,180,100,180});
+          if (pending != null) builder.setContentIntent(pending);
+          nm.notify((int)(System.currentTimeMillis() & 0x7fffffff), builder.build());
+          
+          JSObject result = new JSObject();
+          result.put("saved", true);
+          result.put("name", name);
+          result.put("path", out.getAbsolutePath());
+          call.resolve(result);
+          } catch (Exception e) {
+          call.reject("Could not save or open the file", e);
+          }
+          }
+
+          @PluginMethod
           public void downloadAndInstall(PluginCall call) {
           String url = call.getString("url");
           if (url == null || url.isEmpty()) { call.reject("Update URL is missing"); return; }
