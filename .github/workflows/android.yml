@@ -345,6 +345,8 @@ jobs:
           request.setDescription("Downloading the latest ImageMate update in background");
           request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
           request.setMimeType("application/vnd.android.package-archive");
+          request.setAllowedOverMetered(true);
+          request.setAllowedOverRoaming(false);
           request.setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, "ImageMate-latest.apk");
           final long id = dm.enqueue(request);
           context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString("download_id", String.valueOf(id)).apply();
