@@ -8,9 +8,15 @@ const tools=[
   ['resize','↗','Resize','Dimensions & quality'],
   ['target','⌁','Target KB','20 / 50 / 100 / 200 KB'],
   ['pdf','▣','Image to PDF','Create a PDF locally'],
-  ['passport','▦','Photo Size','Passport & ID sizes']
+  ['passport','▦','Photo Size','Passport & ID sizes'],
+  ['pdf2image','▤','PDF to Image','Export PDF pages as PNG or JPG'],
+  ['exif','◎','Metadata Cleaner','Strip image metadata'],
+  ['signature','✎','Signature Resize','Prepare signatures for forms'],
+  ['crop','⌗','Crop & Rotate','Crop, rotate and export'],
+  ['ocr','T','OCR Text','Extract text from images'],
+  ['background','✦','Background Remover','Remove simple backgrounds']
 ];
-const S={tool:'convert',files:[],format:'image/webp',quality:.88,width:'',height:'',target:100,pdfFormat:'image/png',pdfScale:1.5,dark:localStorage.getItem('imagemate-dark')==='1'};
+const S={tool:'convert',files:[],format:'image/webp',quality:.88,width:'',height:'',target:100,pdfFormat:'image/png',pdfScale:1.5,rotation:0,dark:localStorage.getItem('imagemate-dark')==='1'};
 
 const esc=s=>String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const label=t=>t==='application/pdf'?'PDF':t==='image/jpeg'?'JPG':t==='image/png'?'PNG':t==='image/webp'?'WebP':t==='image/avif'?'AVIF':t==='image/heic'?'HEIC':t==='image/heif'?'HEIF':'Image';
@@ -96,13 +102,6 @@ async function process(){
   }catch(e){console.error(e);alert('Could not process the selected image(s). Please try another format or smaller file.')}finally{btn.disabled=false;btn.textContent='Process & Download'}
 }
 
-const EXTRA_TOOLS=[['pdf2image','▣','PDF to Image','Export PDF pages as PNG or JPG'],['exif','◎','Metadata Cleaner','Strip image metadata before sharing'],['signature','✎','Signature Resize','Prepare signatures for forms'],['crop','⌗','Crop & Rotate','Quick image framing'],['ocr','T','OCR Text','Extract text from images'],['background','✦','Background Remover','Create clean subject images']];
-function extraMarkup(){return '<section class="advanced"><div class="section-head"><div><span class="eyebrow">More utilities</span><h2>Everyday image tools</h2></div><span class="muted">Private by default</span></div><div class="tool-grid">'+EXTRA_TOOLS.map(t=>'<button class="tool-card" data-extra="'+t[0]+'"><span class="tool-icon">'+t[1]+'</span><strong>'+t[2]+'</strong><small>'+t[3]+'</small></button>').join('')+'</div></section>'}
-const _render=render;
-render=function(){_render();const main=document.querySelector('main');if(main&&!document.querySelector('.advanced')){main.insertAdjacentHTML('beforeend',extraMarkup());document.querySelectorAll('[data-extra]').forEach(b=>b.onclick=async()=>{const k=b.dataset.extra;if(k==='exif'){if(!S.files.length)return alert('Choose an image first.');await convertSpecial(S.files[0],'exif')}else if(k==='signature'){S.tool='resize';S.width='600';S.height='200';render()}else if(k==='crop'){S.tool='resize';render()}else if(k==='pdf2image'||k==='ocr'||k==='background'){await convertSpecial(S.files[0],k)}})}};
-render();
-void initNativeAds();
-// --- Advanced local utilities ---
 async function convertSpecial(file, kind){
   if(!file && kind!=='pdf2image')return alert('Choose a file first.');
   if(kind==='pdf2image'){
