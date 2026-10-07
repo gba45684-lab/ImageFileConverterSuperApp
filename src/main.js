@@ -9,7 +9,7 @@ const tools=[
   ['pdf','▣','Image to PDF','Create a PDF locally'],
   ['passport','▦','Photo Size','Passport & ID sizes']
 ];
-const S={tool:'convert',files:[],format:'image/webp',quality:.88,width:'',height:'',target:100,dark:false};
+const S={tool:'convert',files:[],format:'image/webp',quality:.88,width:'',height:'',target:100,dark:localStorage.getItem('imagemate-dark')==='1'};
 
 const esc=s=>String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const label=t=>t==='image/jpeg'?'JPG':t==='image/png'?'PNG':t==='image/webp'?'WebP':t==='image/avif'?'AVIF':'Image';
@@ -22,7 +22,7 @@ function render(){
 }
 function bind(){
   document.querySelectorAll('[data-tool]').forEach(b=>b.onclick=()=>{S.tool=b.dataset.tool;S.files=[];render()});
-  document.querySelector('#theme').onclick=()=>{S.dark=!S.dark;render()};
+  document.querySelector('#theme').onclick=()=>{S.dark=!S.dark;localStorage.setItem('imagemate-dark',S.dark?'1':'0');render()};
   document.querySelector('#choose').onclick=()=>document.querySelector('#file').click();
   document.querySelector('#file').onchange=e=>load(e.target.files);
   const d=document.querySelector('#drop');
@@ -35,7 +35,7 @@ function queue(){
   const q=document.querySelector('#queue');if(!q)return;
   q.innerHTML=S.files.map((f,i)=>'<div class="file-row"><div class="thumb"><img src="'+URL.createObjectURL(f)+'"></div><div class="file-meta"><b>'+esc(f.name)+'</b><span>'+label(f.type)+' • '+size(f.size)+'</span></div><button class="remove" data-i="'+i+'">×</button></div>').join('');
   q.querySelectorAll('.remove').forEach(b=>b.onclick=()=>{S.files.splice(+b.dataset.i,1);queue()});
-  if(S.files.length){q.insertAdjacentHTML('beforeend','<div class="actionbar"><span><b>'+S.files.length+'</b> image'+(S.files.length>1?'s':'')+' ready</span><button id="process" class="primary">Process & Download</button></div>');document.querySelector('#process').onclick=process}
+  if(S.files.length){q.insertAdjacentHTML('beforeend','<div class="actionbar"><span><b>'+S.files.length+'</b> image'+(S.files.length>1?'s':'')+' ready</span><button id="clear" class="remove">Clear</button><button id="process" class="primary">Process & Download</button></div>');document.querySelector('#clear').onclick=()=>{S.files=[];queue()};document.querySelector('#process').onclick=process}
 }
 function settings(){
   const s=document.querySelector('#settings');let h='';
@@ -55,21 +55,24 @@ function settings(){
 }
 function img(file){return new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=no;i.src=URL.createObjectURL(file)})}
 function blob(i,type,q,w,h){const c=document.createElement('canvas');c.width=w||i.naturalWidth;c.height=h||i.naturalHeight;c.getContext('2d').drawImage(i,0,0,c.width,c.height);return new Promise(r=>c.toBlob(r,type,q))}
-function dl(b,n){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1200)}
+function dl(b,n){const u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=n;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500)}
+function canvasFor(i,w,h){const c=document.createElement('canvas');c.width=w||i.naturalWidth;c.height=h||i.naturalHeight;c.getContext('2d').drawImage(i,0,0,c.width,c.height);return c}
+async function pdf(files){const {jsPDF}=await import('jspdf');const doc=new jsPDF({unit:'mm',format:'a4'});for(let n=0;n<files.length;n++){if(n)doc.addPage();const i=await img(files[n]);const c=canvasFor(i);const maxW=190,maxH=277,scale=Math.min(maxW/c.width,maxH/c.height);const w=c.width*scale,h=c.height*scale;const x=(210-w)/2,y=(297-h)/2;const data=c.toDataURL('image/jpeg',.92);doc.addImage(data,'JPEG',x,y,w,h)}doc.save('imagemate-images.pdf')}
 function name(n,e){return n.replace(/\.[^.]+$/,'')+'.'+e}
 async function process(){
   if(!S.files.length)return alert('Choose at least one image.');
   const btn=document.querySelector('#process');btn.disabled=true;btn.textContent='Processing…';
   try{
+    if(S.tool==='pdf'){await pdf(S.files);return}
     for(const f of S.files){
       const i=await img(f);let w=i.naturalWidth,h=i.naturalHeight;
       if(S.tool==='resize'){w=+S.width||w;h=+S.height||Math.round(i.naturalHeight*w/i.naturalWidth)}
       if(S.tool==='passport'){w=+S.width||413;h=+S.height||531}
-      if(S.tool==='pdf'){alert('PDF export is enabled in the next build; image conversion is ready now.');break}
       let type=S.tool==='convert'?S.format:'image/jpeg';let b=await blob(i,type,S.quality,w,h);
       if(S.tool==='target'){const max=S.target*1024;let lo=.05,hi=.95;for(let x=0;x<8&&b.size>max;x++){const qq=(lo+hi)/2;b=await blob(i,'image/jpeg',qq,w,h);if(b.size>max)hi=qq;else lo=qq}}
       dl(b,name(f.name,label(type).toLowerCase()));
     }
-  }finally{btn.disabled=false;btn.textContent='Process & Download'}
+    localStorage.setItem('imagemate-last-used',new Date().toISOString());
+  }catch(e){console.error(e);alert('Could not process the selected image(s). Please try another format or smaller file.')}finally{btn.disabled=false;btn.textContent='Process & Download'}
 }
 render();
