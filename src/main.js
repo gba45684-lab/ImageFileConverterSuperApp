@@ -56,7 +56,11 @@ async function checkForAndroidUpdate(){
     if(!latest||!isNewerVersion(latest,APP_VERSION))return;
     if(!b)return;
     b.hidden=false;b.disabled=false;b.textContent='Update available';
-    try{await notifyAndroidUpdate(latest)}catch(e){console.debug('Update notification skipped',e)}
+    try{
+      const permission=await requestAndroidNotificationPermission();
+      if(permission?.requested) await new Promise(resolve=>setTimeout(resolve,900));
+      await notifyAndroidUpdate(latest);
+    }catch(e){console.debug('Update notification skipped',e)}
     if(navigator.vibrate) navigator.vibrate([250,120,250]);
     b.onclick=async()=>{
       b.disabled=true;b.textContent='Downloading…';
