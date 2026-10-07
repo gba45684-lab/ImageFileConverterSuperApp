@@ -73,7 +73,7 @@ jobs:
           mkdir -p android/app/src/main/java/com/gba45684/imagemate
           cat > android/app/src/main/java/com/gba45684/imagemate/ImageMateUpdaterPlugin.java <<'JAVA'
           package com.gba45684.imagemate;
-          import android.app.DownloadManager;
+          import android.app.DownloadManager;\n          import android.app.NotificationChannel;\n          import android.app.NotificationManager;\n          import android.app.PendingIntent;\n          import android.os.Build;\n          import androidx.core.app.NotificationCompat;
           import android.content.BroadcastReceiver;
           import android.content.Context;
           import android.content.Intent;
