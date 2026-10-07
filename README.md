@@ -2,6 +2,15 @@
 
 A privacy-first image utility web app designed for SEO traffic, PWA installation and future Android/Capacitor packaging.
 
+## Current build
+- Image conversion, compression, resize and target-KB processing
+- Passport / ID photo sizing
+- Image → PDF export
+- Batch ZIP export
+- Expanded utility dashboard for PDF→Image, metadata, signature, crop, OCR and background-removal workflows
+- Local-first processing with no upload required for core image tools
+- Responsive premium UI and persistent dark mode
+
 ## v1
 - JPG / PNG / WebP / AVIF conversion where browser support exists
 - Compression
