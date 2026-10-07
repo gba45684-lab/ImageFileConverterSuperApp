@@ -33,12 +33,12 @@ jobs:
           text = manifest.read_text()
           marker = '<meta-data android:name="com.google.android.gms.ads.APPLICATION_ID"'
           if marker not in text:
-              text = text.replace('</application>', '    <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="@string/admob_app_id" />\\n  </application>')
+              text = text.replace('</application>', '    <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="@string/admob_app_id" />\n  </application>')
           manifest.write_text(text)
           values = Path('android/app/src/main/res/values/strings.xml')
           values_text = values.read_text()
           if 'name="admob_app_id"' not in values_text:
-              values_text = values_text.replace('</resources>', '    <string name="admob_app_id">ca-app-pub-3940256099942544~3347511713</string>\\n</resources>')
+              values_text = values_text.replace('</resources>', '    <string name="admob_app_id">ca-app-pub-3940256099942544~3347511713</string>\n</resources>')
           values.write_text(values_text)
           PY
       - name: Sync Capacitor plugins
