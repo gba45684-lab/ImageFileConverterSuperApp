@@ -226,7 +226,6 @@ jobs:
           );
           nm.createNotificationChannel(channel);
           }
-          Uri contentUri = FileProvider.getUriForFile(context, context.getPackageName() + ".fileprovider", out);
           Intent openFile = new Intent(Intent.ACTION_VIEW);
           openFile.setDataAndType(contentUri, mime);
           openFile.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
