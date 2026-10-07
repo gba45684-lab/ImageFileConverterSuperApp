@@ -28,9 +28,11 @@ jobs:
         id: version
         shell: bash
         run: |
-          VERSION="$(node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).version")"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Building ImageMate v$VERSION"
+          BASE_VERSION="$(node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).version")"
+          VERSION="${BASE_VERSION}.${GITHUB_RUN_NUMBER}"
+          echo "base_version=${BASE_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Building ImageMate v${VERSION}"
 
       - name: Install dependencies
         run: npm install --no-audit --no-fund
@@ -425,10 +427,38 @@ jobs:
           context.startActivity(installer);
           }
 
+          private File recoverCompletedDownload(Context context) {
+          try {
+          android.content.SharedPreferences sp=context.getSharedPreferences(PREFS,Context.MODE_PRIVATE);
+          String stored=sp.getString(APK_PATH,"");
+          if(stored!=null&&!stored.isEmpty()){File f=new File(stored);if(f.exists()&&f.length()>0)return f;}
+          String idText=sp.getString("download_id","");
+          if(idText==null||idText.isEmpty())return null;
+          long id=Long.parseLong(idText);
+          DownloadManager dm=(DownloadManager)context.getSystemService(Context.DOWNLOAD_SERVICE);
+          android.database.Cursor cursor=dm.query(new DownloadManager.Query().setFilterById(id));
+          if(cursor==null)return null;
+          try{
+          if(!cursor.moveToFirst())return null;
+          int status=cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS));
+          if(status!=DownloadManager.STATUS_SUCCESSFUL)return null;
+          Uri uri=dm.getUriForDownloadedFile(id);
+          if(uri==null)return null;
+          File target=new File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS),"ImageMate-latest.apk");
+          if(!target.exists()||target.length()==0){
+          try(java.io.InputStream in=context.getContentResolver().openInputStream(uri);java.io.FileOutputStream out=new java.io.FileOutputStream(target)){
+          if(in==null)return null;byte[] buf=new byte[8192];int n;while((n=in.read(buf))>0)out.write(buf,0,n);
+          }}
+          if(target.exists()&&target.length()>0){sp.edit().putString(APK_PATH,target.getAbsolutePath()).apply();return target;}
+          }finally{cursor.close();}
+          }catch(Exception e){android.util.Log.e("ImageMateUpdater","Could not recover completed update",e);}
+          return null;
+          }
+
           @PluginMethod
           public void hasDownloadedUpdate(PluginCall call) {
-          Context context=getContext(); File apk=downloadedApk(context);
-          JSObject out=new JSObject(); out.put("ready", apk!=null && apk.exists()); call.resolve(out);
+          Context context=getContext(); File apk=recoverCompletedDownload(context);
+          JSObject out=new JSObject(); out.put("ready",apk!=null&&apk.exists()); call.resolve(out);
           }
 
           @PluginMethod
@@ -438,7 +468,7 @@ jobs:
           Intent settings=new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:"+context.getPackageName()));
           settings.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); context.startActivity(settings); call.resolve(); return;
           }
-          File apk=downloadedApk(context);
+          File apk=recoverCompletedDownload(context);
           if(apk==null || !apk.exists()){ call.reject("Downloaded update is not ready"); return; }
           try {
           Uri contentUri=FileProvider.getUriForFile(context, context.getPackageName()+".fileprovider", apk);
