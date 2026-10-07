@@ -6,6 +6,7 @@ import './style.css';
 const app=document.querySelector('#app');
 const UPDATE_API='https://api.github.com/repos/gba45684-lab/ImageFileConverterSuperApp/releases/latest';
 const UPDATE_APK='https://github.com/gba45684-lab/ImageFileConverterSuperApp/releases/latest/download/ImageMate.apk';
+let latestUpdateUrl=UPDATE_APK;
 const APP_VERSION=packageJson.version;
 let updateCheckInFlight=false;
 let updateMonitorStarted=false;
@@ -62,7 +63,7 @@ function showInstantUpdatePopup(version, mode='download'){
     btn.disabled=true;btn.textContent=installMode?'Opening installer…':'Downloading…';
     try{
       if(installMode){await installDownloadedAndroidUpdate();return;}
-      await downloadLatestAndroidUpdate(UPDATE_APK);
+      await downloadLatestAndroidUpdate(latestUpdateUrl);
       btn.textContent='Downloading in background…';
       setTimeout(close,700);
     }catch(e){
@@ -88,6 +89,8 @@ async function checkForAndroidUpdate(){
     if(!r.ok)return;
     const release=await r.json();
     const latest=String(release.tag_name||'').replace(/^v/i,'');
+    const asset=Array.isArray(release.assets)?release.assets.find(a=>a&&a.name==='ImageMate.apk'&&a.browser_download_url):null;
+    latestUpdateUrl=asset?.browser_download_url||UPDATE_APK;
     if(!latest||!isNewerVersion(latest,APP_VERSION)||!b)return;
     b.hidden=false;b.disabled=false;b.textContent='Update available';
     showInstantUpdatePopup(latest,'download');
@@ -95,7 +98,7 @@ async function checkForAndroidUpdate(){
     b.onclick=async()=>{
       b.disabled=true;b.textContent='Downloading…';
       try{
-        await downloadLatestAndroidUpdate(UPDATE_APK);
+        await downloadLatestAndroidUpdate(latestUpdateUrl);
         b.textContent='Update downloading…';
         setTimeout(()=>{if(b){b.disabled=false;b.textContent='Update downloading…'}},1500);
       }catch(e){
