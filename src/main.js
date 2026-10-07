@@ -62,8 +62,10 @@ async function checkForAndroidUpdate(){
       b.disabled=true;b.textContent='Downloading…';
       try{
         await downloadLatestAndroidUpdate(UPDATE_APK);
-        b.textContent='Downloading in background…';
-        setTimeout(()=>{if(b)b.disabled=false},1200);
+        b.textContent='Downloading…';
+        // Native Android automatically opens the installer when the download finishes.
+        // Keep the app screen open while DownloadManager handles the background download.
+        setTimeout(()=>{if(b){b.disabled=false;b.textContent='Update downloading…'}},1500);
       }catch(e){
         console.error(e);b.disabled=false;b.textContent='Update available';
         alert('Unable to start the background download. Please try again.');
