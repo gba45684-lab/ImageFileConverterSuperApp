@@ -267,7 +267,7 @@ jobs:
           request.setDescription("Downloading the latest ImageMate update in background");
           request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
           request.setMimeType("application/vnd.android.package-archive");
-          request.setDestinationUri(Uri.fromFile(target));
+          request.setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, "ImageMate-latest.apk");
           final long id = dm.enqueue(request);
           context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString("download_id", String.valueOf(id)).apply();
 
@@ -349,6 +349,7 @@ jobs:
           install.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
           context.startActivity(install);
           } catch(Exception e) { call.reject("Could not open Android installer: "+e.getMessage()); }
+          }
           }
           JAVA
 
