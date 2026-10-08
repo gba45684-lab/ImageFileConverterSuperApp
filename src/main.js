@@ -2,6 +2,7 @@ import { initNativeAds, maybeShowTestInterstitial } from './ads.js';
 import { downloadLatestAndroidUpdate, installDownloadedAndroidUpdate, hasDownloadedAndroidUpdate, getAndroidUpdateStatus, notifyAndroidUpdate, requestAndroidNotificationPermission, getAndroidAppVersion, isNativeAndroid, saveProcessedFile } from './updater.js';
 import packageJson from '../package.json';
 import './style.css';
+import { createIcons, icons } from 'lucide';
 
 const app=document.querySelector('#app');
 if(isNativeAndroid()) document.documentElement.classList.add('native-android');
@@ -13,20 +14,20 @@ let runtimeAppVersion=APP_VERSION;
 let updateCheckInFlight=false;
 let updateMonitorStarted=false;
 const tools=[
-  ['convert','⇄','Convert','JPG, PNG, WebP, AVIF'],
-  ['compress','◒','Compress','Reduce image size'],
-  ['resize','↗','Resize','Dimensions & quality'],
-  ['target','⌁','Target KB','20 / 50 / 100 / 200 KB'],
-  ['pdf','▣','Image to PDF','Create a PDF locally'],
-  ['passport','▦','Photo Size','Passport & ID sizes'],
-  ['pdf2image','▤','PDF to Image','Export PDF pages as PNG or JPG'],
-  ['exif','◎','Metadata Cleaner','Strip image metadata'],
-  ['signature','✎','Signature Resize','Prepare signatures for forms'],
-  ['crop','⌗','Crop & Rotate','Crop, rotate and export'],
-  ['ocr','T','OCR Text','Extract text from images'],
-  ['background','✦','Background Remover','Remove simple backgrounds'],
-  ['pdfmerge','⊞','Merge PDFs','Combine multiple PDFs into one'],
-  ['editor','✧','Image Editor','Brightness, contrast & rotate']
+  ['convert','images','Convert Images','JPG, PNG, WebP, AVIF','IMAGE'],
+  ['compress','file-down','Compress Images','Reduce file size','IMAGE'],
+  ['resize','maximize-2','Resize Images','Dimensions & quality','IMAGE'],
+  ['target','target','Target File Size','20 / 50 / 100 / 200 KB','IMAGE'],
+  ['pdf','file-text','Image to PDF','Create a PDF locally','DOCUMENT'],
+  ['passport','id-card','Passport & ID Photo','Standard ID photo sizes','PHOTO'],
+  ['pdf2image','file-image','PDF to Image','Export PDF pages as PNG or JPG','DOCUMENT'],
+  ['exif','shield-check','Remove Metadata','Strip embedded image metadata','PRIVACY'],
+  ['signature','pen-line','Signature Resize','Prepare signatures for forms','UTILITY'],
+  ['crop','crop','Crop & Rotate','Crop, rotate and export','IMAGE'],
+  ['ocr','scan-text','OCR Text','Extract text from images','DOCUMENT'],
+  ['background','eraser','Remove Background','Clean simple backgrounds','IMAGE'],
+  ['pdfmerge','files','Merge PDFs','Combine multiple PDFs into one','DOCUMENT'],
+  ['editor','sliders-horizontal','Photo Editor','Brightness, contrast & rotate','IMAGE']
 ];
 const savedFormat=localStorage.getItem('imagemate-format');
 const allowedFormats=['image/webp','image/jpeg','image/png','image/avif'];
@@ -49,24 +50,28 @@ function render(){
   const dropLabel=(S.tool==='pdf2image'||S.tool==='pdfmerge')?'Drop PDF files here':'Drop images here';
   const subLabel=(S.tool==='pdf2image'||S.tool==='pdfmerge')?'PDF files • Multiple pages supported':'JPG, PNG, WebP, AVIF • Batch supported';
 
-  const header='<header class="topbar"><div class="brand"><div class="logo">IM</div><div><b>ImageMate</b><span>Image & File Converter</span></div></div><div class="top-actions"><button id="home-btn" class="icon-btn">Home</button><button id="theme" class="icon-btn" aria-label="Toggle theme">'+(S.dark?'☀':'☾')+'</button><button id="settings-btn" class="icon-btn">⚙ Settings</button><button class="pro">Remove Ads <small>PRO</small></button><button id="update-btn" class="update-btn" hidden>Update</button></div></header>';
+  const header='<header class="topbar"><div class="brand"><button id="brand-home" class="brand-mark" aria-label="ImageMate home"><span>IM</span></button><div class="brand-copy"><b>ImageMate</b><span>Private image & file tools</span></div></div><nav class="top-actions" aria-label="Application navigation"><button id="home-btn" class="nav-btn"><i data-lucide="house"></i><span>Home</span></button><button id="theme" class="nav-btn" aria-label="Toggle theme"><i data-lucide="'+(S.dark?'sun':'moon')+'"></i><span class="nav-text">Theme</span></button><button id="settings-btn" class="nav-btn"><i data-lucide="settings-2"></i><span>Settings</span></button><button class="pro"><span>Remove Ads</span><small>PRO</small></button><button id="update-btn" class="update-btn" hidden>Update</button></nav></header>';
 
   let content='';
   if(home){
-    content='<section class="home-screen"><div class="home-intro"><div><p class="eyebrow">IMAGEMATE • PRIVATE FILE TOOLS</p><h1>Choose a tool</h1><p>Each tool opens in its own dedicated workspace. No mixed controls, no hidden settings.</p></div><div class="hero-badge"><strong>14</strong><span>dedicated tools</span></div></div><nav class="tool-grid home-tool-grid" aria-label="ImageMate tools">'+tools.map(t=>'<button class="tool" data-tool="'+t[0]+'"><span>'+t[1]+'</span><b>'+t[2]+'</b><small>'+t[3]+'</small></button>').join('')+'</nav></section>';
+    content='<section class="home-screen"><div class="home-intro"><div class="home-copy"><p class="eyebrow">IMAGEMATE • PRIVATE WORKSPACE</p><h1>Everyday file tools, <span>beautifully simple.</span></h1><p>Convert, compress, edit and process files locally with a calm, focused interface.</p></div><div class="home-stat"><strong>14</strong><span>tools</span><small>Local-first</small></div></div><div class="tool-section-head"><div><p class="eyebrow">ALL TOOLS</p><h2>Pick a tool</h2></div><span>Fast • Private • No upload required</span></div><nav class="tool-grid home-tool-grid" aria-label="ImageMate tools">'+tools.map(t=>'<button class="tool" data-tool="'+t[0]+'" aria-label="Open '+esc(t[2])+'"><div class="tool-top"><span class="tool-icon"><i data-lucide="'+t[1]+'"></i></span><span class="tool-arrow"><i data-lucide="arrow-up-right"></i></span></div><div class="tool-main"><span class="tool-category">'+t[4]+'</span><b>'+t[2]+'</b><small>'+t[3]+'</small></div></button>').join('')+'</nav></section>';
   }else if(settingsScreen){
-    content='<section class="screen-head"><button id="back-settings" class="secondary back-btn" type="button">← Back</button><div><p class="eyebrow">APP PREFERENCES</p><h1>Settings</h1><p>Control ImageMate preferences, file library and app behavior.</p></div><span class="privacy">🔒 Private & local</span></section><section class="settings-screen"><div class="settings-card"><div class="settings-icon">↓</div><div class="settings-copy"><b>Downloaded files</b><span>Open, share and save another copy of your processed files.</span></div><button id="open-downloads" class="secondary" type="button">File Library</button></div><div class="settings-card settings-stack"><div class="settings-copy"><b>Processing defaults</b><span>These defaults are used when you start a new conversion.</span></div><label>Default image format<select id="default-format"><option value="image/webp" '+(S.format==='image/webp'?'selected':'')+'>WebP — recommended</option><option value="image/jpeg" '+(S.format==='image/jpeg'?'selected':'')+'>JPG</option><option value="image/png" '+(S.format==='image/png'?'selected':'')+'>PNG</option><option value="image/avif" '+(S.format==='image/avif'?'selected':'')+'>AVIF</option></select></label><label>Default quality <output id="default-quality-value">'+Math.round(S.quality*100)+'%</output><input id="default-quality" type="range" min="10" max="100" value="'+Math.round(S.quality*100)+'"></label></div><div class="settings-card"><div class="settings-icon">↻</div><div class="settings-copy"><b>Automatic update checks</b><span>Check for new ImageMate Android versions when the app opens.</span></div><label class="switch"><input id="update-setting" type="checkbox" '+(localStorage.getItem('imagemate-auto-update')!=='0'?'checked':'')+'><span></span></label></div><div class="settings-card settings-about"><div class="settings-copy"><b>Privacy & app information</b><span>ImageMate processes files locally on your device. Version '+esc(runtimeAppVersion||APP_VERSION)+'.</span></div></div></section>';
+    content='<section class="screen-head"><button id="back-settings" class="secondary back-btn" type="button"><i data-lucide="arrow-left"></i><span>Back</span></button><div><p class="eyebrow">APP PREFERENCES</p><h1>Settings</h1><p>Control ImageMate preferences, file library and app behavior.</p></div><span class="privacy">🔒 Private & local</span></section><section class="settings-screen"><div class="settings-card"><div class="settings-icon">↓</div><div class="settings-copy"><b>Downloaded files</b><span>Open, share and save another copy of your processed files.</span></div><button id="open-downloads" class="secondary" type="button">File Library</button></div><div class="settings-card settings-stack"><div class="settings-copy"><b>Processing defaults</b><span>These defaults are used when you start a new conversion.</span></div><label>Default image format<select id="default-format"><option value="image/webp" '+(S.format==='image/webp'?'selected':'')+'>WebP — recommended</option><option value="image/jpeg" '+(S.format==='image/jpeg'?'selected':'')+'>JPG</option><option value="image/png" '+(S.format==='image/png'?'selected':'')+'>PNG</option><option value="image/avif" '+(S.format==='image/avif'?'selected':'')+'>AVIF</option></select></label><label>Default quality <output id="default-quality-value">'+Math.round(S.quality*100)+'%</output><input id="default-quality" type="range" min="10" max="100" value="'+Math.round(S.quality*100)+'"></label></div><div class="settings-card"><div class="settings-icon">↻</div><div class="settings-copy"><b>Automatic update checks</b><span>Check for new ImageMate Android versions when the app opens.</span></div><label class="switch"><input id="update-setting" type="checkbox" '+(localStorage.getItem('imagemate-auto-update')!=='0'?'checked':'')+'><span></span></label></div><div class="settings-card settings-about"><div class="settings-copy"><b>Privacy & app information</b><span>ImageMate processes files locally on your device. Version '+esc(runtimeAppVersion||APP_VERSION)+'.</span></div></div></section>';
   }else if(downloads){
-    content='<section class="screen-head"><button id="back-home" class="secondary back-btn" type="button">← Home</button><div><p class="eyebrow">FILE LIBRARY</p><h1>Downloaded files</h1><p>Open, share or save another copy of files created by ImageMate.</p></div><span class="privacy">🔒 Files stay on your device</span></section><section class="workspace downloads-workspace"><div id="download-library"><div class="empty-downloads">Loading files…</div></div></section>';
+    content='<section class="screen-head"><button id="back-home" class="secondary back-btn" type="button"><i data-lucide="arrow-left"></i><span>Home</span></button><div><p class="eyebrow">FILE LIBRARY</p><h1>Downloaded files</h1><p>Open, share or save another copy of files created by ImageMate.</p></div><span class="privacy">🔒 Files stay on your device</span></section><section class="workspace downloads-workspace"><div id="download-library"><div class="empty-downloads">Loading files…</div></div></section>';
   }else{
-    content='<section class="screen-head"><button id="back-home" class="secondary back-btn" type="button">← All tools</button><div><p class="eyebrow">DEDICATED TOOL</p><h1>'+title+'</h1><p>'+desc+'</p></div><span class="privacy">🔒 Local processing</span></section><section class="workspace"><div class="workspace-head"><div><p class="eyebrow">WORKSPACE</p><h2>'+title+'</h2></div><span class="privacy">🔒 Files stay on your device</span></div><div id="drop" class="dropzone"><input id="file" type="file" accept="'+accept+'" multiple hidden><div class="upload-icon">↑</div><h3>'+dropLabel+'</h3><p>or choose files from your device</p><button id="choose" class="primary">'+uploadLabel+'</button><small>'+subLabel+'</small></div><div id="queue"></div><div id="progress-wrap" class="progress-wrap" hidden><div class="progress-top"><b class="progress-text">Processing 0%</b><span>Local</span></div><div class="progress-track"><div class="progress-bar" style="width:0%"></div></div></div><div id="settings"></div><div class="ad-slot"><span>ADVERTISEMENT</span></div></section>';
+    content='<section class="screen-head"><button id="back-home" class="secondary back-btn" type="button"><i data-lucide="arrow-left"></i><span>All tools</span></button><div><p class="eyebrow">DEDICATED TOOL</p><h1>'+title+'</h1><p>'+desc+'</p></div><span class="privacy">🔒 Local processing</span></section><section class="workspace"><div class="workspace-head"><div><p class="eyebrow">WORKSPACE</p><h2>'+title+'</h2></div><span class="privacy">🔒 Files stay on your device</span></div><div id="drop" class="dropzone"><input id="file" type="file" accept="'+accept+'" multiple hidden><div class="upload-icon">↑</div><h3>'+dropLabel+'</h3><p>or choose files from your device</p><button id="choose" class="primary">'+uploadLabel+'</button><small>'+subLabel+'</small></div><div id="queue"></div><div id="progress-wrap" class="progress-wrap" hidden><div class="progress-top"><b class="progress-text">Processing 0%</b><span>Local</span></div><div class="progress-track"><div class="progress-bar" style="width:0%"></div></div></div><div id="settings"></div><div class="ad-slot"><span>ADVERTISEMENT</span></div></section>';
   }
 
-  app.innerHTML='<div class="shell '+(S.dark?'dark':'')+'">'+header+'<main>'+content+'<footer>© 2026 ImageMate <span>•</span> Free image tools for everyone</footer></main></div>';
+  app.innerHTML='<div class="shell '+(S.dark?'dark':'')+'">'+header+'<main>'+content+'<footer>© 2026 ImageMate <span>•</span> Private file tools for everyone</footer></main></div>';
+  createIcons({ icons, attrs: { 'stroke-width': 1.8 } });
   bind(); settings(); queue();
 
+  const goHome=()=>{S.view='tools';S.files=[];render()};
+  const brandHome=document.querySelector('#brand-home');
+  if(brandHome)brandHome.onclick=goHome;
   const homeBtn=document.querySelector('#home-btn');
-  if(homeBtn) homeBtn.onclick=()=>{S.view='tools';S.files=[];render()};
+  if(homeBtn) homeBtn.onclick=goHome;
   const settingsBtn=document.querySelector('#settings-btn');
   if(settingsBtn) settingsBtn.onclick=()=>{S.view='settings';S.files=[];render()};
   const openDownloads=document.querySelector('#open-downloads');

@@ -16,7 +16,8 @@
     "jspdf": "^3.0.3",
     "jszip": "^3.10.1",
     "pdfjs-dist": "^6.4.299",
-    "tesseract.js": "^7.0.0"
+    "tesseract.js": "^7.0.0",
+    "lucide": "^1.53.0"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.5.2",
