@@ -10,6 +10,7 @@ A privacy-first image utility web app designed for SEO traffic, PWA installation
 - Expanded utility dashboard for PDF→Image, metadata, signature, crop, OCR and background-removal workflows
 - Local-first processing with no upload required for core image tools
 - Responsive premium UI and persistent dark mode
+- Capacitor Android APK with background updater and user-approved installation flow
 
 ## v1
 - JPG / PNG / WebP / AVIF conversion where browser support exists
