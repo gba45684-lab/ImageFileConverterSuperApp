@@ -1,5 +1,5 @@
 import { initNativeAds, maybeShowTestInterstitial } from './ads.js';
-import { downloadLatestAndroidUpdate, installDownloadedAndroidUpdate, hasDownloadedAndroidUpdate, notifyAndroidUpdate, requestAndroidNotificationPermission, isNativeAndroid, saveProcessedFile } from './updater.js';
+import { downloadLatestAndroidUpdate, installDownloadedAndroidUpdate, hasDownloadedAndroidUpdate, getAndroidUpdateStatus, notifyAndroidUpdate, requestAndroidNotificationPermission, isNativeAndroid, saveProcessedFile } from './updater.js';
 import packageJson from '../package.json';
 import './style.css';
 
@@ -63,7 +63,7 @@ function showInstantUpdatePopup(version, mode='download'){
     '<div style="font-size:34px;margin-bottom:8px">🚀</div>'+
     '<div style="font-size:12px;font-weight:800;letter-spacing:.12em;opacity:.65">IMAGEMATE UPDATE</div>'+
     '<h2 style="margin:7px 0 8px">New version '+esc(version)+' is available</h2>'+
-    '<p style="margin:0 0 20px;line-height:1.55;opacity:.72">'+(installMode?'The update is already downloaded and ready to install.':'A new ImageMate version is ready. Update now to get the latest fixes and features.')+'</p>'+
+    '<p id="update-status-text" style="margin:0 0 20px;line-height:1.55;opacity:.72">'+(installMode?'The update is already downloaded and ready to install.':'A new ImageMate version is ready. Update now to download it securely in the background.')+'</p>'+
     '<div style="display:flex;gap:10px;justify-content:flex-end">'+
     '<button id="update-later" class="secondary">Later</button>'+
     '<button id="update-now" class="primary">'+(installMode?'Install now':'Update now')+'</button>'+
@@ -72,16 +72,41 @@ function showInstantUpdatePopup(version, mode='download'){
   const close=()=>overlay.remove();
   document.querySelector('#update-later').onclick=close;
   document.querySelector('#update-now').onclick=async()=>{
-    const btn=document.querySelector('#update-now');if(!btn)return;
-    btn.disabled=true;btn.textContent=installMode?'Opening installer…':'Downloading…';
+    const btn=document.querySelector('#update-now'), statusText=document.querySelector('#update-status-text');if(!btn)return;
+    btn.disabled=true;btn.textContent=installMode?'Opening installer…':'Starting download…';
     try{
       if(installMode){await installDownloadedAndroidUpdate();return;}
       await downloadLatestAndroidUpdate(latestUpdateUrl);
-      btn.textContent='Downloading in background…';
-      setTimeout(close,700);
+      btn.textContent='Downloading…';
+      if(statusText)statusText.textContent='Downloading the APK in the background. Please keep ImageMate open for automatic installation.';
+      const started=Date.now();
+      const timer=setInterval(async()=>{
+        try{
+          const s=await getAndroidUpdateStatus();
+          if(s?.status==='complete'){
+            clearInterval(timer);
+            btn.textContent='Install now';
+            btn.disabled=false;
+            if(statusText)statusText.textContent='Download complete. Tap Install now to continue.';
+            try{await installDownloadedAndroidUpdate();}catch(e){console.error(e)}
+          }else if(s?.status==='failed'||s?.status==='error'){
+            clearInterval(timer);
+            btn.disabled=false;btn.textContent='Retry update';
+            if(statusText)statusText.textContent='Download failed. Please tap Retry update.';
+          }else if(s?.status==='downloading'&&s.total>0){
+            const pct=Math.min(100,Math.round((s.downloaded/s.total)*100));
+            btn.textContent='Downloading '+pct+'%';
+            if(statusText)statusText.textContent='Downloading ImageMate update… '+pct+'%';
+          }else if(Date.now()-started>10*60*1000){
+            clearInterval(timer);
+            btn.disabled=false;btn.textContent='Retry update';
+            if(statusText)statusText.textContent='Download is taking too long. Please retry.';
+          }
+        }catch(e){}
+      },800);
     }catch(e){
-      console.error(e);btn.disabled=false;btn.textContent=installMode?'Install now':'Update now';
-      alert('Unable to start the update. Please try again.');
+      console.error(e);btn.disabled=false;btn.textContent='Retry update';
+      if(statusText)statusText.textContent='Unable to start the update download. Please try again.';
     }
   };
   if(navigator.vibrate)navigator.vibrate([250,120,250]);
@@ -111,14 +136,8 @@ async function checkForAndroidUpdate(){
     try{await notifyAndroidUpdate(latest);}catch(e){console.debug('Update notification skipped',e)}
     b.onclick=async()=>{
       b.disabled=true;b.textContent='Downloading…';
-      try{
-        await downloadLatestAndroidUpdate(latestUpdateUrl);
-        b.textContent='Update downloading…';
-        setTimeout(()=>{if(b){b.disabled=false;b.textContent='Update downloading…'}},1500);
-      }catch(e){
-        console.error(e);b.disabled=false;b.textContent='Update available';
-        alert('Unable to start the background download. Please try again.');
-      }
+      try{await downloadLatestAndroidUpdate(latestUpdateUrl);b.textContent='Update downloading…';}
+      catch(e){console.error(e);b.disabled=false;b.textContent='Update available';alert('Unable to start the background download. Please try again.');}
     };
   }catch(e){console.debug('ImageMate update check skipped',e)}
   finally{updateCheckInFlight=false}
@@ -129,6 +148,7 @@ function startUpdateMonitor(){
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkForAndroidUpdate()});
   setInterval(()=>{if(document.visibilityState==='visible')checkForAndroidUpdate()},60000);
 }
+
 function isNewerVersion(latest,current){
   const a=String(latest).split('.').map(n=>parseInt(n,10)||0),b=String(current).split('.').map(n=>parseInt(n,10)||0);
   for(let i=0;i<Math.max(a.length,b.length);i++){if((a[i]||0)>(b[i]||0))return true;if((a[i]||0)<(b[i]||0))return false}
