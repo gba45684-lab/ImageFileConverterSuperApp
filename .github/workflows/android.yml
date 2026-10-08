@@ -342,76 +342,48 @@ jobs:
           File dir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
           if (dir == null) { call.reject("Device storage is unavailable"); return; }
           if (!dir.exists() && !dir.mkdirs()) { call.reject("Could not prepare update storage"); return; }
-          final File target = new File(dir, "ImageMate-latest.apk");
+
+          try {
+          DownloadManager dm = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
+          if (dm == null) { call.reject("Android Download Manager is unavailable"); return; }
+
+          android.content.SharedPreferences sp = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+          String oldId = sp.getString("download_id", "");
+          if (oldId != null && !oldId.isEmpty()) {
+            try { dm.remove(Long.parseLong(oldId)); } catch (Exception ignored) {}
+          }
+
+          File target = new File(dir, "ImageMate-latest.apk");
           if (target.exists()) target.delete();
+
+          DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
+          request.setTitle("ImageMate update");
+          request.setDescription("Downloading the latest ImageMate update");
+          request.setMimeType("application/vnd.android.package-archive");
+          request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+          request.setAllowedOverMetered(true);
+          request.setAllowedOverRoaming(true);
+          request.setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, "ImageMate-latest.apk");
+
+          long id = dm.enqueue(request);
+          sp.edit()
+            .remove(APK_PATH)
+            .putString("download_id", String.valueOf(id))
+            .putString("update_error", "")
+            .apply();
 
           JSObject result = new JSObject();
           result.put("started", true);
           result.put("background", true);
+          result.put("downloadId", id);
           call.resolve(result);
-
-          new Thread(() -> {
-          try {
-          java.net.HttpURLConnection connection = null;
-          java.io.InputStream in = null;
-          java.io.FileOutputStream out = null;
-          try {
-          java.net.URL downloadUrl = new java.net.URL(url);
-          connection = (java.net.HttpURLConnection) downloadUrl.openConnection();
-          connection.setInstanceFollowRedirects(true);
-          connection.setConnectTimeout(20000);
-          connection.setReadTimeout(60000);
-          connection.setRequestMethod("GET");
-          connection.setRequestProperty("Accept", "application/vnd.android.package-archive,application/octet-stream");
-          connection.setRequestProperty("User-Agent", "ImageMate-Android");
-          int code = connection.getResponseCode();
-          if (code < 200 || code >= 300) throw new java.io.IOException("Update server returned HTTP " + code);
-          String contentType = connection.getContentType();
-          long expected = connection.getContentLengthLong();
-          if (contentType != null && contentType.toLowerCase(java.util.Locale.US).contains("text/html")) {
-            throw new java.io.IOException("Update server returned HTML instead of an APK");
-          }
-          in = new java.io.BufferedInputStream(connection.getInputStream());
-          out = new java.io.FileOutputStream(target);
-          byte[] buf = new byte[16384];
-          long total = 0;
-          int n;
-          while ((n = in.read(buf)) != -1) {
-            out.write(buf, 0, n);
-            total += n;
-          }
-          out.flush();
-          if (total <= 0 || !target.exists() || target.length() <= 0) {
-            throw new java.io.IOException("Downloaded APK is empty");
-          }
-          if (expected > 0 && total != expected) {
-            throw new java.io.IOException("Incomplete APK download (" + total + "/" + expected + " bytes)");
-          }
-          context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-            .putString(APK_PATH, target.getAbsolutePath())
-            .putString("update_error", "")
-            .apply();
-          postUpdateReadyNotification(context);
-          try { launchDownloadedInstaller(context, target); } catch (Exception installError) {
-            android.util.Log.e("ImageMateUpdater", "Could not auto-open installer", installError);
-          }
-          } finally {
-          if (out != null) try { out.close(); } catch (Exception ignored) {}
-          if (in != null) try { in.close(); } catch (Exception ignored) {}
-          if (connection != null) connection.disconnect();
-          }
           } catch (Exception e) {
-          target.delete();
-          context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-            .putString("update_error", e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage())
-            .apply();
-          android.util.Log.e("ImageMateUpdater", "Update download failed", e);
-          postUpdateFailedNotification(context, e.getMessage());
+          android.util.Log.e("ImageMateUpdater", "Could not start DownloadManager update", e);
+          call.reject("Could not start update download: " + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()));
           }
-          }, "ImageMateUpdater").start();
           }
 
-                    private void postUpdateReadyNotification(Context context) {
+          private void postUpdateReadyNotification(Context context) {
           NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
           if (Build.VERSION.SDK_INT >= 26) {
           NotificationChannel channel = new NotificationChannel(CHANNEL_ID, "ImageMate updates", NotificationManager.IMPORTANCE_HIGH);
