@@ -261,7 +261,7 @@ async function dl(b,n,mime){if(!b)return;const type=mime||b.type||'application/o
 function canvasFor(i,w,h){const c=document.createElement('canvas');c.width=w||i.naturalWidth;c.height=h||i.naturalHeight;c.getContext('2d').drawImage(i,0,0,c.width,c.height);return c}
 async function pdf(files){const {jsPDF}=await import('jspdf');const doc=new jsPDF({unit:'mm',format:'a4'});for(let n=0;n<files.length;n++){if(n)doc.addPage();const i=await img(files[n]);const c=canvasFor(i);const maxW=190,maxH=277,scale=Math.min(maxW/c.width,maxH/c.height);const w=c.width*scale,h=c.height*scale;const x=(210-w)/2,y=(297-h)/2;const data=c.toDataURL('image/jpeg',.92);doc.addImage(data,'JPEG',x,y,w,h)}await dl(doc.output('blob'),'imagemate-images.pdf','application/pdf')}
 function name(n,e){return n.replace(/\.[^.]+$/,'')+'.'+e}
-async function processBatchZip(){if(!S.files.length)return alert('Choose at least one image.');const btn=document.querySelector('#zip');btn.disabled=true;btn.textContent='Creating ZIP…';try{const {default:JSZip}=await import('jszip');const zip=new JSZip();for(const f of S.files){const i=await img(f);let w=i.naturalWidth,h=i.naturalHeight;if(S.tool==='resize'){w=+S.width||w;h=+S.height||Math.round(i.naturalHeight*w/i.naturalWidth)}if(S.tool==='passport'){w=+S.width||413;h=+S.height||531}let type=S.tool==='convert'?S.format:'image/jpeg';let b=await blob(i,type,S.quality,w,h);if(S.tool==='target'){const max=S.target*1024;let lo=.05,hi=.95;for(let x=0;x<10&&b.size>max;x++){const qq=(lo+hi)/2;b=await blob(i,'image/jpeg',qq,w,h);if(b.size>max)hi=qq;else lo=qq}}zip.file(name(f.name,label(type).toLowerCase()),b)}dl(await zip.generateAsync({type:'blob',compression:'DEFLATE'}),'imagemate-'+S.tool+'-batch.zip');await maybeShowTestInterstitial()}catch(e){console.error(e);alert('Could not create the ZIP. Please try fewer or smaller images.')}finally{btn.disabled=false;btn.textContent='Download ZIP'}}
+async function processBatchZip(){if(!S.files.length)return alert('Choose at least one image.');const btn=document.querySelector('#zip');btn.disabled=true;btn.textContent='Creating ZIP…';try{const {default:JSZip}=await import('jszip');const zip=new JSZip();for(const f of S.files){const i=await img(f);let w=i.naturalWidth,h=i.naturalHeight;if(S.tool==='resize'){w=+S.width||w;h=+S.height||Math.round(i.naturalHeight*w/i.naturalWidth)}if(S.tool==='passport'){w=+S.width||413;h=+S.height||531}let type=S.tool==='convert'?S.format:'image/jpeg';let b=S.tool==='crop'?await cropBlob(i,w,h,S.rotation,type,S.quality):await blob(i,type,S.quality,w,h);if(S.tool==='target'){const max=S.target*1024;let lo=.05,hi=.95;for(let x=0;x<10&&b.size>max;x++){const qq=(lo+hi)/2;b=await blob(i,'image/jpeg',qq,w,h);if(b.size>max)hi=qq;else lo=qq}}zip.file(name(f.name,label(type).toLowerCase()),b)}dl(await zip.generateAsync({type:'blob',compression:'DEFLATE'}),'imagemate-'+S.tool+'-batch.zip');await maybeShowTestInterstitial()}catch(e){console.error(e);alert('Could not create the ZIP. Please try fewer or smaller images.')}finally{btn.disabled=false;btn.textContent='Download ZIP'}}
 async function process(){
   if(!S.files.length)return alert(S.tool==='pdf2image'?'Choose a PDF first.':'Choose at least one file.');
   const btn=document.querySelector('#process');if(btn){btn.disabled=true;btn.textContent='Processing…'}
@@ -282,8 +282,10 @@ async function process(){
         h=+S.height||(S.tool==='signature'?200:S.tool==='passport'?531:Math.round(i.naturalHeight*w/i.naturalWidth));
       }
       let type=S.tool==='convert'?S.format:'image/jpeg';
-      let b=S.tool==='editor'?await editBlob(i,S.brightness,S.contrast,S.rotation):await blob(i,type,S.quality,w,h);
-      if(S.tool==='crop'&&S.rotation)b=await rotatedBlob(i,S.rotation,type,S.quality);
+      let b;
+      if(S.tool==='editor') b=await editBlob(i,S.brightness,S.contrast,S.rotation);
+      else if(S.tool==='crop') b=await cropBlob(i,w,h,S.rotation,type,S.quality);
+      else b=await blob(i,type,S.quality,w,h);
       if(S.tool==='target'){
         const max=S.target*1024;let lo=.05,hi=.95;
         for(let x=0;x<10&&b.size>max;x++){const qq=(lo+hi)/2;b=await blob(i,'image/jpeg',qq,w,h);if(b.size>max)hi=qq;else lo=qq}
@@ -333,6 +335,19 @@ async function mergePdfs(files){
 function rotatedBlob(i,deg,type,q){
   const swap=deg%180!==0,c=document.createElement('canvas');c.width=swap?i.naturalHeight:i.naturalWidth;c.height=swap?i.naturalWidth:i.naturalHeight;
   const x=c.getContext('2d');x.translate(c.width/2,c.height/2);x.rotate(deg*Math.PI/180);x.drawImage(i,-i.naturalWidth/2,-i.naturalHeight/2);
+  return new Promise(r=>c.toBlob(r,type,q));
+}
+function cropBlob(i,targetW,targetH,deg,type,q){
+  const angle=((Number(deg)||0)%360+360)%360, swap=angle===90||angle===270;
+  const rw=swap?i.naturalHeight:i.naturalWidth, rh=swap?i.naturalWidth:i.naturalHeight;
+  let w=Number(targetW)||rw, h=Number(targetH)||Math.round(w*rh/rw);
+  if(!targetW&&targetH) { h=Number(targetH); w=Math.round(h*rw/rh); }
+  w=Math.max(1,Math.round(w)); h=Math.max(1,Math.round(h));
+  const scale=Math.max(w/rw,h/rh);
+  const drawW=i.naturalWidth*scale, drawH=i.naturalHeight*scale;
+  const c=document.createElement('canvas'); c.width=w; c.height=h;
+  const x=c.getContext('2d'); x.translate(w/2,h/2); x.rotate(angle*Math.PI/180);
+  x.drawImage(i,-drawW/2,-drawH/2,drawW,drawH);
   return new Promise(r=>c.toBlob(r,type,q));
 }
 function showResult(title,body){
