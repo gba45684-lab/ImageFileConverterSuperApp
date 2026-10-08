@@ -469,3 +469,14 @@ footer{color:var(--editorial-muted)!important;border-top-color:var(--editorial-l
 @media(prefers-reduced-motion:reduce){
   .editorial-tool{transition:none!important}
 }
+
+
+/* Manual update refresh control */
+.update-refresh{gap:7px}
+.update-refresh svg{width:16px;height:16px}
+.update-refresh[aria-busy="true"] svg{animation:imagemate-spin .8s linear infinite}
+@keyframes imagemate-spin{to{transform:rotate(360deg)}}
+.update-refresh:disabled{opacity:.6;cursor:wait}
+@media(max-width:560px){
+  .update-refresh{padding:0 8px}
+}
