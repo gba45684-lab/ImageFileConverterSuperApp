@@ -100,3 +100,23 @@ html,body,#app{width:100%;min-height:100%;margin:0}
   .topbar{min-height:76px;height:auto}
   .topbar{padding-top:max(8px,env(safe-area-inset-top,0px));padding-bottom:8px}
 }
+
+/* Settings/navigation interaction hardening */
+.top-actions{position:relative;z-index:20;pointer-events:auto}
+.top-actions button{position:relative;z-index:21;pointer-events:auto}
+.switch{position:relative;display:block;cursor:pointer}
+.switch input{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;margin:0!important;opacity:0!important;z-index:2!important;cursor:pointer}
+.switch span{z-index:1;pointer-events:none}
+@media(max-width:700px){
+  .topbar{gap:10px;align-items:center}
+  .brand{min-width:0;flex:1}
+  .brand>div:last-child{min-width:0}
+  .brand b,.brand span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .top-actions{flex:0 0 auto;overflow-x:auto;max-width:68vw;padding:2px 1px;scrollbar-width:none}
+  .top-actions::-webkit-scrollbar{display:none}
+  .top-actions .icon-btn{flex:0 0 auto}
+}
+@media(max-width:480px){
+  .top-actions{max-width:62vw}
+  .top-actions .icon-btn{padding:8px 9px}
+}
