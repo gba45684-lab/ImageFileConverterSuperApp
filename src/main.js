@@ -241,8 +241,8 @@ function history(){try{return JSON.parse(localStorage.getItem('imagemate-history
 function addHistory(name,tool,sizeBytes,extra={}){const h=history();h.unshift({name,tool,size:sizeBytes,at:new Date().toISOString(),...extra});localStorage.setItem('imagemate-history',JSON.stringify(h.slice(0,50)))}
 async function nativeDownloadedFiles(){if(!isNativeAndroid())return history();try{const r=await ImageMateUpdaterList();return r?.files||[]}catch{return history()}}
 async function ImageMateUpdaterList(){return (await import('./updater.js')).listDownloadedFiles()}
-async function openDownloadedFile(path){try{await (await import('./updater.js')).openDownloadedFile(path)}catch(e){console.error(e);alert('Unable to open this file.')}}
-async function shareDownloadedFile(path){try{await (await import('./updater.js')).shareDownloadedFile(path)}catch(e){console.error(e);alert('Unable to share this file.')}}
+async function openDownloadedFile(path){try{await (await import('./updater.js')).openDownloadedFile(path)}catch(e){console.error(e);const msg=e?.message||e?.errorMessage||'No compatible app is installed for this file type.';alert('Unable to open this file.\\n\\n'+msg)}}
+async function shareDownloadedFile(path){try{await (await import('./updater.js')).shareDownloadedFile(path)}catch(e){console.error(e);const msg=e?.message||e?.errorMessage||'No compatible sharing app is available.';alert('Unable to share this file.\\n\\n'+msg)}}
 async function exportDownloadedFile(path,name,mime){try{await (await import('./updater.js')).exportDownloadedFile(path,name,mime);showResult('File saved','A copy was saved to your device Downloads folder.')}catch(e){console.error(e);alert('Unable to save another copy.')}}
 async function renderDownloads(){
   const workspace=document.querySelector('#download-library'); if(!workspace)return;
