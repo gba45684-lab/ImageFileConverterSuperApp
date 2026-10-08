@@ -15,14 +15,14 @@ export async function notifyAndroidUpdate(version) {
   return ImageMateUpdater.notifyUpdate({ version });
 }
 
-export async function downloadLatestAndroidUpdate(url) {
+export async function downloadLatestAndroidUpdate(url, version = '') {
   if (!isNativeAndroid()) return { supported: false };
-  return ImageMateUpdater.downloadUpdate({ url });
+  return ImageMateUpdater.downloadUpdate({ url, version });
 }
 
-export async function installDownloadedAndroidUpdate() {
+export async function installDownloadedAndroidUpdate(version = '') {
   if (!isNativeAndroid()) return { supported: false };
-  return ImageMateUpdater.installDownloadedUpdate();
+  return ImageMateUpdater.installDownloadedUpdate({ version });
 }
 
 export async function getAndroidUpdateStatus() {
@@ -35,9 +35,9 @@ export async function getAndroidAppVersion() {
   return ImageMateUpdater.getAppVersion();
 }
 
-export async function hasDownloadedAndroidUpdate() {
+export async function hasDownloadedAndroidUpdate(version = '') {
   if (!isNativeAndroid()) return { supported: false, ready: false };
-  return ImageMateUpdater.hasDownloadedUpdate();
+  return ImageMateUpdater.hasDownloadedUpdate({ version });
 }
 
 export async function saveProcessedFile(name, mime, base64) {
