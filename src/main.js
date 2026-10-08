@@ -88,7 +88,7 @@ function showInstantUpdatePopup(version, mode='download'){
             btn.textContent='Install now';
             btn.disabled=false;
             if(statusText)statusText.textContent='Download complete. Tap Install now to continue.';
-            try{await installDownloadedAndroidUpdate();}catch(e){console.error(e)}
+            try{const r=await installDownloadedAndroidUpdate();if(r?.needsPermission){if(statusText)statusText.textContent='Allow "Install unknown apps" for ImageMate, then tap Install now.';}}catch(e){console.error(e);btn.disabled=false;btn.textContent='Install now';if(statusText)statusText.textContent='Installer could not open: '+(e?.message||'Please try again.');}
           }else if(s?.status==='failed'||s?.status==='error'){
             clearInterval(timer);
             btn.disabled=false;btn.textContent='Retry update';
@@ -106,7 +106,7 @@ function showInstantUpdatePopup(version, mode='download'){
       },800);
     }catch(e){
       console.error(e);btn.disabled=false;btn.textContent='Retry update';
-      if(statusText)statusText.textContent='Unable to start the update download. Please try again.';
+      if(statusText)statusText.textContent='Unable to start update: '+(e?.message||'Download Manager rejected the request.')+' Tap Retry update.';
     }
   };
   if(navigator.vibrate)navigator.vibrate([250,120,250]);
@@ -137,7 +137,7 @@ async function checkForAndroidUpdate(){
     b.onclick=async()=>{
       b.disabled=true;b.textContent='Downloading…';
       try{await downloadLatestAndroidUpdate(latestUpdateUrl);b.textContent='Update downloading…';}
-      catch(e){console.error(e);b.disabled=false;b.textContent='Update available';alert('Unable to start the background download. Please try again.');}
+      catch(e){console.error(e);b.disabled=false;b.textContent='Update available';alert('Unable to start update: '+(e?.message||'Download Manager rejected the request.'));}
     };
   }catch(e){console.debug('ImageMate update check skipped',e)}
   finally{updateCheckInFlight=false}
