@@ -4,6 +4,7 @@ import packageJson from '../package.json';
 import './style.css';
 
 const app=document.querySelector('#app');
+if(isNativeAndroid()) document.documentElement.classList.add('native-android');
 const UPDATE_API='https://api.github.com/repos/gba45684-lab/ImageFileConverterSuperApp/releases/latest';
 const UPDATE_APK='https://github.com/gba45684-lab/ImageFileConverterSuperApp/releases/latest/download/ImageMate.apk';
 let latestUpdateUrl=UPDATE_APK;
@@ -27,13 +28,18 @@ const tools=[
   ['pdfmerge','⊞','Merge PDFs','Combine multiple PDFs into one'],
   ['editor','✧','Image Editor','Brightness, contrast & rotate']
 ];
-const S={tool:'convert',files:[],format:localStorage.getItem('imagemate-format')||'image/webp',quality:Number(localStorage.getItem('imagemate-quality')||'.88'),width:'',height:'',target:100,pdfFormat:'image/png',pdfScale:1.5,rotation:0,brightness:0,contrast:0,dark:localStorage.getItem('imagemate-dark')==='1',view:'tools'};
+const savedFormat=localStorage.getItem('imagemate-format');
+const allowedFormats=['image/webp','image/jpeg','image/png','image/avif'];
+const storedQuality=Number(localStorage.getItem('imagemate-quality'));
+const safeQuality=Number.isFinite(storedQuality)?Math.min(1,Math.max(.1,storedQuality)):.88;
+const S={tool:'convert',files:[],format:allowedFormats.includes(savedFormat)?savedFormat:'image/webp',quality:safeQuality,width:'',height:'',target:100,pdfFormat:'image/png',pdfScale:1.5,rotation:0,brightness:0,contrast:0,dark:localStorage.getItem('imagemate-dark')==='1',view:'tools'};
 
 const esc=s=>String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const label=t=>t==='application/pdf'?'PDF':t==='image/jpeg'?'JPG':t==='image/png'?'PNG':t==='image/webp'?'WebP':t==='image/avif'?'AVIF':t==='image/heic'?'HEIC':t==='image/heif'?'HEIF':'Image';
 const size=n=>n<1024?n+' B':n<1048576?(n/1024).toFixed(1)+' KB':(n/1048576).toFixed(2)+' MB';
 
 function render(){
+  document.querySelectorAll('#queue img').forEach(imgEl=>{const src=imgEl.currentSrc||imgEl.src;if(src)URL.revokeObjectURL(src)});
   const tool=tools.find(x=>x[0]===S.tool)||tools[0];
   const home=S.view==='tools', task=S.view==='tool', downloads=S.view==='downloads', settingsScreen=S.view==='settings';
   const accept=S.tool==='pdf2image'||S.tool==='pdfmerge'?'application/pdf':'image/*,.heic,.heif';
@@ -82,6 +88,7 @@ function render(){
 }
 function showInstantUpdatePopup(version, mode='download'){
   if(document.querySelector('#update-popup'))return;
+  if(mode==='download'&&localStorage.getItem('imagemate-update-dismissed-version')===String(version))return;
   const installMode=mode==='install';
   const overlay=document.createElement('div');
   overlay.id='update-popup';
@@ -96,7 +103,10 @@ function showInstantUpdatePopup(version, mode='download'){
     '<button id="update-now" class="primary">'+(installMode?'Install now':'Update now')+'</button>'+
     '</div></div></div>';
   document.body.appendChild(overlay);
-  const close=()=>overlay.remove();
+  const close=()=>{
+    if(!installMode)localStorage.setItem('imagemate-update-dismissed-version',String(version));
+    overlay.remove();
+  };
   document.querySelector('#update-later').onclick=close;
   document.querySelector('#update-now').onclick=async()=>{
     const btn=document.querySelector('#update-now'), statusText=document.querySelector('#update-status-text');if(!btn)return;
@@ -104,10 +114,17 @@ function showInstantUpdatePopup(version, mode='download'){
     try{
       if(installMode){
         localStorage.setItem('imagemate-update-installing','1');
-        await installDownloadedAndroidUpdate();
+        const installResult=await installDownloadedAndroidUpdate(version);
+        if(installResult?.needsPermission){
+          localStorage.removeItem('imagemate-update-installing');
+          localStorage.removeItem('imagemate-update-install-started-at');
+          btn.disabled=false;
+          btn.textContent='Install now';
+          if(statusText)statusText.textContent='Allow ImageMate to install unknown apps in Android settings, then tap Install now again.';
+        }
         return;
       }
-      await downloadLatestAndroidUpdate(latestUpdateUrl);
+      await downloadLatestAndroidUpdate(latestUpdateUrl,version);
       btn.textContent='Downloading…';
       if(statusText)statusText.textContent='Downloading the APK in the background. Please keep ImageMate open for automatic installation.';
       const started=Date.now();
@@ -146,62 +163,101 @@ async function checkForAndroidUpdate(){
   if(!isNativeAndroid()||updateCheckInFlight||localStorage.getItem('imagemate-auto-update')==='0')return;
   updateCheckInFlight=true;
   try{
-    // Use the actual installed Android version as the source of truth.
-    // The web bundle may be cached or built separately from the native APK.
     const nativeVersion=await getAndroidAppVersion().catch(()=>({version:APP_VERSION}));
     runtimeAppVersion=String(nativeVersion?.version||APP_VERSION);
-    const installing=localStorage.getItem('imagemate-update-installing')==='1';
-
-    // IMPORTANT: after tapping Install, Android may resume/refresh the old app while
-    // the package installer is still open. Do NOT start another download in that window.
-    // Keep the lock until the installed native version actually changes.
     const b=document.querySelector('#update-btn');
     const r=await fetch(UPDATE_API+'?imagemate='+Date.now(),{cache:'no-store',headers:{Accept:'application/vnd.github+json'}});
     if(!r.ok)return;
     const release=await r.json();
     const latest=String(release.tag_name||'').replace(/^v/i,'');
     const asset=Array.isArray(release.assets)?release.assets.find(a=>a&&a.name==='ImageMate.apk'&&a.browser_download_url):null;
-    latestUpdateUrl=asset?.browser_download_url||UPDATE_APK;
+    if(!latest||!asset){
+      if(b){b.hidden=true;b.disabled=false}
+      return;
+    }
+    latestUpdateUrl=asset.browser_download_url;
 
+    const installing=localStorage.getItem('imagemate-update-installing')==='1';
+    const installStarted=Number(localStorage.getItem('imagemate-update-install-started-at')||0);
     if(installing){
-      // Only clear the lock once the installed version is no longer older than
-      // the release we were installing. If the installer was cancelled, stay locked
-      // instead of immediately downloading the same APK again.
-      if(!latest||!isNewerVersion(latest,runtimeAppVersion)){
+      if(!isNewerVersion(latest,runtimeAppVersion)||installStarted&&Date.now()-installStarted>30*60*1000){
         localStorage.removeItem('imagemate-update-installing');
+        localStorage.removeItem('imagemate-update-install-started-at');
       }else{
-        if(b){b.hidden=true;b.disabled=true;}
+        if(b){b.hidden=true;b.disabled=true}
         return;
       }
     }
 
-    const ready=await hasDownloadedAndroidUpdate().catch(()=>({ready:false}));
+    if(!isNewerVersion(latest,runtimeAppVersion)){
+      localStorage.removeItem('imagemate-update-installing');
+      localStorage.removeItem('imagemate-update-install-started-at');
+      if(b){b.hidden=true;b.disabled=false}
+      return;
+    }
+
+    const ready=await hasDownloadedAndroidUpdate(latest).catch(()=>({ready:false}));
     if(ready?.ready&&b){
       b.hidden=false;b.disabled=false;b.textContent='Install update';
       b.onclick=async()=>{
         b.disabled=true;b.textContent='Installing…';
         localStorage.setItem('imagemate-update-installing','1');
-        try{await installDownloadedAndroidUpdate();}
-        catch(e){
+        localStorage.setItem('imagemate-update-install-started-at',String(Date.now()));
+        try{
+          const installResult=await installDownloadedAndroidUpdate(latest);
+          if(installResult?.needsPermission){
+            localStorage.removeItem('imagemate-update-installing');
+            localStorage.removeItem('imagemate-update-install-started-at');
+            b.disabled=false;b.textContent='Install update';
+            return;
+          }
+        }catch(e){
           console.error(e);
           localStorage.removeItem('imagemate-update-installing');
+          localStorage.removeItem('imagemate-update-install-started-at');
           b.disabled=false;b.textContent='Install update';
         }
       };
-      showInstantUpdatePopup('downloaded update','install');
+      showInstantUpdatePopup(latest,'install');
       return;
     }
 
-    if(!latest||!isNewerVersion(latest,runtimeAppVersion)||!b)return;
-    b.hidden=false;b.disabled=false;b.textContent='Update available';
-    showInstantUpdatePopup(latest,'download');
-    try{await requestAndroidNotificationPermission();}catch(e){console.debug('Notification permission request skipped',e)}
-    try{await notifyAndroidUpdate(latest);}catch(e){console.debug('Update notification skipped',e)}
-    b.onclick=async()=>{
-      b.disabled=true;b.textContent='Downloading…';
-      try{await downloadLatestAndroidUpdate(latestUpdateUrl);b.textContent='Update downloading…';}
-      catch(e){console.error(e);b.disabled=false;b.textContent='Update available';alert('Unable to start update: '+(e?.message||'Download Manager rejected the request.'));}
-    };
+    const status=await getAndroidUpdateStatus().catch(()=>({status:'none',downloaded:0,total:0}));
+    if(['pending','downloading','paused'].includes(status?.status)){
+      if(b){
+        b.hidden=false;b.disabled=true;
+        const pct=status.total>0?Math.min(100,Math.round((status.downloaded/status.total)*100)):0;
+        b.textContent=status.status==='downloading'&&status.total>0?'Downloading '+pct+'%':'Update downloading…';
+      }
+      return;
+    }
+
+    if(b){
+      b.hidden=false;b.disabled=false;b.textContent='Update available';
+      b.onclick=async()=>{
+        b.disabled=true;b.textContent='Downloading…';
+        try{
+          await downloadLatestAndroidUpdate(latestUpdateUrl,latest);
+          localStorage.removeItem('imagemate-update-dismissed-version');
+          b.textContent='Update downloading…';
+        }catch(e){
+          console.error(e);
+          b.disabled=false;b.textContent='Update available';
+          alert('Unable to start update: '+(e?.message||'Download Manager rejected the request.'));
+        }
+      };
+    }
+
+    if(localStorage.getItem('imagemate-update-dismissed-version')!==latest){
+      showInstantUpdatePopup(latest,'download');
+    }
+    if(localStorage.getItem('imagemate-update-notified-version')!==latest){
+      try{
+        await requestAndroidNotificationPermission();
+        await notifyAndroidUpdate(latest);
+        localStorage.setItem('imagemate-update-notified-version',latest);
+      }catch(e){console.debug('Update notification skipped',e)}
+    }
   }catch(e){console.debug('ImageMate update check skipped',e)}
   finally{updateCheckInFlight=false}
 }
@@ -282,7 +338,23 @@ async function img(file){
   const source=await normalizeImageFile(file);
   return new Promise((ok,no)=>{const i=new Image();i.onload=()=>{URL.revokeObjectURL(i.src);ok(i)};i.onerror=no;i.src=URL.createObjectURL(source)})
 }
-function blob(i,type,q,w,h){const c=document.createElement('canvas');c.width=w||i.naturalWidth;c.height=h||i.naturalHeight;c.getContext('2d').drawImage(i,0,0,c.width,c.height);return new Promise(r=>c.toBlob(r,type,q))}
+function canvasToBlob(canvas,type,quality){
+  return new Promise((resolve,reject)=>{
+    canvas.toBlob(blobValue=>{
+      if(blobValue)resolve(blobValue);
+      else reject(new Error(type==='image/avif'?'AVIF is not supported by this browser. Choose WebP, JPG or PNG.':'The browser could not create the requested output file.'));
+    },type,quality);
+  });
+}
+function blob(i,type,q,w,h){
+  const c=document.createElement('canvas');
+  c.width=w||i.naturalWidth;
+  c.height=h||i.naturalHeight;
+  const ctx=c.getContext('2d');
+  if(!ctx)throw new Error('Canvas processing is unavailable in this browser.');
+  ctx.drawImage(i,0,0,c.width,c.height);
+  return canvasToBlob(c,type,q);
+}
 function history(){try{return JSON.parse(localStorage.getItem('imagemate-history')||'[]')}catch{return[]}}
 function addHistory(name,tool,sizeBytes,extra={}){const h=history();h.unshift({name,tool,size:sizeBytes,at:new Date().toISOString(),...extra});localStorage.setItem('imagemate-history',JSON.stringify(h.slice(0,50)))}
 async function nativeDownloadedFiles(){if(!isNativeAndroid())return history();try{const r=await ImageMateUpdaterList();return r?.files||[]}catch{return history()}}
@@ -295,10 +367,13 @@ async function renderDownloads(){
   workspace.innerHTML='<div class="downloads-head"><div><p class="eyebrow">YOUR FILES</p><h2>File library</h2><p class="downloads-sub">Open, share or save another copy of files created by ImageMate.</p></div><button id="refresh-downloads" class="secondary">Refresh</button></div><div id="downloaded-list" class="downloaded-list"><div class="empty-downloads">Loading files…</div></div>';
   const list=await nativeDownloadedFiles(); const el=document.querySelector('#downloaded-list'); if(!el)return;
   if(!list.length){el.innerHTML='<div class="empty-downloads"><b>No downloaded files yet</b><span>Processed files will appear here automatically.</span></div>';return}
-  el.innerHTML=list.map((f,i)=>'<article class="download-item"><div class="download-icon">↓</div><div class="download-info"><b>'+esc(f.name||('File '+(i+1)))+'</b><span>'+(f.mime?label(f.mime)+' • ':'')+(f.size?size(+f.size)+' • ':'')+(f.at?new Date(f.at).toLocaleString():'')+'</span></div><div class="download-actions"><button class="secondary open-file" data-path="'+esc(f.path)+'">Open</button><button class="secondary share-file" data-path="'+esc(f.path)+'">Share</button><button class="primary save-copy" data-path="'+esc(f.path)+'" data-name="'+esc(f.name||'ImageMate-file')+'" data-mime="'+esc(f.mime||'application/octet-stream')+'">Download again</button></div></article>').join('');
-  el.querySelectorAll('.open-file').forEach(b=>b.onclick=()=>openDownloadedFile(b.dataset.path));
-  el.querySelectorAll('.share-file').forEach(b=>b.onclick=()=>shareDownloadedFile(b.dataset.path));
-  el.querySelectorAll('.save-copy').forEach(b=>b.onclick=()=>exportDownloadedFile(b.dataset.path,b.dataset.name,b.dataset.mime));
+  const nativeLibrary=isNativeAndroid();
+  el.innerHTML=list.map((f,i)=>'<article class="download-item"><div class="download-icon">↓</div><div class="download-info"><b>'+esc(f.name||('File '+(i+1)))+'</b><span>'+(f.mime?label(f.mime)+' • ':'')+(f.size?size(+f.size)+' • ':'')+(f.at?new Date(f.at).toLocaleString():'')+'</span></div><div class="download-actions">'+(nativeLibrary?'<button class="secondary open-file" data-path="'+esc(f.path)+'">Open</button><button class="secondary share-file" data-path="'+esc(f.path)+'">Share</button><button class="primary save-copy" data-path="'+esc(f.path)+'" data-name="'+esc(f.name||'ImageMate-file')+'" data-mime="'+esc(f.mime||'application/octet-stream')+'">Download again</button>':'<span class="browser-history-note">Browser download history</span>')+'</div></article>').join('');
+  if(nativeLibrary){
+    el.querySelectorAll('.open-file').forEach(b=>b.onclick=()=>openDownloadedFile(b.dataset.path));
+    el.querySelectorAll('.share-file').forEach(b=>b.onclick=()=>shareDownloadedFile(b.dataset.path));
+    el.querySelectorAll('.save-copy').forEach(b=>b.onclick=()=>exportDownloadedFile(b.dataset.path,b.dataset.name,b.dataset.mime));
+  }
   const rb=document.querySelector('#refresh-downloads'); if(rb)rb.onclick=renderDownloads;
 }
 function setProgress(percent,label='Processing'){const q=document.querySelector('#progress-wrap');if(!q)return;const p=Math.max(0,Math.min(100,Math.round(percent)));const bar=q.querySelector('.progress-bar');const text=q.querySelector('.progress-text');if(bar)bar.style.width=p+'%';if(text)text.textContent=label+' '+p+'%'}
@@ -316,8 +391,20 @@ async function process(){
     if(S.tool==='pdf'){await pdf(S.files);setProgress(100,'Downloaded');showResult('PDF created','Your PDF has been downloaded and saved to local history.');return}
     if(S.tool==='pdfmerge'){await mergePdfs(S.files);setProgress(100,'Downloaded');showResult('PDFs merged','Your combined PDF has been downloaded.');return}
     if(['pdf2image','ocr','exif','background'].includes(S.tool)){
-      for(let n=0;n<S.files.length;n++){await convertSpecial(S.files[n],S.tool);setProgress(((n+1)/S.files.length)*100,'Downloaded')}
-      showResult(S.tool==='ocr'?'OCR complete':'Files ready','Your processed files were downloaded and saved to local history.');
+      const ocrResults=[];
+      for(let n=0;n<S.files.length;n++){
+        const result=await convertSpecial(S.files[n],S.tool);
+        if(S.tool==='ocr'&&result&&typeof result.text==='string')ocrResults.push(result);
+        setProgress(((n+1)/S.files.length)*100,'Downloaded');
+      }
+      if(S.tool==='ocr'){
+        const combinedText=ocrResults.map(x=>'===== '+x.name+' =====\n'+(x.text.trim()||'No text detected.')).join('\n\n');
+        showResult('OCR complete','<textarea id="ocr-output" rows="12">'+esc(combinedText||'No text detected.')+'</textarea><div class="result-actions"><button class="secondary" id="download-ocr">Download TXT</button></div>');
+        const downloadOcr=document.querySelector('#download-ocr');
+        if(downloadOcr)downloadOcr.onclick=()=>dl(new Blob([combinedText||'No text detected.'],{type:'text/plain;charset=utf-8'}),S.files.length===1?S.files[0].name.replace(/\.[^.]+$/,'')+'-ocr.txt':'imagemate-ocr.txt','text/plain;charset=utf-8');
+      }else{
+        showResult('Files ready','Your processed files were downloaded and saved to local history.');
+      }
       return;
     }
     for(let n=0;n<S.files.length;n++){
@@ -354,7 +441,7 @@ async function editBlob(i,brightness,contrast,rotation){
   x.translate(c.width/2,c.height/2);x.rotate(rotation*Math.PI/180);
   x.filter='brightness('+(100+Number(brightness||0))+'%) contrast('+(100+Number(contrast||0))+'%)';
   x.drawImage(i,-i.naturalWidth/2,-i.naturalHeight/2);
-  return new Promise(r=>c.toBlob(r,'image/jpeg',.92));
+  return canvasToBlob(c,'image/jpeg',.92);
 }
 async function mergePdfs(files){
   const {getDocument,GlobalWorkerOptions}=await import('pdfjs-dist');
@@ -381,7 +468,7 @@ async function mergePdfs(files){
 function rotatedBlob(i,deg,type,q){
   const swap=deg%180!==0,c=document.createElement('canvas');c.width=swap?i.naturalHeight:i.naturalWidth;c.height=swap?i.naturalWidth:i.naturalHeight;
   const x=c.getContext('2d');x.translate(c.width/2,c.height/2);x.rotate(deg*Math.PI/180);x.drawImage(i,-i.naturalWidth/2,-i.naturalHeight/2);
-  return new Promise(r=>c.toBlob(r,type,q));
+  return canvasToBlob(c,type,q);
 }
 function cropBlob(i,targetW,targetH,deg,type,q){
   const angle=((Number(deg)||0)%360+360)%360, swap=angle===90||angle===270;
@@ -410,8 +497,8 @@ async function convertSpecial(file,kind){
       const page=await doc.getPage(pageNo),viewport=page.getViewport({scale:S.pdfScale});
       const canvas=document.createElement('canvas');canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);
       await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;
-      const out=await new Promise(r=>canvas.toBlob(r,S.pdfFormat,S.pdfFormat==='image/jpeg'?.92:undefined));
-      dl(out,file.name.replace(/\.pdf$/i,'')+'-page-'+pageNo+'.'+(S.pdfFormat==='image/png'?'png':'jpg'));
+      const out=await canvasToBlob(canvas,S.pdfFormat,S.pdfFormat==='image/jpeg'?.92:undefined);
+      await dl(out,file.name.replace(/\.pdf$/i,'')+'-page-'+pageNo+'.'+(S.pdfFormat==='image/png'?'png':'jpg'),S.pdfFormat);
     }
     showResult('PDF converted','Downloaded '+doc.numPages+' page image'+(doc.numPages===1?'':'s')+'.');
     return;
@@ -422,15 +509,13 @@ async function convertSpecial(file,kind){
     try{
       const result=await worker.recognize(await normalizeImageFile(file));
       const text=result.data.text.trim();
-      showResult('OCR result','<textarea id="ocr-output" rows="12">'+esc(text||'No text detected.')+'</textarea><div class="result-actions"><button class="secondary" id="download-ocr">Download TXT</button></div>');
-      document.querySelector('#download-ocr').onclick=()=>dl(new Blob([text||'No text detected.'],{type:'text/plain;charset=utf-8'}),file.name.replace(/\.[^.]+$/,'')+'-ocr.txt');
+      return {name:file.name,text};
     }finally{await worker.terminate()}
-    return;
+    return {name:file.name,text:''};
   }
   if(kind==='exif'){
-    const i=await img(file),out=await new Promise(r=>canvasFor(i).toBlob(r,'image/png'));
-    dl(out,file.name.replace(/\.[^.]+$/,'')+'-clean.png');
-    showResult('Metadata removed','A clean PNG copy was downloaded without the original embedded metadata.');
+    const i=await img(file),out=await canvasToBlob(canvasFor(i),'image/png');
+    await dl(out,file.name.replace(/\.[^.]+$/,'')+'-clean.png','image/png');
     return;
   }
   if(kind==='background'){
@@ -439,9 +524,8 @@ async function convertSpecial(file,kind){
     const samples=[];for(const [xx,yy] of [[0,0],[c.width-1,0],[0,c.height-1],[c.width-1,c.height-1]]){const n=(yy*c.width+xx)*4;samples.push([p[n],p[n+1],p[n+2]])}
     const bg=samples.reduce((a,b)=>a.map((v,j)=>v+b[j]/samples.length),[0,0,0]);
     for(let n=0;n<p.length;n+=4){const dist=Math.abs(p[n]-bg[0])+Math.abs(p[n+1]-bg[1])+Math.abs(p[n+2]-bg[2]);if(dist<42)p[n+3]=0}
-    x.putImageData(d,0,0);const out=await new Promise(r=>c.toBlob(r,'image/png'));
-    dl(out,file.name.replace(/\.[^.]+$/,'')+'-background-removed.png');
-    showResult('Background removed','A transparent PNG was downloaded. Best results come from simple, uniform backgrounds.');
+    x.putImageData(d,0,0);const out=await canvasToBlob(c,'image/png');
+    await dl(out,file.name.replace(/\.[^.]+$/,'')+'-background-removed.png','image/png');
   }
 }
 
