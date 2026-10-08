@@ -1,5 +1,5 @@
 import { initNativeAds, maybeShowTestInterstitial } from './ads.js';
-import { downloadLatestAndroidUpdate, installDownloadedAndroidUpdate, hasDownloadedAndroidUpdate, getAndroidUpdateStatus, notifyAndroidUpdate, requestAndroidNotificationPermission, isNativeAndroid, saveProcessedFile } from './updater.js';
+import { downloadLatestAndroidUpdate, installDownloadedAndroidUpdate, hasDownloadedAndroidUpdate, getAndroidUpdateStatus, notifyAndroidUpdate, requestAndroidNotificationPermission, getAndroidAppVersion, isNativeAndroid, saveProcessedFile } from './updater.js';
 import packageJson from '../package.json';
 import './style.css';
 
@@ -8,6 +8,7 @@ const UPDATE_API='https://api.github.com/repos/gba45684-lab/ImageFileConverterSu
 const UPDATE_APK='https://github.com/gba45684-lab/ImageFileConverterSuperApp/releases/latest/download/ImageMate.apk';
 let latestUpdateUrl=UPDATE_APK;
 const APP_VERSION=packageJson.version;
+let runtimeAppVersion=APP_VERSION;
 let updateCheckInFlight=false;
 let updateMonitorStarted=false;
 const tools=[
@@ -127,6 +128,10 @@ async function checkForAndroidUpdate(){
   if(!isNativeAndroid()||updateCheckInFlight)return;
   updateCheckInFlight=true;
   try{
+    // Use the actual installed Android version as the source of truth.
+    // The web bundle may be cached or built separately from the native APK.
+    const nativeVersion=await getAndroidAppVersion().catch(()=>({version:APP_VERSION}));
+    runtimeAppVersion=String(nativeVersion?.version||APP_VERSION);
     const ready=await hasDownloadedAndroidUpdate().catch(()=>({ready:false}));
     const b=document.querySelector('#update-btn');
     if(ready?.ready&&b){
@@ -141,7 +146,7 @@ async function checkForAndroidUpdate(){
     const latest=String(release.tag_name||'').replace(/^v/i,'');
     const asset=Array.isArray(release.assets)?release.assets.find(a=>a&&a.name==='ImageMate.apk'&&a.browser_download_url):null;
     latestUpdateUrl=asset?.browser_download_url||UPDATE_APK;
-    if(!latest||!isNewerVersion(latest,APP_VERSION)||!b)return;
+    if(!latest||!isNewerVersion(latest,runtimeAppVersion)||!b)return;
     b.hidden=false;b.disabled=false;b.textContent='Update available';
     showInstantUpdatePopup(latest,'download');
     try{await requestAndroidNotificationPermission();}catch(e){console.debug('Notification permission request skipped',e)}
