@@ -36,7 +36,7 @@ const safeQuality=Number.isFinite(storedQuality)?Math.min(1,Math.max(.1,storedQu
 const S={tool:'convert',files:[],format:allowedFormats.includes(savedFormat)?savedFormat:'image/webp',quality:safeQuality,width:'',height:'',target:100,pdfFormat:'image/png',pdfScale:1.5,rotation:0,brightness:0,contrast:0,dark:localStorage.getItem('imagemate-dark')==='1',view:'tools'};
 
 const esc=s=>String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-const label=t=>t==='application/pdf'?'PDF':t==='image/jpeg'?'JPG':t==='image/png'?'PNG':t==='image/webp'?'WebP':t==='image/avif'?'AVIF':t==='image/heic'?'HEIC':t==='image/heif'?'HEIF':'Image';
+const label=t=>t==='application/pdf'?'PDF':t==='image/jpeg'?'JPG':t==='image/png'?'PNG':t==='image/webp'?'WebP':t==='image/avif'?'AVIF':t==='image/heic'?'HEIC':t==='image/heif'?'HEIF':t==='text/plain'||String(t).startsWith('text/')?'TXT':t==='application/zip'?'ZIP':'Image';
 const size=n=>n<1024?n+' B':n<1048576?(n/1024).toFixed(1)+' KB':(n/1048576).toFixed(2)+' MB';
 
 function render(){
@@ -50,7 +50,7 @@ function render(){
   const dropLabel=(S.tool==='pdf2image'||S.tool==='pdfmerge')?'Drop PDF files here':'Drop images here';
   const subLabel=(S.tool==='pdf2image'||S.tool==='pdfmerge')?'PDF files • Multiple pages supported':'JPG, PNG, WebP, AVIF • Batch supported';
 
-  const header='<header class="topbar editorial-topbar"><div class="brand"><button id="brand-home" class="brand-mark" aria-label="ImageMate home"><span>IM</span></button><div class="brand-copy"><b>ImageMate</b><span>Private image & file tools</span></div></div><nav class="top-actions" aria-label="Application navigation"><button id="home-btn" class="nav-btn" title="Home"><i data-lucide="house"></i><span class="nav-text">Home</span></button><button id="theme" class="nav-btn" aria-label="Toggle theme" title="Theme"><i data-lucide="'+(S.dark?'sun':'moon')+'"></i><span class="nav-text">Theme</span></button><button id="settings-btn" class="nav-btn" title="Settings"><i data-lucide="settings-2"></i><span class="nav-text">Settings</span></button><button id="refresh-update-btn" class="nav-btn update-refresh" title="Refresh update check" aria-label="Refresh update check"><i data-lucide="refresh-cw"></i><span class="nav-text">Refresh</span></button><button class="pro" title="Remove Ads"><span>Remove Ads</span><small>PRO</small></button><button id="update-btn" class="update-btn" hidden>Update</button></nav></header>';
+  const header='<header class="topbar editorial-topbar"><div class="brand"><button id="brand-home" class="brand-mark" aria-label="ImageMate home"><span>IM</span></button><div class="brand-copy"><b>ImageMate</b><span>Private image & file tools</span></div></div><nav class="top-actions" aria-label="Application navigation"><button id="home-btn" class="nav-btn" title="Home"><i data-lucide="house"></i><span class="nav-text">Home</span></button><button id="theme" class="nav-btn" aria-label="Toggle theme" title="Theme"><i data-lucide="'+(S.dark?'sun':'moon')+'"></i><span class="nav-text">Theme</span></button><button id="settings-btn" class="nav-btn" title="Settings"><i data-lucide="settings-2"></i><span class="nav-text">Settings</span></button><button id="refresh-update-btn" class="nav-btn update-refresh" title="Refresh update check" aria-label="Refresh update check" ' + (isNativeAndroid() ? '' : 'hidden') + '><i data-lucide="refresh-cw"></i><span class="nav-text">Refresh</span></button><button class="pro" title="Remove Ads"><span>Remove Ads</span><small>PRO</small></button><button id="update-btn" class="update-btn" hidden>Update</button></nav></header>';
 
   let content='';
   if(home){
@@ -128,6 +128,7 @@ function showInstantUpdatePopup(version, mode='download'){
     '<button id="update-now" class="primary">'+(installMode?'Install now':'Update now')+'</button>'+
     '</div></div></div>';
   document.body.appendChild(overlay);
+  createIcons({icons,attrs:{'stroke-width':1.8}});
   const close=()=>{
     if(!installMode)localStorage.setItem('imagemate-update-dismissed-version',String(version));
     overlay.remove();
@@ -330,6 +331,7 @@ function load(list){
 }
 function queue(){
   const q=document.querySelector('#queue');if(!q)return;
+  q.querySelectorAll('img').forEach(imgEl=>{const src=imgEl.currentSrc||imgEl.src;if(src)URL.revokeObjectURL(src)});
   q.innerHTML=S.files.map((f,i)=>'<div class="file-row"><div class="thumb">'+((S.tool==='pdf2image'||S.tool==='pdfmerge')?'<i data-lucide="file-text"></i>':'<img src="'+URL.createObjectURL(f)+'">')+'</div><div class="file-meta"><b>'+esc(f.name)+'</b><span>'+label(f.type)+' • '+size(f.size)+'</span></div><button class="remove" data-i="'+i+'" aria-label="Remove file"><i data-lucide="x"></i></button></div>').join('');createIcons({icons,attrs:{'stroke-width':1.8}});
   q.querySelectorAll('.remove').forEach(b=>b.onclick=()=>{S.files.splice(+b.dataset.i,1);queue()});
   if(S.files.length){q.insertAdjacentHTML('beforeend','<div class="actionbar"><span><b>'+S.files.length+'</b> '+((S.tool==='pdf2image'||S.tool==='pdfmerge')?'PDF':'file')+(S.files.length>1?'s':'')+' ready</span><button id="clear" class="remove">Clear</button>'+(S.files.length>1&&!['pdf','pdf2image','ocr','exif','background','editor'].includes(S.tool)?'<button id="zip" class="secondary">Download ZIP</button>':'')+'<button id="process" class="primary">'+(S.tool==='ocr'?'Extract Text':(S.tool==='pdf2image'||S.tool==='pdfmerge')?'Convert PDFs':'Process & Download')+'</button></div>');document.querySelector('#clear').onclick=()=>{S.files=[];queue()};const zip=document.querySelector('#zip');if(zip)zip.onclick=processBatchZip;document.querySelector('#process').onclick=process}
@@ -414,12 +416,35 @@ async function renderDownloads(){
 function setProgress(percent,label='Processing'){const q=document.querySelector('#progress-wrap');if(!q)return;const p=Math.max(0,Math.min(100,Math.round(percent)));const bar=q.querySelector('.progress-bar');const text=q.querySelector('.progress-text');if(bar)bar.style.width=p+'%';if(text)text.textContent=label+' '+p+'%'}
 function blobBase64(blob){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result).split(',')[1]||'');r.onerror=reject;r.readAsDataURL(blob)})}
 async function dl(b,n,mime){if(!b)return;const type=mime||b.type||'application/octet-stream';if(isNativeAndroid()){try{const saved=await saveProcessedFile(n,type,await blobBase64(b));addHistory(n,S.tool,b.size,{path:saved?.path||'',mime:type});return}catch(e){console.warn('Native save failed, falling back to browser download',e)}}const u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=n;document.body.appendChild(a);a.click();a.remove();addHistory(n,S.tool,b.size);setTimeout(()=>URL.revokeObjectURL(u),1500)}
-function canvasFor(i,w,h){const c=document.createElement('canvas');c.width=w||i.naturalWidth;c.height=h||i.naturalHeight;c.getContext('2d').drawImage(i,0,0,c.width,c.height);return c}
+function canvasFor(i,w,h){
+  const c=document.createElement('canvas');c.width=w||i.naturalWidth;c.height=h||i.naturalHeight;
+  const ctx=c.getContext('2d');if(!ctx)throw new Error('Canvas processing is unavailable in this browser.');
+  ctx.drawImage(i,0,0,c.width,c.height);return c
+}
 async function pdf(files){const {jsPDF}=await import('jspdf');const doc=new jsPDF({unit:'mm',format:'a4'});for(let n=0;n<files.length;n++){if(n)doc.addPage();const i=await img(files[n]);const c=canvasFor(i);const maxW=190,maxH=277,scale=Math.min(maxW/c.width,maxH/c.height);const w=c.width*scale,h=c.height*scale;const x=(210-w)/2,y=(297-h)/2;const data=c.toDataURL('image/jpeg',.92);doc.addImage(data,'JPEG',x,y,w,h)}await dl(doc.output('blob'),'imagemate-images.pdf','application/pdf')}
 function name(n,e){return n.replace(/\.[^.]+$/,'')+'.'+e}
-async function processBatchZip(){if(!S.files.length)return alert('Choose at least one image.');const btn=document.querySelector('#zip');btn.disabled=true;btn.textContent='Creating ZIP…';try{const {default:JSZip}=await import('jszip');const zip=new JSZip();for(const f of S.files){const i=await img(f);let w=i.naturalWidth,h=i.naturalHeight;if(S.tool==='resize'){w=+S.width||w;h=+S.height||Math.round(i.naturalHeight*w/i.naturalWidth)}if(S.tool==='passport'){w=+S.width||413;h=+S.height||531}let type=S.tool==='convert'?S.format:'image/jpeg';let b=S.tool==='crop'?await cropBlob(i,w,h,S.rotation,type,S.quality):await blob(i,type,S.quality,w,h);if(S.tool==='target'){const max=S.target*1024;let lo=.05,hi=.95;for(let x=0;x<10&&b.size>max;x++){const qq=(lo+hi)/2;b=await blob(i,'image/jpeg',qq,w,h);if(b.size>max)hi=qq;else lo=qq}}zip.file(name(f.name,label(type).toLowerCase()),b)}dl(await zip.generateAsync({type:'blob',compression:'DEFLATE'}),'imagemate-'+S.tool+'-batch.zip');await maybeShowTestInterstitial()}catch(e){console.error(e);alert('Could not create the ZIP. Please try fewer or smaller images.')}finally{btn.disabled=false;btn.textContent='Download ZIP'}}
+function toolDimensions(i){
+  const width=Number(S.width)||0;
+  const height=Number(S.height)||0;
+  const presets={passport:[413,531],signature:[600,200]};
+  if(presets[S.tool]){
+    const [dw,dh]=presets[S.tool];
+    if(!width&&!height)return [dw,dh];
+    if(width&&!height)return [Math.max(1,Math.round(width)),Math.max(1,Math.round(width*dh/dw))];
+    if(height&&!width)return [Math.max(1,Math.round(height*dw/dh)),Math.max(1,Math.round(height))];
+    return [Math.max(1,Math.round(width)),Math.max(1,Math.round(height))];
+  }
+  if(['resize','crop'].includes(S.tool)){
+    if(width&&!height)return [Math.max(1,Math.round(width)),Math.max(1,Math.round(i.naturalHeight*width/i.naturalWidth))];
+    if(height&&!width)return [Math.max(1,Math.round(i.naturalWidth*height/i.naturalHeight)),Math.max(1,Math.round(height))];
+    return [Math.max(1,Math.round(width||i.naturalWidth)),Math.max(1,Math.round(height||i.naturalHeight))];
+  }
+  return [i.naturalWidth,i.naturalHeight];
+}
+
+async function processBatchZip(){if(!S.files.length)return alert('Choose at least one image.');const btn=document.querySelector('#zip');btn.disabled=true;btn.textContent='Creating ZIP…';try{const {default:JSZip}=await import('jszip');const zip=new JSZip();for(const f of S.files){const i=await img(f);const [w,h]=toolDimensions(i);let type=S.tool==='convert'?S.format:'image/jpeg';let b=S.tool==='crop'?await cropBlob(i,w,h,S.rotation,type,S.quality):await blob(i,type,S.quality,w,h);if(S.tool==='target'){const max=S.target*1024;let lo=.05,hi=.95;for(let x=0;x<10&&b.size>max;x++){const qq=(lo+hi)/2;b=await blob(i,'image/jpeg',qq,w,h);if(b.size>max)hi=qq;else lo=qq}}zip.file(name(f.name,label(type).toLowerCase()),b)}dl(await zip.generateAsync({type:'blob',compression:'DEFLATE'}),'imagemate-'+S.tool+'-batch.zip');await maybeShowTestInterstitial()}catch(e){console.error(e);alert('Could not create the ZIP. Please try fewer or smaller images.')}finally{btn.disabled=false;btn.textContent='Download ZIP'}}
 async function process(){
-  if(!S.files.length)return alert(S.tool==='pdf2image'?'Choose a PDF first.':'Choose at least one file.');
+  if(!S.files.length)return alert((S.tool==='pdf2image'||S.tool==='pdfmerge')?'Choose at least one PDF.':'Choose at least one file.');
   const btn=document.querySelector('#process');if(btn){btn.disabled=true;btn.textContent='Processing…'}
   const progress=document.querySelector('#progress-wrap');if(progress)progress.hidden=false;setProgress(0,'Processing');
   try{
@@ -444,11 +469,8 @@ async function process(){
     }
     for(let n=0;n<S.files.length;n++){
       const f=S.files[n];
-      const i=await img(f);let w=i.naturalWidth,h=i.naturalHeight;
-      if(['resize','signature','passport','crop'].includes(S.tool)){
-        w=+S.width||w;
-        h=+S.height||(S.tool==='signature'?200:S.tool==='passport'?531:Math.round(i.naturalHeight*w/i.naturalWidth));
-      }
+      const i=await img(f);
+      const [w,h]=toolDimensions(i);
       let type=S.tool==='convert'?S.format:'image/jpeg';
       let b;
       if(S.tool==='editor') b=await editBlob(i,S.brightness,S.contrast,S.rotation);
@@ -516,11 +538,14 @@ function cropBlob(i,targetW,targetH,deg,type,q){
   const c=document.createElement('canvas'); c.width=w; c.height=h;
   const x=c.getContext('2d'); x.translate(w/2,h/2); x.rotate(angle*Math.PI/180);
   x.drawImage(i,-drawW/2,-drawH/2,drawW,drawH);
-  return new Promise(r=>c.toBlob(r,type,q));
+  return canvasToBlob(c,type,q);
 }
 function showResult(title,body){
   const old=document.querySelector('.result-card');if(old)old.remove();
-  document.querySelector('.workspace').insertAdjacentHTML('beforeend','<div class="result-card"><div class="result-head"><b>'+esc(title)+'</b><span class="success"><i data-lucide="circle-check"></i> Done</span></div><div class="result-body">'+body+'</div></div>');
+  const workspace=document.querySelector('.workspace');
+  if(!workspace)return;
+  workspace.insertAdjacentHTML('beforeend','<div class="result-card"><div class="result-head"><b>'+esc(title)+'</b><span class="success"><i data-lucide="circle-check"></i> Done</span></div><div class="result-body">'+body+'</div></div>');
+  createIcons({icons,attrs:{'stroke-width':1.8}});
 }
 async function convertSpecial(file,kind){
   if(!file)return;
