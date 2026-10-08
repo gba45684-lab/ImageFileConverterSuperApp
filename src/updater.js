@@ -25,6 +25,11 @@ export async function installDownloadedAndroidUpdate() {
   return ImageMateUpdater.installDownloadedUpdate();
 }
 
+export async function getAndroidUpdateStatus() {
+  if (!isNativeAndroid()) return { supported: false, status: 'none' };
+  return ImageMateUpdater.getUpdateStatus();
+}
+
 export async function hasDownloadedAndroidUpdate() {
   if (!isNativeAndroid()) return { supported: false, ready: false };
   return ImageMateUpdater.hasDownloadedUpdate();
