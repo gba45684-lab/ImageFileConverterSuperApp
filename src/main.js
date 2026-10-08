@@ -353,7 +353,7 @@ function queue(){
   q.querySelectorAll('img').forEach(imgEl=>{const src=imgEl.currentSrc||imgEl.src;if(src)URL.revokeObjectURL(src)});
   q.innerHTML=S.files.map((f,i)=>'<div class="file-row"><div class="thumb">'+((S.tool==='pdf2image'||S.tool==='pdfmerge')?'<i data-lucide="file-text"></i>':'<img src="'+URL.createObjectURL(f)+'">')+'</div><div class="file-meta"><b>'+esc(f.name)+'</b><span>'+label(f.type)+' • '+size(f.size)+'</span></div><button class="remove" data-i="'+i+'" aria-label="Remove file"><i data-lucide="x"></i></button></div>').join('');createIcons({icons,attrs:{'stroke-width':1.8}});
   q.querySelectorAll('.remove').forEach(b=>b.onclick=()=>{S.files.splice(+b.dataset.i,1);queue()});
-  if(S.files.length){q.insertAdjacentHTML('beforeend','<div class="actionbar"><span><b>'+S.files.length+'</b> '+((S.tool==='pdf2image'||S.tool==='pdfmerge')?'PDF':'file')+(S.files.length>1?'s':'')+' ready</span><button id="clear" class="remove">Clear</button>'+(S.files.length>1&&!['pdf','pdf2image','ocr','exif','background','editor'].includes(S.tool)?'<button id="zip" class="secondary">Download ZIP</button>':'')+'<button id="process" class="primary">'+(S.tool==='ocr'?'Extract Text':(S.tool==='pdf2image'||S.tool==='pdfmerge')?'Convert PDFs':'Process & Download')+'</button></div>');document.querySelector('#clear').onclick=()=>{S.files=[];queue()};const zip=document.querySelector('#zip');if(zip)zip.onclick=processBatchZip;document.querySelector('#process').onclick=process}
+  if(S.files.length){q.insertAdjacentHTML('beforeend','<div class="actionbar"><span><b>'+S.files.length+'</b> '+((S.tool==='pdf2image'||S.tool==='pdfmerge')?'PDF':'file')+(S.files.length>1?'s':'')+' ready</span><button id="clear" class="remove">Clear</button>'+(S.files.length>1&&!['pdf','pdf2image','pdfmerge','ocr','exif','background','editor'].includes(S.tool)?'<button id="zip" class="secondary">Download ZIP</button>':'')+'<button id="process" class="primary">'+(S.tool==='ocr'?'Extract Text':(S.tool==='pdf2image'||S.tool==='pdfmerge')?'Convert PDFs':'Process & Download')+'</button></div>');document.querySelector('#clear').onclick=()=>{S.files=[];queue()};const zip=document.querySelector('#zip');if(zip)zip.onclick=processBatchZip;document.querySelector('#process').onclick=process}
 }
 function settings(){
   const s=document.querySelector('#settings');if(!s)return;let h='';
@@ -461,7 +461,33 @@ function toolDimensions(i){
   return [i.naturalWidth,i.naturalHeight];
 }
 
-async function processBatchZip(){if(!S.files.length)return alert('Choose at least one image.');const btn=document.querySelector('#zip');btn.disabled=true;btn.textContent='Creating ZIP…';try{const {default:JSZip}=await import('jszip');const zip=new JSZip();for(const f of S.files){const i=await img(f);const [w,h]=toolDimensions(i);let type=S.tool==='convert'?S.format:'image/jpeg';let b=S.tool==='crop'?await cropBlob(i,w,h,S.rotation,type,S.quality):await blob(i,type,S.quality,w,h);if(S.tool==='target'){const max=S.target*1024;let lo=.05,hi=.95;for(let x=0;x<10&&b.size>max;x++){const qq=(lo+hi)/2;b=await blob(i,'image/jpeg',qq,w,h);if(b.size>max)hi=qq;else lo=qq}}zip.file(name(f.name,label(type).toLowerCase()),b)}dl(await zip.generateAsync({type:'blob',compression:'DEFLATE'}),'imagemate-'+S.tool+'-batch.zip');await maybeShowTestInterstitial()}catch(e){console.error(e);alert('Could not create the ZIP. Please try fewer or smaller images.')}finally{btn.disabled=false;btn.textContent='Download ZIP'}}
+async function targetSizeBlob(i,maxBytes,w,h){
+  let width=Math.max(1,Math.round(w||i.naturalWidth));
+  let height=Math.max(1,Math.round(h||i.naturalHeight));
+  let best=null;
+  for(let pass=0;pass<8;pass++){
+    const minimum=await blob(i,'image/jpeg',.02,width,height);
+    if(minimum.size<=maxBytes){
+      best=minimum;
+      let lo=.02,hi=.95;
+      for(let step=0;step<9;step++){
+        const qq=(lo+hi)/2;
+        const candidate=await blob(i,'image/jpeg',qq,width,height);
+        if(candidate.size<=maxBytes){best=candidate;lo=qq}else hi=qq;
+      }
+      return best;
+    }
+    width=Math.max(1,Math.round(width*.72));
+    height=Math.max(1,Math.round(height*.72));
+  }
+  return best||await blob(i,'image/jpeg',.02,width,height);
+}
+
+async function processBatchZip(){
+  if(!S.files.length)return alert('Choose at least one image.');
+  if(S.tool==='pdf'||S.tool==='pdf2image'||S.tool==='pdfmerge')return alert('Batch ZIP is not available for this tool.');
+  const btn=document.querySelector('#zip');if(!btn)return;
+  btn.disabled=true;btn.textContent='Creating ZIP…';try{const {default:JSZip}=await import('jszip');const zip=new JSZip();for(const f of S.files){const i=await img(f);const [w,h]=toolDimensions(i);let type=S.tool==='convert'?S.format:'image/jpeg';let b=S.tool==='crop'?await cropBlob(i,w,h,S.rotation,type,S.quality):await blob(i,type,S.quality,w,h);if(S.tool==='target')b=await targetSizeBlob(i,S.target*1024,w,h);zip.file(name(f.name,label(type).toLowerCase()),b)}dl(await zip.generateAsync({type:'blob',compression:'DEFLATE'}),'imagemate-'+S.tool+'-batch.zip');await maybeShowTestInterstitial()}catch(e){console.error(e);alert('Could not create the ZIP. Please try fewer or smaller images.')}finally{btn.disabled=false;btn.textContent='Download ZIP'}}
 async function process(){
   if(!S.files.length)return alert((S.tool==='pdf2image'||S.tool==='pdfmerge')?'Choose at least one PDF.':'Choose at least one file.');
   const btn=document.querySelector('#process');if(btn){btn.disabled=true;btn.textContent='Processing…'}
@@ -495,10 +521,7 @@ async function process(){
       if(S.tool==='editor') b=await editBlob(i,S.brightness,S.contrast,S.rotation);
       else if(S.tool==='crop') b=await cropBlob(i,w,h,S.rotation,type,S.quality);
       else b=await blob(i,type,S.quality,w,h);
-      if(S.tool==='target'){
-        const max=S.target*1024;let lo=.05,hi=.95;
-        for(let x=0;x<10&&b.size>max;x++){const qq=(lo+hi)/2;b=await blob(i,'image/jpeg',qq,w,h);if(b.size>max)hi=qq;else lo=qq}
-      }
+      if(S.tool==='target')b=await targetSizeBlob(i,S.target*1024,w,h);
       await dl(b,name(f.name,label(type).toLowerCase()),type);
       setProgress(((n+1)/S.files.length)*100,'Downloaded');
     }
