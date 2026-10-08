@@ -377,9 +377,14 @@ jobs:
           public void exportDownloadedFile(PluginCall call) {
           String path=call.getString("path","");String name=call.getString("name","ImageMate-file");String mime=call.getString("mime","application/octet-stream");File source=fileFromPath(path);if(source==null){call.reject("File not found");return;}
           try{
-          if(Build.VERSION.SDK_INT>=29){ContentValues values=new ContentValues();values.put(MediaStore.Downloads.DISPLAY_NAME,name);values.put(MediaStore.Downloads.MIME_TYPE,mime);values.put(MediaStore.Downloads.RELATIVE_PATH,Environment.DIRECTORY_DOWNLOADS+"/ImageMate");Uri uri=getContext().getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI,values);if(uri==null)throw new java.io.IOException("Could not create Downloads entry");try(FileInputStream in=new FileInputStream(source);java.io.OutputStream out=getContext().getContentResolver().openOutputStream(uri)){byte[] buf=new byte[8192];int n;while((n=in.read(buf))>0)out.write(buf,0,n);}}else{File dir=Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);if(!dir.exists())dir.mkdirs();File dest=new File(dir,name);try(FileInputStream in=new FileInputStream(source);FileOutputStream out=new FileOutputStream(dest)){byte[] buf=new byte[8192];int n;while((n=in.read(buf))>0)out.write(buf,0,n);}}
+          if(Build.VERSION.SDK_INT>=29){
+          ContentValues values=new ContentValues();values.put(MediaStore.Downloads.DISPLAY_NAME,name);values.put(MediaStore.Downloads.MIME_TYPE,resolveMime(mime,source));values.put(MediaStore.Downloads.RELATIVE_PATH,Environment.DIRECTORY_DOWNLOADS+"/ImageMate");values.put(MediaStore.Downloads.IS_PENDING,1);
+          Uri uri=getContext().getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI,values);if(uri==null)throw new java.io.IOException("Could not create Downloads entry");
+          try(FileInputStream in=new FileInputStream(source);java.io.OutputStream out=getContext().getContentResolver().openOutputStream(uri)){if(out==null)throw new java.io.IOException("Could not open Downloads entry");byte[] buf=new byte[8192];int n;while((n=in.read(buf))>0)out.write(buf,0,n);}
+          ContentValues published=new ContentValues();published.put(MediaStore.Downloads.IS_PENDING,0);getContext().getContentResolver().update(uri,published,null,null);
+          }else{File dir=Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);if(!dir.exists())dir.mkdirs();File dest=new File(dir,name);try(FileInputStream in=new FileInputStream(source);FileOutputStream out=new FileOutputStream(dest)){byte[] buf=new byte[8192];int n;while((n=in.read(buf))>0)out.write(buf,0,n);}}
           call.resolve();
-          }catch(Exception e){call.reject("Unable to save another copy",e);}
+          }catch(Exception e){call.reject("Unable to save another copy: "+(e.getMessage()==null?"storage error":e.getMessage()),e);}
           }
 
           private static final String PREFS = "imagemate_updater";
