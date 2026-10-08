@@ -82,6 +82,8 @@ jobs:
               text=text.replace('<application ', '<uses-permission android:name="android.permission.VIBRATE" />\n    <application ', 1)
           if 'android.permission.POST_NOTIFICATIONS' not in text:
               text=text.replace('<application ', '<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n    <application ', 1)
+          if 'android.permission.WRITE_EXTERNAL_STORAGE' not in text:
+              text=text.replace('<application ', '<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />\n    <application ', 1)
           if 'com.google.android.gms.ads.APPLICATION_ID' not in text:
               text=text.replace('</application>', '    <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="@string/admob_app_id" />\n  </application>')
           if 'android:name="androidx.core.content.FileProvider"' not in text:
@@ -419,6 +421,12 @@ jobs:
           public void exportDownloadedFile(PluginCall call) {
           String path=call.getString("path","");String name=call.getString("name","ImageMate-file");String mime=call.getString("mime","application/octet-stream");File source=fileFromPath(path);if(source==null){call.reject("File not found");return;}
           try{
+          if(Build.VERSION.SDK_INT>=23 && Build.VERSION.SDK_INT<29 &&
+              androidx.core.content.ContextCompat.checkSelfPermission(getContext(), "android.permission.WRITE_EXTERNAL_STORAGE") != android.content.pm.PackageManager.PERMISSION_GRANTED){
+            getActivity().requestPermissions(new String[]{"android.permission.WRITE_EXTERNAL_STORAGE"}, 9183);
+            call.reject("Storage permission is required. Allow it, then tap Download again.");
+            return;
+          }
           if(Build.VERSION.SDK_INT>=29){
           ContentValues values=new ContentValues();values.put(MediaStore.Downloads.DISPLAY_NAME,name);values.put(MediaStore.Downloads.MIME_TYPE,resolveMime(mime,source));values.put(MediaStore.Downloads.RELATIVE_PATH,Environment.DIRECTORY_DOWNLOADS+"/ImageMate");values.put(MediaStore.Downloads.IS_PENDING,1);
           Uri uri=getContext().getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI,values);if(uri==null)throw new java.io.IOException("Could not create Downloads entry");
@@ -449,12 +457,60 @@ jobs:
           return matcher.find() ? normalizedUpdateVersion(matcher.group(1)) : "";
           }
 
+          private boolean isTrustedUpdateUrl(String url) {
+          try {
+            Uri uri = Uri.parse(url);
+            if (!"https".equalsIgnoreCase(uri.getScheme())) return false;
+            if (!"github.com".equalsIgnoreCase(uri.getHost())) return false;
+            String path = uri.getPath();
+            return path != null && path.matches("^/gba45684-lab/ImageFileConverterSuperApp/releases/download/[^/]+/ImageMate\\.apk$");
+          } catch (Exception ignored) {
+            return false;
+          }
+          }
+
+          private boolean isValidDownloadedApk(Context context, File apk, String expectedVersion) {
+          try {
+            if (apk == null || !apk.exists() || apk.length() <= 0) return false;
+            android.content.pm.PackageInfo info = context.getPackageManager().getPackageArchiveInfo(apk.getAbsolutePath(), 0);
+            if (info == null || !context.getPackageName().equals(info.packageName)) return false;
+            String expected = normalizedUpdateVersion(expectedVersion);
+            return expected.isEmpty() || expected.equals(normalizedUpdateVersion(info.versionName));
+          } catch (Exception ignored) {
+            return false;
+          }
+          }
+
+          private void clearDownloadedUpdate(Context context) {
+          android.content.SharedPreferences sp = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+          String idText = sp.getString("download_id", "");
+          try {
+            if (idText != null && !idText.isEmpty()) {
+              DownloadManager dm = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
+              if (dm != null) dm.remove(Long.parseLong(idText));
+            }
+          } catch (Exception ignored) {}
+          String storedPath = sp.getString(APK_PATH, "");
+          if (storedPath != null && !storedPath.isEmpty()) {
+            try { new File(storedPath).delete(); } catch (Exception ignored) {}
+          }
+          File target = new File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "ImageMate-latest.apk");
+          if (target.exists()) try { target.delete(); } catch (Exception ignored) {}
+          sp.edit().remove(APK_PATH).remove(APK_VERSION).remove("download_id").apply();
+          }
+
           @PluginMethod
           public void downloadUpdate(PluginCall call) {
           String url = call.getString("url");
           if (url == null || url.isEmpty()) { call.reject("Update URL is missing"); return; }
+          if (!isTrustedUpdateUrl(url)) { call.reject("Untrusted update URL"); return; }
           String requestedVersion = normalizedUpdateVersion(call.getString("version", ""));
-          if (requestedVersion.isEmpty()) requestedVersion = versionFromUpdateUrl(url);
+          String urlVersion = versionFromUpdateUrl(url);
+          if (requestedVersion.isEmpty()) requestedVersion = urlVersion;
+          if (!requestedVersion.isEmpty() && !urlVersion.isEmpty() && !requestedVersion.equals(urlVersion)) {
+            call.reject("Update URL version does not match the requested release.");
+            return;
+          }
           Context context = getContext();
           File dir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
           if (dir == null) { call.reject("Device storage is unavailable"); return; }
@@ -693,9 +749,15 @@ jobs:
             sp.edit().remove(APK_PATH).remove(APK_VERSION).remove("download_id").apply();
           }
           File apk=recoverCompletedDownload(context);
+          String currentStoredVersion=normalizedUpdateVersion(sp.getString(APK_VERSION,""));
+          if (apk != null && !isValidDownloadedApk(context, apk, requestedVersion.isEmpty() ? currentStoredVersion : requestedVersion)) {
+            clearDownloadedUpdate(context);
+            apk = null;
+            currentStoredVersion = "";
+          }
           JSObject out=new JSObject();
           out.put("ready",apk!=null&&apk.exists());
-          out.put("version",normalizedUpdateVersion(sp.getString(APK_VERSION,"")));
+          out.put("version",currentStoredVersion);
           call.resolve(out);
           }
 
@@ -717,6 +779,12 @@ jobs:
               : "Downloaded update is stale. Please download the latest update.");
             return;
           }
+          String expectedInstallVersion=requestedVersion.isEmpty()?storedVersion:requestedVersion;
+          if(!isValidDownloadedApk(context, apk, expectedInstallVersion)){
+            clearDownloadedUpdate(context);
+            call.reject("Downloaded update failed APK validation. Please download the latest update.");
+            return;
+          }
           try {
           Uri contentUri=FileProvider.getUriForFile(context, context.getPackageName()+".fileprovider", apk);
           Intent install=new Intent(Intent.ACTION_INSTALL_PACKAGE);
@@ -732,21 +800,12 @@ jobs:
           // Lock the update state before handing the APK to Android Package Installer.
           // This prevents the next app launch/visibility check from treating the same APK
           // as a fresh download and starting the update loop again.
-          context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-            .remove(APK_PATH)
-            .remove(APK_VERSION)
-            .remove("download_id")
-            .putBoolean("installing_update", true)
-            .apply();
           context.startActivity(install);
           JSObject started = new JSObject();
           started.put("started", true);
           started.put("version", storedVersion);
           call.resolve(started);
           } catch(Exception e) {
-            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-              .putBoolean("installing_update", false)
-              .apply();
             android.util.Log.e("ImageMateUpdater", "Could not open Android installer", e);
             call.reject("Could not open Android installer: " + (e.getMessage()==null ? e.getClass().getSimpleName() : e.getMessage()));
           }
