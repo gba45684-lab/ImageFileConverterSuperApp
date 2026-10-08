@@ -50,7 +50,7 @@ function render(){
   const dropLabel=(S.tool==='pdf2image'||S.tool==='pdfmerge')?'Drop PDF files here':'Drop images here';
   const subLabel=(S.tool==='pdf2image'||S.tool==='pdfmerge')?'PDF files • Multiple pages supported':'JPG, PNG, WebP, AVIF • Batch supported';
 
-  const header='<header class="topbar editorial-topbar"><div class="brand"><button id="brand-home" class="brand-mark" aria-label="ImageMate home"><span>IM</span></button><div class="brand-copy"><b>ImageMate</b><span>Private image & file tools</span></div></div><nav class="top-actions" aria-label="Application navigation"><button id="home-btn" class="nav-btn" title="Home"><i data-lucide="house"></i><span class="nav-text">Home</span></button><button id="theme" class="nav-btn" aria-label="Toggle theme" title="Theme"><i data-lucide="'+(S.dark?'sun':'moon')+'"></i><span class="nav-text">Theme</span></button><button id="settings-btn" class="nav-btn" title="Settings"><i data-lucide="settings-2"></i><span class="nav-text">Settings</span></button><button class="pro" title="Remove Ads"><span>Remove Ads</span><small>PRO</small></button><button id="update-btn" class="update-btn" hidden>Update</button></nav></header>';
+  const header='<header class="topbar editorial-topbar"><div class="brand"><button id="brand-home" class="brand-mark" aria-label="ImageMate home"><span>IM</span></button><div class="brand-copy"><b>ImageMate</b><span>Private image & file tools</span></div></div><nav class="top-actions" aria-label="Application navigation"><button id="home-btn" class="nav-btn" title="Home"><i data-lucide="house"></i><span class="nav-text">Home</span></button><button id="theme" class="nav-btn" aria-label="Toggle theme" title="Theme"><i data-lucide="'+(S.dark?'sun':'moon')+'"></i><span class="nav-text">Theme</span></button><button id="settings-btn" class="nav-btn" title="Settings"><i data-lucide="settings-2"></i><span class="nav-text">Settings</span></button><button id="refresh-update-btn" class="nav-btn update-refresh" title="Refresh update check" aria-label="Refresh update check"><i data-lucide="refresh-cw"></i><span class="nav-text">Refresh</span></button><button class="pro" title="Remove Ads"><span>Remove Ads</span><small>PRO</small></button><button id="update-btn" class="update-btn" hidden>Update</button></nav></header>';
 
   let content='';
   if(home){
@@ -74,6 +74,26 @@ function render(){
   if(homeBtn) homeBtn.onclick=goHome;
   const settingsBtn=document.querySelector('#settings-btn');
   if(settingsBtn) settingsBtn.onclick=()=>{S.view='settings';S.files=[];render()};
+  const refreshUpdate=document.querySelector('#refresh-update-btn');
+  if(refreshUpdate) refreshUpdate.onclick=async()=>{
+    if(refreshUpdate.disabled)return;
+    refreshUpdate.disabled=true;
+    refreshUpdate.setAttribute('aria-busy','true');
+    refreshUpdate.innerHTML='<i data-lucide="loader-circle"></i><span class="nav-text">Checking…</span>';
+    createIcons({icons,attrs:{'stroke-width':1.8}});
+    try{
+      if(isNativeAndroid()){
+        await checkForAndroidUpdate(true);
+      }else{
+        alert('Update refresh is available in the Android app.');
+      }
+    }finally{
+      refreshUpdate.disabled=false;
+      refreshUpdate.removeAttribute('aria-busy');
+      refreshUpdate.innerHTML='<i data-lucide="refresh-cw"></i><span class="nav-text">Refresh</span>';
+      createIcons({icons,attrs:{'stroke-width':1.8}});
+    }
+  };
   const openDownloads=document.querySelector('#open-downloads');
   if(openDownloads) openDownloads.onclick=()=>{S.view='downloads';S.files=[];render()};
   const defaultFormat=document.querySelector('#default-format');
@@ -165,8 +185,8 @@ function showInstantUpdatePopup(version, mode='download'){
   };
   if(navigator.vibrate)navigator.vibrate([250,120,250]);
 }
-async function checkForAndroidUpdate(){
-  if(!isNativeAndroid()||updateCheckInFlight||localStorage.getItem('imagemate-auto-update')==='0')return;
+async function checkForAndroidUpdate(force=false){
+  if(!isNativeAndroid()||updateCheckInFlight||(!force&&localStorage.getItem('imagemate-auto-update')==='0'))return;
   updateCheckInFlight=true;
   try{
     const nativeVersion=await getAndroidAppVersion().catch(()=>({version:APP_VERSION}));
