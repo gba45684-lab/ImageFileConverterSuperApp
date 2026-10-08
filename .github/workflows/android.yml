@@ -199,6 +199,15 @@ jobs:
           String version = call.getString("version", "");
           Context context = getContext();
           NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+          if (Build.VERSION.SDK_INT >= 33 &&
+              androidx.core.content.ContextCompat.checkSelfPermission(context, "android.permission.POST_NOTIFICATIONS") != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            JSObject denied = new JSObject();
+            denied.put("notified", false);
+            denied.put("version", version);
+            denied.put("reason", "Notification permission not granted");
+            call.resolve(denied);
+            return;
+          }
 
           if (Build.VERSION.SDK_INT >= 26) {
           NotificationChannel channel = new NotificationChannel(
@@ -224,7 +233,7 @@ jobs:
           );
 
           NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
-          .setSmallIcon(context.getApplicationInfo().icon)
+          .setSmallIcon(android.R.drawable.stat_sys_download_done)
           .setContentTitle("ImageMate update available")
           .setContentText("Version " + version + " is ready. Tap Update in ImageMate to install it.")
           .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -302,7 +311,7 @@ jobs:
           PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 23 ? PendingIntent.FLAG_IMMUTABLE : 0)
           );
           NotificationCompat.Builder builder = new NotificationCompat.Builder(context, "imagemate_files")
-          .setSmallIcon(context.getApplicationInfo().icon)
+          .setSmallIcon(android.R.drawable.stat_sys_download_done)
           .setContentTitle("ImageMate download complete")
           .setContentText(name + " is saved. Tap to open it.")
           .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -574,7 +583,7 @@ jobs:
           PendingIntent pending = launch == null ? null : PendingIntent.getActivity(context, 2408, launch,
             PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 23 ? PendingIntent.FLAG_IMMUTABLE : 0));
           NotificationCompat.Builder b = new NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(context.getApplicationInfo().icon)
+            .setSmallIcon(android.R.drawable.stat_sys_download_done)
             .setContentTitle("ImageMate update downloaded")
             .setContentText("Update is ready. Open ImageMate and tap Install update.")
             .setAutoCancel(true).setPriority(NotificationCompat.PRIORITY_HIGH);
@@ -602,7 +611,7 @@ jobs:
             PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 23 ? PendingIntent.FLAG_IMMUTABLE : 0));
           String detail = (reason == null || reason.isEmpty()) ? "Please try again." : reason;
           NotificationCompat.Builder b = new NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(context.getApplicationInfo().icon)
+            .setSmallIcon(android.R.drawable.stat_sys_download_done)
             .setContentTitle("ImageMate update failed")
             .setContentText(detail)
             .setAutoCancel(true).setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -702,8 +711,10 @@ jobs:
           }
           File apk=recoverCompletedDownload(context);
           if(apk==null || !apk.exists()){ call.reject("Downloaded update is not ready"); return; }
-          if(!requestedVersion.isEmpty()&&!storedVersion.isEmpty()&&!requestedVersion.equals(storedVersion)){
-            call.reject("Downloaded update is stale. Please download the latest update.");
+          if(!requestedVersion.isEmpty()&&!requestedVersion.equals(storedVersion)){
+            call.reject(storedVersion.isEmpty()
+              ? "Downloaded update version is unknown. Please download the latest update."
+              : "Downloaded update is stale. Please download the latest update.");
             return;
           }
           try {
@@ -728,7 +739,14 @@ jobs:
             .putBoolean("installing_update", true)
             .apply();
           context.startActivity(install);
+          JSObject started = new JSObject();
+          started.put("started", true);
+          started.put("version", storedVersion);
+          call.resolve(started);
           } catch(Exception e) {
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+              .putBoolean("installing_update", false)
+              .apply();
             android.util.Log.e("ImageMateUpdater", "Could not open Android installer", e);
             call.reject("Could not open Android installer: " + (e.getMessage()==null ? e.getClass().getSimpleName() : e.getMessage()));
           }
