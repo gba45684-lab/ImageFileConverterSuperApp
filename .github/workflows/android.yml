@@ -325,21 +325,52 @@ jobs:
 
           private File fileFromPath(String path) { if(path==null||path.isEmpty())return null; File f=new File(path); return f.exists()?f:null; }
 
+          private String resolveMime(String mime, File file) {
+          if (mime != null && !mime.isEmpty() && !"application/octet-stream".equals(mime)) return mime;
+          String n = file == null ? "" : file.getName().toLowerCase(java.util.Locale.US);
+          if (n.endsWith(".pdf")) return "application/pdf";
+          if (n.endsWith(".jpg") || n.endsWith(".jpeg")) return "image/jpeg";
+          if (n.endsWith(".png")) return "image/png";
+          if (n.endsWith(".webp")) return "image/webp";
+          if (n.endsWith(".avif")) return "image/avif";
+          if (n.endsWith(".gif")) return "image/gif";
+          if (n.endsWith(".txt")) return "text/plain";
+          if (n.endsWith(".zip")) return "application/zip";
+          return mime == null || mime.isEmpty() ? "application/octet-stream" : mime;
+          }
+
+          private void addReadGrant(Intent intent, Uri uri) {
+          intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+          if (Build.VERSION.SDK_INT >= 16) intent.setClipData(android.content.ClipData.newRawUri("ImageMate file", uri));
+          }
+
           @PluginMethod
           public void openDownloadedFile(PluginCall call) {
           String path=call.getString("path",""); File file=fileFromPath(path); if(file==null){call.reject("File not found");return;} String mime=call.getString("mime","");
           try {
           String name=file.getName(); android.content.SharedPreferences sp=getContext().getSharedPreferences(PREFS,Context.MODE_PRIVATE); JSONArray arr=new JSONArray(sp.getString(FILES_JSON,"[]")); for(int i=0;i<arr.length();i++){JSONObject x=arr.optJSONObject(i);if(x!=null&&path.equals(x.optString("path",""))){mime=x.optString("mime",mime);break;}}
-          if(mime==null||mime.isEmpty())mime="application/octet-stream"; Uri uri=FileProvider.getUriForFile(getContext(),getContext().getPackageName()+".fileprovider",file); Intent open=new Intent(Intent.ACTION_VIEW);open.setDataAndType(uri,mime);open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_GRANT_READ_URI_PERMISSION);getContext().startActivity(open);call.resolve();
-          }catch(Exception e){call.reject("Unable to open file",e);}
+          mime=resolveMime(mime,file);
+          Uri uri=FileProvider.getUriForFile(getContext(),getContext().getPackageName()+".fileprovider",file);
+          Intent open=new Intent(Intent.ACTION_VIEW); open.setDataAndType(uri,mime); addReadGrant(open,uri);
+          try {
+            getContext().startActivity(Intent.createChooser(open,"Open with"));
+          } catch (android.content.ActivityNotFoundException noHandler) {
+            Intent generic=new Intent(Intent.ACTION_VIEW); generic.setData(uri); addReadGrant(generic,uri);
+            getContext().startActivity(Intent.createChooser(generic,"Open file"));
+          }
+          call.resolve();
+          }catch(Exception e){call.reject("Unable to open file: "+(e.getMessage()==null?"No compatible app is installed":e.getMessage()),e);}
           }
 
           @PluginMethod
           public void shareDownloadedFile(PluginCall call) {
           String path=call.getString("path",""); File file=fileFromPath(path); if(file==null){call.reject("File not found");return;} try{
           String mime="application/octet-stream";android.content.SharedPreferences sp=getContext().getSharedPreferences(PREFS,Context.MODE_PRIVATE);JSONArray arr=new JSONArray(sp.getString(FILES_JSON,"[]"));for(int i=0;i<arr.length();i++){JSONObject x=arr.optJSONObject(i);if(x!=null&&path.equals(x.optString("path",""))){mime=x.optString("mime",mime);break;}}
-          Uri uri=FileProvider.getUriForFile(getContext(),getContext().getPackageName()+".fileprovider",file);Intent share=new Intent(Intent.ACTION_SEND);share.setType(mime);share.putExtra(Intent.EXTRA_STREAM,uri);share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_ACTIVITY_NEW_TASK);getContext().startActivity(Intent.createChooser(share,"Share file"));call.resolve();
-          }catch(Exception e){call.reject("Unable to share file",e);}
+          mime=resolveMime(mime,file);
+          Uri uri=FileProvider.getUriForFile(getContext(),getContext().getPackageName()+".fileprovider",file);
+          Intent share=new Intent(Intent.ACTION_SEND);share.setType(mime);share.putExtra(Intent.EXTRA_STREAM,uri);addReadGrant(share,uri);
+          getContext().startActivity(Intent.createChooser(share,"Share file"));call.resolve();
+          }catch(Exception e){call.reject("Unable to share file: "+(e.getMessage()==null?"No compatible app is installed":e.getMessage()),e);}
           }
 
           @PluginMethod
