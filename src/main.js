@@ -417,7 +417,16 @@ async function nativeDownloadedFiles(){if(!isNativeAndroid())return history();tr
 async function ImageMateUpdaterList(){return (await import('./updater.js')).listDownloadedFiles()}
 async function openDownloadedFile(path){try{await (await import('./updater.js')).openDownloadedFile(path)}catch(e){console.error(e);const msg=e?.message||e?.errorMessage||'No compatible app is installed for this file type.';alert('Unable to open this file.\\n\\n'+msg)}}
 async function shareDownloadedFile(path){try{await (await import('./updater.js')).shareDownloadedFile(path)}catch(e){console.error(e);const msg=e?.message||e?.errorMessage||'No compatible sharing app is available.';alert('Unable to share this file.\\n\\n'+msg)}}
-async function exportDownloadedFile(path,name,mime){try{await (await import('./updater.js')).exportDownloadedFile(path,name,mime);showResult('File saved','A copy was saved to your device Downloads folder.')}catch(e){console.error(e);alert('Unable to save another copy.')}}
+async function exportDownloadedFile(path,name,mime){
+  try{
+    await (await import('./updater.js')).exportDownloadedFile(path,name,mime);
+    showResult('File saved','A copy was saved to your device Downloads folder.');
+  }catch(e){
+    console.error(e);
+    const msg=e?.message||e?.errorMessage||'Storage error';
+    alert('Unable to save another copy.\\n\\n'+msg);
+  }
+}
 async function renderDownloads(){
   const workspace=document.querySelector('#download-library'); if(!workspace)return;
   workspace.innerHTML='<div class="downloads-head"><div><p class="eyebrow">YOUR FILES</p><h2>File library</h2><p class="downloads-sub">Open, share or save another copy of files created by ImageMate.</p></div><button id="refresh-downloads" class="secondary">Refresh</button></div><div id="downloaded-list" class="downloaded-list"><div class="empty-downloads">Loading files…</div></div>';
