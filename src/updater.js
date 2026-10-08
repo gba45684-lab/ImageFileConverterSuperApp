@@ -30,6 +30,11 @@ export async function getAndroidUpdateStatus() {
   return ImageMateUpdater.getUpdateStatus();
 }
 
+export async function getAndroidAppVersion() {
+  if (!isNativeAndroid()) return { supported: false, version: null };
+  return ImageMateUpdater.getAppVersion();
+}
+
 export async function hasDownloadedAndroidUpdate() {
   if (!isNativeAndroid()) return { supported: false, ready: false };
   return ImageMateUpdater.hasDownloadedUpdate();
