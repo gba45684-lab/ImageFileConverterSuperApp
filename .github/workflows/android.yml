@@ -219,6 +219,18 @@ jobs:
           }
 
           @PluginMethod
+          public void getAppVersion(PluginCall call) {
+          try {
+          String version = getContext().getPackageManager().getPackageInfo(getContext().getPackageName(), 0).versionName;
+          JSObject out = new JSObject();
+          out.put("version", version == null ? "" : version);
+          call.resolve(out);
+          } catch (Exception e) {
+          call.reject("Could not read installed app version", e);
+          }
+          }
+
+          @PluginMethod
           public void saveProcessedFile(PluginCall call) {
           String name = call.getString("name", "ImageMate-output.bin");
           String mime = call.getString("mime", "application/octet-stream");
