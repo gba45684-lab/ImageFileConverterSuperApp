@@ -103,6 +103,7 @@ jobs:
           (xml/'file_paths.xml').write_text('''<?xml version="1.0" encoding="utf-8"?>
           <paths xmlns:android="http://schemas.android.com/apk/res/android">
             <external-files-path name="downloads" path="Download/" />
+            <cache-path name="open_cache" path="." />
           </paths>
           ''')
           PY
@@ -267,6 +268,7 @@ jobs:
           Intent openFile = new Intent(Intent.ACTION_VIEW);
           openFile.setDataAndType(contentUri, mime);
           openFile.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+          if (Build.VERSION.SDK_INT >= 16) openFile.setClipData(android.content.ClipData.newRawUri("ImageMate file", contentUri));
           PendingIntent pending = PendingIntent.getActivity(
           context, 2408, openFile,
           PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 23 ? PendingIntent.FLAG_IMMUTABLE : 0)
@@ -346,12 +348,19 @@ jobs:
           try {
           String name=file.getName(); android.content.SharedPreferences sp=getContext().getSharedPreferences(PREFS,Context.MODE_PRIVATE); JSONArray arr=new JSONArray(sp.getString(FILES_JSON,"[]")); for(int i=0;i<arr.length();i++){JSONObject x=arr.optJSONObject(i);if(x!=null&&path.equals(x.optString("path",""))){mime=x.optString("mime",mime);break;}}
           mime=resolveMime(mime,file);
-          Uri uri=FileProvider.getUriForFile(getContext(),getContext().getPackageName()+".fileprovider",file);
+          File openDir = new File(getContext().getCacheDir(), "open");
+          if (!openDir.exists()) openDir.mkdirs();
+          File openFile = new File(openDir, file.getName());
+          try (FileInputStream in = new FileInputStream(file); FileOutputStream out = new FileOutputStream(openFile)) {
+            byte[] buf = new byte[16384]; int n;
+            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+          }
+          Uri uri=FileProvider.getUriForFile(getContext(),getContext().getPackageName()+".fileprovider",openFile);
           Intent open=new Intent(Intent.ACTION_VIEW); open.setDataAndType(uri,mime); addReadGrant(open,uri);
           try {
             getContext().startActivity(Intent.createChooser(open,"Open with"));
           } catch (android.content.ActivityNotFoundException noHandler) {
-            Intent generic=new Intent(Intent.ACTION_VIEW); generic.setData(uri); addReadGrant(generic,uri);
+            Intent generic=new Intent(Intent.ACTION_VIEW); generic.setDataAndType(uri,mime); addReadGrant(generic,uri);
             getContext().startActivity(Intent.createChooser(generic,"Open file"));
           }
           call.resolve();
