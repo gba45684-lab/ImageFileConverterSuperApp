@@ -27,7 +27,7 @@ const tools=[
   ['pdfmerge','⊞','Merge PDFs','Combine multiple PDFs into one'],
   ['editor','✧','Image Editor','Brightness, contrast & rotate']
 ];
-const S={tool:'convert',files:[],format:'image/webp',quality:.88,width:'',height:'',target:100,pdfFormat:'image/png',pdfScale:1.5,rotation:0,brightness:0,contrast:0,dark:localStorage.getItem('imagemate-dark')==='1',view:'tools'};
+const S={tool:'convert',files:[],format:localStorage.getItem('imagemate-format')||'image/webp',quality:Number(localStorage.getItem('imagemate-quality')||'.88'),width:'',height:'',target:100,pdfFormat:'image/png',pdfScale:1.5,rotation:0,brightness:0,contrast:0,dark:localStorage.getItem('imagemate-dark')==='1',view:'tools'};
 
 const esc=s=>String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const label=t=>t==='application/pdf'?'PDF':t==='image/jpeg'?'JPG':t==='image/png'?'PNG':t==='image/webp'?'WebP':t==='image/avif'?'AVIF':t==='image/heic'?'HEIC':t==='image/heif'?'HEIF':'Image';
@@ -35,7 +35,7 @@ const size=n=>n<1024?n+' B':n<1048576?(n/1024).toFixed(1)+' KB':(n/1048576).toFi
 
 function render(){
   const tool=tools.find(x=>x[0]===S.tool)||tools[0];
-  const home=S.view==='tools', task=S.view==='tool', downloads=S.view==='downloads';
+  const home=S.view==='tools', task=S.view==='tool', downloads=S.view==='downloads', settingsScreen=S.view==='settings';
   const accept=S.tool==='pdf2image'||S.tool==='pdfmerge'?'application/pdf':'image/*,.heic,.heif';
   const title=task?tool[2]:'All tools';
   const desc=task?tool[3]:'Choose a tool to get started';
@@ -43,11 +43,13 @@ function render(){
   const dropLabel=(S.tool==='pdf2image'||S.tool==='pdfmerge')?'Drop PDF files here':'Drop images here';
   const subLabel=(S.tool==='pdf2image'||S.tool==='pdfmerge')?'PDF files • Multiple pages supported':'JPG, PNG, WebP, AVIF • Batch supported';
 
-  const header='<header class="topbar"><div class="brand"><div class="logo">IM</div><div><b>ImageMate</b><span>Image & File Converter</span></div></div><div class="top-actions"><button id="home-btn" class="icon-btn">Home</button><button id="theme" class="icon-btn" aria-label="Toggle theme">'+(S.dark?'☀':'☾')+'</button><button id="downloads-tab" class="icon-btn">Downloaded files</button><button class="pro">Remove Ads <small>PRO</small></button><button id="update-btn" class="update-btn" hidden>Update</button></div></header>';
+  const header='<header class="topbar"><div class="brand"><div class="logo">IM</div><div><b>ImageMate</b><span>Image & File Converter</span></div></div><div class="top-actions"><button id="home-btn" class="icon-btn">Home</button><button id="theme" class="icon-btn" aria-label="Toggle theme">'+(S.dark?'☀':'☾')+'</button><button id="settings-btn" class="icon-btn">⚙ Settings</button><button class="pro">Remove Ads <small>PRO</small></button><button id="update-btn" class="update-btn" hidden>Update</button></div></header>';
 
   let content='';
   if(home){
     content='<section class="home-screen"><div class="home-intro"><div><p class="eyebrow">IMAGEMATE • PRIVATE FILE TOOLS</p><h1>Choose a tool</h1><p>Each tool opens in its own dedicated workspace. No mixed controls, no hidden settings.</p></div><div class="hero-badge"><strong>14</strong><span>dedicated tools</span></div></div><nav class="tool-grid home-tool-grid" aria-label="ImageMate tools">'+tools.map(t=>'<button class="tool" data-tool="'+t[0]+'"><span>'+t[1]+'</span><b>'+t[2]+'</b><small>'+t[3]+'</small></button>').join('')+'</nav></section>';
+  }else if(settingsScreen){
+    content='<section class="screen-head"><button id="back-home" class="secondary back-btn" type="button">← Home</button><div><p class="eyebrow">APP PREFERENCES</p><h1>Settings</h1><p>Control ImageMate preferences, file library and app behavior.</p></div><span class="privacy">🔒 Private & local</span></section><section class="settings-screen"><div class="settings-card"><div class="settings-icon">↓</div><div class="settings-copy"><b>Downloaded files</b><span>Open, share and save another copy of your processed files.</span></div><button id="open-downloads" class="secondary">File Library</button></div><div class="settings-card"><div class="settings-icon">☾</div><div class="settings-copy"><b>Appearance</b><span>Use dark mode for a more comfortable interface.</span></div><label class="switch"><input id="dark-setting" type="checkbox" '+(S.dark?'checked':'')+'><span></span></label></div><div class="settings-card settings-stack"><div class="settings-copy"><b>Processing defaults</b><span>These defaults are used when you start a new conversion.</span></div><label>Default image format<select id="default-format"><option value="image/webp" '+(S.format==='image/webp'?'selected':'')+'>WebP — recommended</option><option value="image/jpeg" '+(S.format==='image/jpeg'?'selected':'')+'>JPG</option><option value="image/png" '+(S.format==='image/png'?'selected':'')+'>PNG</option><option value="image/avif" '+(S.format==='image/avif'?'selected':'')+'>AVIF</option></select></label><label>Default quality <output id="default-quality-value">'+Math.round(S.quality*100)+'%</output><input id="default-quality" type="range" min="10" max="100" value="'+Math.round(S.quality*100)+'"></label></div><div class="settings-card"><div class="settings-icon">↻</div><div class="settings-copy"><b>Automatic update checks</b><span>Check for new ImageMate Android versions when the app opens.</span></div><label class="switch"><input id="update-setting" type="checkbox" '+(localStorage.getItem('imagemate-auto-update')!=='0'?'checked':'')+'><span></span></label></div><div class="settings-card settings-about"><div class="settings-copy"><b>Privacy & app information</b><span>ImageMate processes files locally on your device. Version '+esc(runtimeAppVersion||APP_VERSION)+'.</span></div></div></section>';
   }else if(downloads){
     content='<section class="screen-head"><button id="back-home" class="secondary back-btn" type="button">← Home</button><div><p class="eyebrow">FILE LIBRARY</p><h1>Downloaded files</h1><p>Open, share or save another copy of files created by ImageMate.</p></div><span class="privacy">🔒 Files stay on your device</span></section><section class="workspace downloads-workspace"><div id="download-library"><div class="empty-downloads">Loading files…</div></div></section>';
   }else{
@@ -59,8 +61,18 @@ function render(){
 
   const homeBtn=document.querySelector('#home-btn');
   if(homeBtn) homeBtn.onclick=()=>{S.view='tools';S.files=[];render()};
-  const dt=document.querySelector('#downloads-tab');
-  if(dt) dt.onclick=()=>{S.view='downloads';S.files=[];render()};
+  const settingsBtn=document.querySelector('#settings-btn');
+  if(settingsBtn) settingsBtn.onclick=()=>{S.view='settings';S.files=[];render()};
+  const openDownloads=document.querySelector('#open-downloads');
+  if(openDownloads) openDownloads.onclick=()=>{S.view='downloads';S.files=[];render()};
+  const darkSetting=document.querySelector('#dark-setting');
+  if(darkSetting) darkSetting.onchange=e=>{S.dark=e.target.checked;localStorage.setItem('imagemate-dark',S.dark?'1':'0');render()};
+  const defaultFormat=document.querySelector('#default-format');
+  if(defaultFormat) defaultFormat.onchange=e=>{S.format=e.target.value;localStorage.setItem('imagemate-format',S.format)};
+  const defaultQuality=document.querySelector('#default-quality');
+  if(defaultQuality) defaultQuality.oninput=e=>{S.quality=e.target.value/100;localStorage.setItem('imagemate-quality',String(S.quality));const out=document.querySelector('#default-quality-value');if(out)out.textContent=e.target.value+'%'};
+  const updateSetting=document.querySelector('#update-setting');
+  if(updateSetting) updateSetting.onchange=e=>localStorage.setItem('imagemate-auto-update',e.target.checked?'1':'0');
   const back=document.querySelector('#back-home');
   if(back) back.onclick=()=>{S.view='tools';S.files=[];render()};
   if(downloads) renderDownloads();
@@ -125,7 +137,7 @@ function showInstantUpdatePopup(version, mode='download'){
   if(navigator.vibrate)navigator.vibrate([250,120,250]);
 }
 async function checkForAndroidUpdate(){
-  if(!isNativeAndroid()||updateCheckInFlight)return;
+  if(!isNativeAndroid()||updateCheckInFlight||localStorage.getItem('imagemate-auto-update')==='0')return;
   updateCheckInFlight=true;
   try{
     // Use the actual installed Android version as the source of truth.
@@ -199,7 +211,7 @@ function queue(){
 }
 function settings(){
   const s=document.querySelector('#settings');if(!s)return;let h='';
-  if(S.tool==='convert')h='<label>Output format<select id="format"><option value="image/webp">WebP — recommended</option><option value="image/jpeg">JPG</option><option value="image/png">PNG</option><option value="image/avif">AVIF</option></select></label>';
+  if(S.tool==='convert')h='<label>Output format<select id="format"><option value="image/webp" '+(S.format==='image/webp'?'selected':'')+'>WebP — recommended</option><option value="image/jpeg" '+(S.format==='image/jpeg'?'selected':'')+'>JPG</option><option value="image/png" '+(S.format==='image/png'?'selected':'')+'>PNG</option><option value="image/avif" '+(S.format==='image/avif'?'selected':'')+'>AVIF</option></select></label>';
   if(['compress','target','resize','passport','signature','crop'].includes(S.tool)){
     if(['resize','passport','signature','crop'].includes(S.tool))h+='<label>Width (px)<input id="width" type="number" placeholder="'+(S.tool==='passport'?'413':S.tool==='signature'?'600':'Original')+'"></label><label>Height (px)<input id="height" type="number" placeholder="'+(S.tool==='passport'?'531':S.tool==='signature'?'200':'Auto')+'"></label>';
     if(!['passport','signature'].includes(S.tool))h+='<label>Quality <output id="qv">'+Math.round(S.quality*100)+'%</output><input id="quality" type="range" min="10" max="100" value="'+S.quality*100+'"></label>';
