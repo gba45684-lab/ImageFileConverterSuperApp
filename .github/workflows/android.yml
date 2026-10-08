@@ -650,6 +650,15 @@ jobs:
             call.reject("Android package installer is unavailable");
             return;
           }
+          // Lock the update state before handing the APK to Android Package Installer.
+          // This prevents the next app launch/visibility check from treating the same APK
+          // as a fresh download and starting the update loop again.
+          context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .remove(APK_PATH)
+            .remove(APK_VERSION)
+            .remove("download_id")
+            .putBoolean("installing_update", true)
+            .apply();
           context.startActivity(install);
           } catch(Exception e) {
             android.util.Log.e("ImageMateUpdater", "Could not open Android installer", e);
