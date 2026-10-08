@@ -37,6 +37,20 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
+      - name: Inject Android version into web updater
+        env:
+          APP_VERSION: ${{ steps.version.outputs.version }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          p=Path('src/main.js')
+          s=p.read_text()
+          s=s.replace('const APP_VERSION=packageJson.version;', 'const APP_VERSION=' + repr(os.environ['APP_VERSION']) + ';')
+          p.write_text(s)
+          PY
+
       - name: Build web app
         run: npm run build
 
