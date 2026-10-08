@@ -548,7 +548,8 @@ jobs:
           Context context=getContext();
           if (Build.VERSION.SDK_INT >= 26 && !context.getPackageManager().canRequestPackageInstalls()) {
           Intent settings=new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:"+context.getPackageName()));
-          settings.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); context.startActivity(settings); call.resolve(); return;
+          settings.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); context.startActivity(settings);
+          JSObject out=new JSObject(); out.put("needsPermission", true); call.resolve(out); return;
           }
           File apk=recoverCompletedDownload(context);
           if(apk==null || !apk.exists()){ call.reject("Downloaded update is not ready"); return; }
