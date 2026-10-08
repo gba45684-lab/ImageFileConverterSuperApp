@@ -272,7 +272,7 @@ jobs:
 
           @PluginMethod
           public void saveProcessedFile(PluginCall call) {
-          String name = call.getString("name", "ImageMate-output.bin");
+          String requestedName = call.getString("name", "ImageMate-output.bin");
           String mime = call.getString("mime", "application/octet-stream");
           String base64 = call.getString("base64", "");
           if (base64 == null || base64.isEmpty()) { call.reject("File data is missing"); return; }
@@ -281,11 +281,13 @@ jobs:
           byte[] data = android.util.Base64.decode(base64, android.util.Base64.DEFAULT);
           File dir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
           if (dir == null) { call.reject("Device storage is unavailable"); return; }
-          if (!dir.exists()) dir.mkdirs();
-          File out = new File(dir, name);
+          if (!dir.exists() && !dir.mkdirs()) { call.reject("Could not prepare file storage"); return; }
+          String safeName = safeFileName(requestedName, "ImageMate-output.bin");
+          File out = uniqueFile(dir, safeName);
           try (java.io.FileOutputStream stream = new java.io.FileOutputStream(out)) {
           stream.write(data);
           }
+          String name = out.getName();
           Uri contentUri = FileProvider.getUriForFile(context, context.getPackageName() + ".fileprovider", out);
           
           NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
@@ -332,6 +334,27 @@ jobs:
           } catch (Exception e) {
           call.reject("Could not save or open the file", e);
           }
+          }
+
+          private String safeFileName(String value, String fallback) {
+          String name = value == null ? "" : new File(value).getName();
+          name = name.replaceAll("[\\\\/:*?\"<>|\\p{Cntrl}]", "_").trim();
+          if (name.isEmpty() || ".".equals(name) || "..".equals(name)) return fallback;
+          return name;
+          }
+
+          private File uniqueFile(File dir, String requestedName) {
+          File candidate = new File(dir, requestedName);
+          if (!candidate.exists()) return candidate;
+          String base = requestedName;
+          String ext = "";
+          int dot = requestedName.lastIndexOf('.');
+          if (dot > 0) { base = requestedName.substring(0, dot); ext = requestedName.substring(dot); }
+          for (int i = 1; i < 10000; i++) {
+            candidate = new File(dir, base + " (" + i + ")" + ext);
+            if (!candidate.exists()) return candidate;
+          }
+          return new File(dir, base + " (" + System.currentTimeMillis() + ")" + ext);
           }
 
           private static final String FILES_JSON = "downloaded_files";
@@ -419,7 +442,8 @@ jobs:
 
           @PluginMethod
           public void exportDownloadedFile(PluginCall call) {
-          String path=call.getString("path","");String name=call.getString("name","ImageMate-file");String mime=call.getString("mime","application/octet-stream");File source=fileFromPath(path);if(source==null){call.reject("File not found");return;}
+          String path=call.getString("path","");String name=safeFileName(call.getString("name","ImageMate-file"),"ImageMate-file");String mime=call.getString("mime","application/octet-stream");File source=fileFromPath(path);if(source==null){call.reject("File not found");return;}
+          Uri pendingUri=null;
           try{
           if(Build.VERSION.SDK_INT>=23 && Build.VERSION.SDK_INT<29 &&
               androidx.core.content.ContextCompat.checkSelfPermission(getContext(), "android.permission.WRITE_EXTERNAL_STORAGE") != android.content.pm.PackageManager.PERMISSION_GRANTED){
@@ -429,12 +453,14 @@ jobs:
           }
           if(Build.VERSION.SDK_INT>=29){
           ContentValues values=new ContentValues();values.put(MediaStore.Downloads.DISPLAY_NAME,name);values.put(MediaStore.Downloads.MIME_TYPE,resolveMime(mime,source));values.put(MediaStore.Downloads.RELATIVE_PATH,Environment.DIRECTORY_DOWNLOADS+"/ImageMate");values.put(MediaStore.Downloads.IS_PENDING,1);
-          Uri uri=getContext().getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI,values);if(uri==null)throw new java.io.IOException("Could not create Downloads entry");
-          try(FileInputStream in=new FileInputStream(source);java.io.OutputStream out=getContext().getContentResolver().openOutputStream(uri)){if(out==null)throw new java.io.IOException("Could not open Downloads entry");byte[] buf=new byte[8192];int n;while((n=in.read(buf))>0)out.write(buf,0,n);}
-          ContentValues published=new ContentValues();published.put(MediaStore.Downloads.IS_PENDING,0);getContext().getContentResolver().update(uri,published,null,null);
-          }else{File dir=Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);if(!dir.exists())dir.mkdirs();File dest=new File(dir,name);try(FileInputStream in=new FileInputStream(source);FileOutputStream out=new FileOutputStream(dest)){byte[] buf=new byte[8192];int n;while((n=in.read(buf))>0)out.write(buf,0,n);}}
+          pendingUri=getContext().getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI,values);if(pendingUri==null)throw new java.io.IOException("Could not create Downloads entry");
+          try(FileInputStream in=new FileInputStream(source);java.io.OutputStream out=getContext().getContentResolver().openOutputStream(pendingUri)){if(out==null)throw new java.io.IOException("Could not open Downloads entry");byte[] buf=new byte[8192];int n;while((n=in.read(buf))>0)out.write(buf,0,n);}
+          ContentValues published=new ContentValues();published.put(MediaStore.Downloads.IS_PENDING,0);getContext().getContentResolver().update(pendingUri,published,null,null);pendingUri=null;
+          }else{File dir=Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);if(!dir.exists()&&!dir.mkdirs())throw new java.io.IOException("Could not prepare Downloads folder");File dest=uniqueFile(dir,name);try(FileInputStream in=new FileInputStream(source);FileOutputStream out=new FileOutputStream(dest)){byte[] buf=new byte[8192];int n;while((n=in.read(buf))>0)out.write(buf,0,n);}}
           call.resolve();
-          }catch(Exception e){call.reject("Unable to save another copy: "+(e.getMessage()==null?"storage error":e.getMessage()),e);}
+          }catch(Exception e){
+          if(pendingUri!=null)try{getContext().getContentResolver().delete(pendingUri,null,null);}catch(Exception ignored){}
+          call.reject("Unable to save another copy: "+(e.getMessage()==null?"storage error":e.getMessage()),e);}
           }
 
           private static final String PREFS = "imagemate_updater";
