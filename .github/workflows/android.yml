@@ -383,6 +383,47 @@ jobs:
           }
           }
 
+          @PluginMethod
+          public void getUpdateStatus(PluginCall call) {
+          Context context = getContext();
+          android.content.SharedPreferences sp = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+          String idText = sp.getString("download_id", "");
+          JSObject out = new JSObject();
+          out.put("status", "none");
+          out.put("downloaded", 0);
+          out.put("total", 0);
+          out.put("reason", 0);
+          if (idText == null || idText.isEmpty()) { call.resolve(out); return; }
+          try {
+          long id = Long.parseLong(idText);
+          DownloadManager dm = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
+          android.database.Cursor cursor = dm.query(new DownloadManager.Query().setFilterById(id));
+          if (cursor == null) { call.resolve(out); return; }
+          try {
+          if (!cursor.moveToFirst()) { call.resolve(out); return; }
+          int status = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS));
+          long downloaded = cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR));
+          long total = cursor.getLong(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES));
+          int reason = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON));
+          String label = "unknown";
+          if (status == DownloadManager.STATUS_PENDING) label = "pending";
+          else if (status == DownloadManager.STATUS_RUNNING) label = "downloading";
+          else if (status == DownloadManager.STATUS_PAUSED) label = "paused";
+          else if (status == DownloadManager.STATUS_SUCCESSFUL) label = "complete";
+          else if (status == DownloadManager.STATUS_FAILED) label = "failed";
+          out.put("status", label);
+          out.put("downloaded", downloaded);
+          out.put("total", total);
+          out.put("reason", reason);
+          call.resolve(out);
+          } finally { cursor.close(); }
+          } catch (Exception e) {
+          out.put("status", "error");
+          out.put("reasonText", e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+          call.resolve(out);
+          }
+          }
+
           private void postUpdateReadyNotification(Context context) {
           NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
           if (Build.VERSION.SDK_INT >= 26) {
