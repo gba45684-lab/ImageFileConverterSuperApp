@@ -13,6 +13,9 @@ const APP_VERSION=packageJson.version;
 let runtimeAppVersion=APP_VERSION;
 let updateCheckInFlight=false;
 let updateMonitorStarted=false;
+const UPDATE_AUTO_CHECK_MS=5*60*1000;
+const UPDATE_MANUAL_CHECK_MS=10*1000;
+let lastUpdateCheckAt=Number(localStorage.getItem('imagemate-last-update-check')||0);
 const tools=[
   ['convert','images','Convert Images','JPG, PNG, WebP, AVIF','IMAGE'],
   ['compress','file-down','Compress Images','Reduce file size','IMAGE'],
@@ -118,7 +121,7 @@ function showInstantUpdatePopup(version, mode='download'){
   const overlay=document.createElement('div');
   overlay.id='update-popup';
   overlay.innerHTML='<div style="position:fixed;inset:0;z-index:99999;background:rgba(7,8,18,.62);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px">'+
-    '<div style="width:min(440px,100%);background:var(--card,#fff);color:var(--text,#111);border-radius:24px;padding:26px;box-shadow:0 24px 80px rgba(0,0,0,.35)">'+
+    '<div style="width:min(440px,100%);background:var(--editorial-surface,#fff);color:var(--editorial-text,#111);border-radius:24px;padding:26px;box-shadow:0 24px 80px rgba(0,0,0,.35)">'+
     '<div style="font-size:34px;margin-bottom:8px"><i data-lucide="sparkles"></i></div>'+
     '<div style="font-size:12px;font-weight:800;letter-spacing:.12em;opacity:.65">IMAGEMATE UPDATE</div>'+
     '<h2 style="margin:7px 0 8px">New version '+esc(version)+' is available</h2>'+
@@ -148,7 +151,9 @@ function showInstantUpdatePopup(version, mode='download'){
           btn.disabled=false;
           btn.textContent='Install now';
           if(statusText)statusText.textContent='Allow ImageMate to install unknown apps in Android settings, then tap Install now again.';
+          return;
         }
+        overlay.remove();
         return;
       }
       await downloadLatestAndroidUpdate(latestUpdateUrl,version);
@@ -188,6 +193,11 @@ function showInstantUpdatePopup(version, mode='download'){
 }
 async function checkForAndroidUpdate(force=false){
   if(!isNativeAndroid()||updateCheckInFlight||(!force&&localStorage.getItem('imagemate-auto-update')==='0'))return;
+  const now=Date.now();
+  const minGap=force?UPDATE_MANUAL_CHECK_MS:UPDATE_AUTO_CHECK_MS;
+  if(now-lastUpdateCheckAt<minGap)return;
+  lastUpdateCheckAt=now;
+  localStorage.setItem('imagemate-last-update-check',String(lastUpdateCheckAt));
   updateCheckInFlight=true;
   try{
     const nativeVersion=await getAndroidAppVersion().catch(()=>({version:APP_VERSION}));
@@ -280,9 +290,11 @@ async function checkForAndroidUpdate(force=false){
     }
     if(localStorage.getItem('imagemate-update-notified-version')!==latest){
       try{
-        await requestAndroidNotificationPermission();
-        await notifyAndroidUpdate(latest);
-        localStorage.setItem('imagemate-update-notified-version',latest);
+        const notificationPermission=await requestAndroidNotificationPermission();
+        if(notificationPermission?.granted===true){
+          const notificationResult=await notifyAndroidUpdate(latest);
+          if(notificationResult?.notified!==false)localStorage.setItem('imagemate-update-notified-version',latest);
+        }
       }catch(e){console.debug('Update notification skipped',e)}
     }
   }catch(e){console.debug('ImageMate update check skipped',e)}
@@ -291,7 +303,14 @@ async function checkForAndroidUpdate(force=false){
 function startUpdateMonitor(){
   if(updateMonitorStarted||!isNativeAndroid())return;
   updateMonitorStarted=true;
-  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkForAndroidUpdate()});
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState!=='visible')return;
+    if(localStorage.getItem('imagemate-update-installing')==='1'){
+      localStorage.removeItem('imagemate-update-installing');
+      localStorage.removeItem('imagemate-update-install-started-at');
+    }
+    checkForAndroidUpdate();
+  });
   setInterval(()=>{if(document.visibilityState==='visible')checkForAndroidUpdate()},60000);
 }
 
