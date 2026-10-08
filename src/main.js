@@ -150,25 +150,48 @@ async function checkForAndroidUpdate(){
     // The web bundle may be cached or built separately from the native APK.
     const nativeVersion=await getAndroidAppVersion().catch(()=>({version:APP_VERSION}));
     runtimeAppVersion=String(nativeVersion?.version||APP_VERSION);
-    // Never re-offer a completed APK while Android is handing it to the package installer.
-    // The native bridge clears its download state immediately before launching the installer.
-    if(localStorage.getItem('imagemate-update-installing')==='1'){
-      localStorage.removeItem('imagemate-update-installing');
-    }
-    const ready=await hasDownloadedAndroidUpdate().catch(()=>({ready:false}));
+    const installing=localStorage.getItem('imagemate-update-installing')==='1';
+
+    // IMPORTANT: after tapping Install, Android may resume/refresh the old app while
+    // the package installer is still open. Do NOT start another download in that window.
+    // Keep the lock until the installed native version actually changes.
     const b=document.querySelector('#update-btn');
-    if(ready?.ready&&b){
-      b.hidden=false;b.disabled=false;b.textContent='Install update';
-      b.onclick=async()=>{b.disabled=true;b.textContent='Installing…';try{await installDownloadedAndroidUpdate();}catch(e){console.error(e);b.disabled=false;b.textContent='Install update';}};
-      showInstantUpdatePopup('downloaded update','install');
-      return;
-    }
     const r=await fetch(UPDATE_API+'?imagemate='+Date.now(),{cache:'no-store',headers:{Accept:'application/vnd.github+json'}});
     if(!r.ok)return;
     const release=await r.json();
     const latest=String(release.tag_name||'').replace(/^v/i,'');
     const asset=Array.isArray(release.assets)?release.assets.find(a=>a&&a.name==='ImageMate.apk'&&a.browser_download_url):null;
     latestUpdateUrl=asset?.browser_download_url||UPDATE_APK;
+
+    if(installing){
+      // Only clear the lock once the installed version is no longer older than
+      // the release we were installing. If the installer was cancelled, stay locked
+      // instead of immediately downloading the same APK again.
+      if(!latest||!isNewerVersion(latest,runtimeAppVersion)){
+        localStorage.removeItem('imagemate-update-installing');
+      }else{
+        if(b){b.hidden=true;b.disabled=true;}
+        return;
+      }
+    }
+
+    const ready=await hasDownloadedAndroidUpdate().catch(()=>({ready:false}));
+    if(ready?.ready&&b){
+      b.hidden=false;b.disabled=false;b.textContent='Install update';
+      b.onclick=async()=>{
+        b.disabled=true;b.textContent='Installing…';
+        localStorage.setItem('imagemate-update-installing','1');
+        try{await installDownloadedAndroidUpdate();}
+        catch(e){
+          console.error(e);
+          localStorage.removeItem('imagemate-update-installing');
+          b.disabled=false;b.textContent='Install update';
+        }
+      };
+      showInstantUpdatePopup('downloaded update','install');
+      return;
+    }
+
     if(!latest||!isNewerVersion(latest,runtimeAppVersion)||!b)return;
     b.hidden=false;b.disabled=false;b.textContent='Update available';
     showInstantUpdatePopup(latest,'download');
