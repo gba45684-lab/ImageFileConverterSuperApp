@@ -41,15 +41,27 @@ function render(){
   const uploadLabel=(S.tool==='pdf2image'||S.tool==='pdfmerge')?'Choose PDFs':'Choose Images';
   const dropLabel=(S.tool==='pdf2image'||S.tool==='pdfmerge')?'Drop PDF files here':'Drop images here';
   const subLabel=(S.tool==='pdf2image'||S.tool==='pdfmerge')?'PDF files • Multiple pages supported':'JPG, PNG, WebP, AVIF • Batch supported';
-  app.innerHTML='<div class="shell '+(S.dark?'dark':'')+'"><header class="topbar"><div class="brand"><div class="logo">IM</div><div><b>ImageMate</b><span>Image & File Converter</span></div></div><div class="top-actions"><button id="theme" class="icon-btn" aria-label="Toggle theme">'+(S.dark?'☀':'☾')+'</button><button id="downloads-tab" class="icon-btn">Downloaded files</button><button class="pro">Remove Ads <small>PRO</small></button><button id="update-btn" class="update-btn" hidden>Update</button></div></header><main>'+
-  (home?'<section class="hero"><div><p class="eyebrow">FAST • PRIVATE • BROWSER-BASED</p><h1>Everything you need to<br><em>work with images.</em></h1><p class="sub">Convert, compress, resize and prepare images for forms — without uploading your files.</p></div><div class="hero-badge"><strong>100%</strong><span>local processing</span></div></section><nav class="tool-grid" aria-label="ImageMate tools">'+tools.map(t=>'<button class="tool '+(S.tool===t[0]?'active':'')+'" data-tool="'+t[0]+'"><span>'+t[1]+'</span><b>'+t[2]+'</b><small>'+t[3]+'</small></button>').join('')+'</nav>':'')+
-  (task?'<section class="tool-screen-head"><button id="back-home" class="secondary back-btn" type="button">← All tools</button><div><p class="eyebrow">IMAGE TOOL</p><h1>'+title+'</h1><p>'+desc+'</p></div><span class="privacy">🔒 Local processing</span></section>':'')+
-  '<section class="workspace"><div class="workspace-head"><div><p class="eyebrow">'+(task?'WORKSPACE':'FILES')+'</p><h2>'+title+'</h2></div><span class="privacy">🔒 Files stay on your device</span></div><div id="drop" class="dropzone"><input id="file" type="file" accept="'+accept+'" multiple hidden><div class="upload-icon">↑</div><h3>'+dropLabel+'</h3><p>or choose files from your device</p><button id="choose" class="primary">'+uploadLabel+'</button><small>'+subLabel+'</small></div><div id="queue"></div><div id="progress-wrap" class="progress-wrap" hidden><div class="progress-top"><b class="progress-text">Processing 0%</b><span>Local</span></div><div class="progress-track"><div class="progress-bar" style="width:0%"></div></div></div><div id="settings"></div><div class="ad-slot"><span>ADVERTISEMENT</span></div></section>'+
-  (home?'<section class="feature-row"><div><b>Private by design</b><span>Images are processed in your browser.</span></div><div><b>Batch ready</b><span>Work with multiple images at once.</span></div><div><b>Mobile friendly</b><span>Install as a PWA on Android.</span></div></section>':'')+
-  '<footer>© 2026 ImageMate <span>•</span> Free image tools for everyone</footer></main></div>';
+
+  const header='<header class="topbar"><div class="brand"><div class="logo">IM</div><div><b>ImageMate</b><span>Image & File Converter</span></div></div><div class="top-actions"><button id="home-btn" class="icon-btn">Home</button><button id="theme" class="icon-btn" aria-label="Toggle theme">'+(S.dark?'☀':'☾')+'</button><button id="downloads-tab" class="icon-btn">Downloaded files</button><button class="pro">Remove Ads <small>PRO</small></button><button id="update-btn" class="update-btn" hidden>Update</button></div></header>';
+
+  let content='';
+  if(home){
+    content='<section class="home-screen"><div class="home-intro"><div><p class="eyebrow">IMAGEMATE • PRIVATE FILE TOOLS</p><h1>Choose a tool</h1><p>Each tool opens in its own dedicated workspace. No mixed controls, no hidden settings.</p></div><div class="hero-badge"><strong>14</strong><span>dedicated tools</span></div></div><nav class="tool-grid home-tool-grid" aria-label="ImageMate tools">'+tools.map(t=>'<button class="tool" data-tool="'+t[0]+'"><span>'+t[1]+'</span><b>'+t[2]+'</b><small>'+t[3]+'</small></button>').join('')+'</nav></section>';
+  }else if(downloads){
+    content='<section class="screen-head"><button id="back-home" class="secondary back-btn" type="button">← Home</button><div><p class="eyebrow">FILE LIBRARY</p><h1>Downloaded files</h1><p>Open, share or save another copy of files created by ImageMate.</p></div><span class="privacy">🔒 Files stay on your device</span></section><section class="workspace downloads-workspace"><div id="download-library"><div class="empty-downloads">Loading files…</div></div></section>';
+  }else{
+    content='<section class="screen-head"><button id="back-home" class="secondary back-btn" type="button">← All tools</button><div><p class="eyebrow">DEDICATED TOOL</p><h1>'+title+'</h1><p>'+desc+'</p></div><span class="privacy">🔒 Local processing</span></section><section class="workspace"><div class="workspace-head"><div><p class="eyebrow">WORKSPACE</p><h2>'+title+'</h2></div><span class="privacy">🔒 Files stay on your device</span></div><div id="drop" class="dropzone"><input id="file" type="file" accept="'+accept+'" multiple hidden><div class="upload-icon">↑</div><h3>'+dropLabel+'</h3><p>or choose files from your device</p><button id="choose" class="primary">'+uploadLabel+'</button><small>'+subLabel+'</small></div><div id="queue"></div><div id="progress-wrap" class="progress-wrap" hidden><div class="progress-top"><b class="progress-text">Processing 0%</b><span>Local</span></div><div class="progress-track"><div class="progress-bar" style="width:0%"></div></div></div><div id="settings"></div><div class="ad-slot"><span>ADVERTISEMENT</span></div></section>';
+  }
+
+  app.innerHTML='<div class="shell '+(S.dark?'dark':'')+'">'+header+'<main>'+content+'<footer>© 2026 ImageMate <span>•</span> Free image tools for everyone</footer></main></div>';
   bind(); settings(); queue();
-  const dt=document.querySelector('#downloads-tab'); if(dt) dt.onclick=()=>{S.view=downloads?'tools':'downloads'; render()};
-  const back=document.querySelector('#back-home'); if(back) back.onclick=()=>{S.view='tools';S.files=[];render()};
+
+  const homeBtn=document.querySelector('#home-btn');
+  if(homeBtn) homeBtn.onclick=()=>{S.view='tools';S.files=[];render()};
+  const dt=document.querySelector('#downloads-tab');
+  if(dt) dt.onclick=()=>{S.view='downloads';S.files=[];render()};
+  const back=document.querySelector('#back-home');
+  if(back) back.onclick=()=>{S.view='tools';S.files=[];render()};
   if(downloads) renderDownloads();
   checkForAndroidUpdate(); startUpdateMonitor(); initNativeAds().catch(()=>{});
 }
@@ -228,8 +240,8 @@ async function openDownloadedFile(path){try{await (await import('./updater.js'))
 async function shareDownloadedFile(path){try{await (await import('./updater.js')).shareDownloadedFile(path)}catch(e){console.error(e);alert('Unable to share this file.')}}
 async function exportDownloadedFile(path,name,mime){try{await (await import('./updater.js')).exportDownloadedFile(path,name,mime);showResult('File saved','A copy was saved to your device Downloads folder.')}catch(e){console.error(e);alert('Unable to save another copy.')}}
 async function renderDownloads(){
-  const workspace=document.querySelector('.workspace'); if(!workspace)return;
-  workspace.innerHTML='<div class="downloads-head"><div><p class="eyebrow">YOUR FILES</p><h2>Downloaded files</h2><p class="downloads-sub">Open, share or save another copy of files created by ImageMate.</p></div><button id="refresh-downloads" class="secondary">Refresh</button></div><div id="downloaded-list" class="downloaded-list"><div class="empty-downloads">Loading files…</div></div>';
+  const workspace=document.querySelector('#download-library'); if(!workspace)return;
+  workspace.innerHTML='<div class="downloads-head"><div><p class="eyebrow">YOUR FILES</p><h2>File library</h2><p class="downloads-sub">Open, share or save another copy of files created by ImageMate.</p></div><button id="refresh-downloads" class="secondary">Refresh</button></div><div id="downloaded-list" class="downloaded-list"><div class="empty-downloads">Loading files…</div></div>';
   const list=await nativeDownloadedFiles(); const el=document.querySelector('#downloaded-list'); if(!el)return;
   if(!list.length){el.innerHTML='<div class="empty-downloads"><b>No downloaded files yet</b><span>Processed files will appear here automatically.</span></div>';return}
   el.innerHTML=list.map((f,i)=>'<article class="download-item"><div class="download-icon">↓</div><div class="download-info"><b>'+esc(f.name||('File '+(i+1)))+'</b><span>'+(f.mime?label(f.mime)+' • ':'')+(f.size?size(+f.size)+' • ':'')+(f.at?new Date(f.at).toLocaleString():'')+'</span></div><div class="download-actions"><button class="secondary open-file" data-path="'+esc(f.path)+'">Open</button><button class="secondary share-file" data-path="'+esc(f.path)+'">Share</button><button class="primary save-copy" data-path="'+esc(f.path)+'" data-name="'+esc(f.name||'ImageMate-file')+'" data-mime="'+esc(f.mime||'application/octet-stream')+'">Download again</button></div></article>').join('');
@@ -242,7 +254,7 @@ function setProgress(percent,label='Processing'){const q=document.querySelector(
 function blobBase64(blob){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result).split(',')[1]||'');r.onerror=reject;r.readAsDataURL(blob)})}
 async function dl(b,n,mime){if(!b)return;const type=mime||b.type||'application/octet-stream';if(isNativeAndroid()){try{const saved=await saveProcessedFile(n,type,await blobBase64(b));addHistory(n,S.tool,b.size,{path:saved?.path||'',mime:type});return}catch(e){console.warn('Native save failed, falling back to browser download',e)}}const u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=n;document.body.appendChild(a);a.click();a.remove();addHistory(n,S.tool,b.size);setTimeout(()=>URL.revokeObjectURL(u),1500)}
 function canvasFor(i,w,h){const c=document.createElement('canvas');c.width=w||i.naturalWidth;c.height=h||i.naturalHeight;c.getContext('2d').drawImage(i,0,0,c.width,c.height);return c}
-async function pdf(files){const {jsPDF}=await import('jspdf');const doc=new jsPDF({unit:'mm',format:'a4'});for(let n=0;n<files.length;n++){if(n)doc.addPage();const i=await img(files[n]);const c=canvasFor(i);const maxW=190,maxH=277,scale=Math.min(maxW/c.width,maxH/c.height);const w=c.width*scale,h=c.height*scale;const x=(210-w)/2,y=(297-h)/2;const data=c.toDataURL('image/jpeg',.92);doc.addImage(data,'JPEG',x,y,w,h)}doc.save('imagemate-images.pdf')}
+async function pdf(files){const {jsPDF}=await import('jspdf');const doc=new jsPDF({unit:'mm',format:'a4'});for(let n=0;n<files.length;n++){if(n)doc.addPage();const i=await img(files[n]);const c=canvasFor(i);const maxW=190,maxH=277,scale=Math.min(maxW/c.width,maxH/c.height);const w=c.width*scale,h=c.height*scale;const x=(210-w)/2,y=(297-h)/2;const data=c.toDataURL('image/jpeg',.92);doc.addImage(data,'JPEG',x,y,w,h)}await dl(doc.output('blob'),'imagemate-images.pdf','application/pdf')}
 function name(n,e){return n.replace(/\.[^.]+$/,'')+'.'+e}
 async function processBatchZip(){if(!S.files.length)return alert('Choose at least one image.');const btn=document.querySelector('#zip');btn.disabled=true;btn.textContent='Creating ZIP…';try{const {default:JSZip}=await import('jszip');const zip=new JSZip();for(const f of S.files){const i=await img(f);let w=i.naturalWidth,h=i.naturalHeight;if(S.tool==='resize'){w=+S.width||w;h=+S.height||Math.round(i.naturalHeight*w/i.naturalWidth)}if(S.tool==='passport'){w=+S.width||413;h=+S.height||531}let type=S.tool==='convert'?S.format:'image/jpeg';let b=await blob(i,type,S.quality,w,h);if(S.tool==='target'){const max=S.target*1024;let lo=.05,hi=.95;for(let x=0;x<10&&b.size>max;x++){const qq=(lo+hi)/2;b=await blob(i,'image/jpeg',qq,w,h);if(b.size>max)hi=qq;else lo=qq}}zip.file(name(f.name,label(type).toLowerCase()),b)}dl(await zip.generateAsync({type:'blob',compression:'DEFLATE'}),'imagemate-'+S.tool+'-batch.zip');await maybeShowTestInterstitial()}catch(e){console.error(e);alert('Could not create the ZIP. Please try fewer or smaller images.')}finally{btn.disabled=false;btn.textContent='Download ZIP'}}
 async function process(){
@@ -310,7 +322,7 @@ async function mergePdfs(files){
       doc.addImage(canvas.toDataURL('image/jpeg',.9),'JPEG',(210-w)/2,(297-h)/2,w,h);
     }
   }
-  doc.save('imagemate-merged.pdf');
+  await dl(doc.output('blob'),'imagemate-merged.pdf','application/pdf');
 }
 
 function rotatedBlob(i,deg,type,q){
