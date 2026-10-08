@@ -15,3 +15,11 @@ html,body,#app{width:100%;min-height:100%;margin:0}.shell{padding-top:env(safe-a
 .home-screen{padding-top:0}
 @media(max-width:800px){.home-screen{padding-top:0}}
 @media(max-width:560px){.home-screen{padding-top:0}}
+
+/* Native Android applies system-bar insets in MainActivity; avoid double CSS safe-area padding. */
+.native-android .shell{padding-top:0;padding-bottom:0}
+.native-android .topbar{padding-top:0}
+:root{--card:#fff;--text:#171827}
+.dark{--card:#151620;--text:#f4f4fa}
+.browser-history-note{font-size:11px;color:#8b8b99;padding:8px 10px}
+@media(max-width:800px){.native-android .topbar{padding-top:8px}}

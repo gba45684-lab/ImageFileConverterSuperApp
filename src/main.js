@@ -97,7 +97,7 @@ function showInstantUpdatePopup(version, mode='download'){
     '<div style="font-size:34px;margin-bottom:8px">🚀</div>'+
     '<div style="font-size:12px;font-weight:800;letter-spacing:.12em;opacity:.65">IMAGEMATE UPDATE</div>'+
     '<h2 style="margin:7px 0 8px">New version '+esc(version)+' is available</h2>'+
-    '<p id="update-status-text" style="margin:0 0 20px;line-height:1.55;opacity:.72">'+(installMode?'The update is already downloaded and ready to install.':'A new ImageMate version is ready. Update now to download it securely in the background.')+'</p>'+
+    '<p id="update-status-text" style="margin:0 0 20px;line-height:1.55;opacity:.72">'+(installMode?'The update is already downloaded and ready to install.':'A new ImageMate version is ready. Update now to download it securely in the background. Tap Install now when the download completes.')+'</p>'+
     '<div style="display:flex;gap:10px;justify-content:flex-end">'+
     '<button id="update-later" class="secondary">Later</button>'+
     '<button id="update-now" class="primary">'+(installMode?'Install now':'Update now')+'</button>'+
@@ -114,6 +114,7 @@ function showInstantUpdatePopup(version, mode='download'){
     try{
       if(installMode){
         localStorage.setItem('imagemate-update-installing','1');
+        localStorage.setItem('imagemate-update-install-started-at',String(Date.now()));
         const installResult=await installDownloadedAndroidUpdate(version);
         if(installResult?.needsPermission){
           localStorage.removeItem('imagemate-update-installing');
@@ -274,11 +275,15 @@ function isNewerVersion(latest,current){
   return false;
 }
 function bind(){
-  if(S.view==='downloads') return;
+  const theme=document.querySelector('#theme');
+  if(theme)theme.onclick=()=>{S.dark=!S.dark;localStorage.setItem('imagemate-dark',S.dark?'1':'0');render()};
+  if(S.view==='downloads'||S.view==='settings') return;
   document.querySelectorAll('[data-tool]').forEach(b=>b.onclick=()=>{S.tool=b.dataset.tool;S.files=[];S.view='tool';render()});
-  document.querySelector('#theme').onclick=()=>{S.dark=!S.dark;localStorage.setItem('imagemate-dark',S.dark?'1':'0');render()};
-  document.querySelector('#choose').onclick=()=>document.querySelector('#file').click();
-  document.querySelector('#file').onchange=e=>load(e.target.files);
+  const choose=document.querySelector('#choose');
+  if(choose)choose.onclick=()=>document.querySelector('#file').click();
+  const fileInput=document.querySelector('#file');
+  if(!fileInput)return;
+  fileInput.onchange=e=>load(e.target.files);
   const d=document.querySelector('#drop');
   if(S.tool==='pdf2image'||S.tool==='pdfmerge')d.querySelector('h3').textContent='Drop PDF files here';
   d.addEventListener('dragover',e=>{e.preventDefault();d.classList.add('drag')});
@@ -297,7 +302,7 @@ function queue(){
   const q=document.querySelector('#queue');if(!q)return;
   q.innerHTML=S.files.map((f,i)=>'<div class="file-row"><div class="thumb">'+((S.tool==='pdf2image'||S.tool==='pdfmerge')?'PDF':'<img src="'+URL.createObjectURL(f)+'">')+'</div><div class="file-meta"><b>'+esc(f.name)+'</b><span>'+label(f.type)+' • '+size(f.size)+'</span></div><button class="remove" data-i="'+i+'">×</button></div>').join('');
   q.querySelectorAll('.remove').forEach(b=>b.onclick=()=>{S.files.splice(+b.dataset.i,1);queue()});
-  if(S.files.length){q.insertAdjacentHTML('beforeend','<div class="actionbar"><span><b>'+S.files.length+'</b> '+((S.tool==='pdf2image'||S.tool==='pdfmerge')?'PDF':'file')+(S.files.length>1?'s':'')+' ready</span><button id="clear" class="remove">Clear</button>'+(S.files.length>1&&!['pdf','pdf2image','ocr','exif','background'].includes(S.tool)?'<button id="zip" class="secondary">Download ZIP</button>':'')+'<button id="process" class="primary">'+(S.tool==='ocr'?'Extract Text':(S.tool==='pdf2image'||S.tool==='pdfmerge')?'Convert PDFs':'Process & Download')+'</button></div>');document.querySelector('#clear').onclick=()=>{S.files=[];queue()};const zip=document.querySelector('#zip');if(zip)zip.onclick=processBatchZip;document.querySelector('#process').onclick=process}
+  if(S.files.length){q.insertAdjacentHTML('beforeend','<div class="actionbar"><span><b>'+S.files.length+'</b> '+((S.tool==='pdf2image'||S.tool==='pdfmerge')?'PDF':'file')+(S.files.length>1?'s':'')+' ready</span><button id="clear" class="remove">Clear</button>'+(S.files.length>1&&!['pdf','pdf2image','ocr','exif','background','editor'].includes(S.tool)?'<button id="zip" class="secondary">Download ZIP</button>':'')+'<button id="process" class="primary">'+(S.tool==='ocr'?'Extract Text':(S.tool==='pdf2image'||S.tool==='pdfmerge')?'Convert PDFs':'Process & Download')+'</button></div>');document.querySelector('#clear').onclick=()=>{S.files=[];queue()};const zip=document.querySelector('#zip');if(zip)zip.onclick=processBatchZip;document.querySelector('#process').onclick=process}
 }
 function settings(){
   const s=document.querySelector('#settings');if(!s)return;let h='';
@@ -500,7 +505,6 @@ async function convertSpecial(file,kind){
       const out=await canvasToBlob(canvas,S.pdfFormat,S.pdfFormat==='image/jpeg'?.92:undefined);
       await dl(out,file.name.replace(/\.pdf$/i,'')+'-page-'+pageNo+'.'+(S.pdfFormat==='image/png'?'png':'jpg'),S.pdfFormat);
     }
-    showResult('PDF converted','Downloaded '+doc.numPages+' page image'+(doc.numPages===1?'':'s')+'.');
     return;
   }
   if(kind==='ocr'){
@@ -511,7 +515,6 @@ async function convertSpecial(file,kind){
       const text=result.data.text.trim();
       return {name:file.name,text};
     }finally{await worker.terminate()}
-    return {name:file.name,text:''};
   }
   if(kind==='exif'){
     const i=await img(file),out=await canvasToBlob(canvasFor(i),'image/png');

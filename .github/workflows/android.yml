@@ -466,7 +466,7 @@ jobs:
                 try {
                   if (existing.moveToFirst()) {
                     int existingStatus = existing.getInt(existing.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS));
-                    boolean sameVersion = requestedVersion.isEmpty() || storedVersion.isEmpty() || requestedVersion.equals(storedVersion);
+                    boolean sameVersion = requestedVersion.isEmpty() || requestedVersion.equals(storedVersion);
                     boolean active = existingStatus == DownloadManager.STATUS_PENDING ||
                       existingStatus == DownloadManager.STATUS_RUNNING ||
                       existingStatus == DownloadManager.STATUS_PAUSED;
@@ -669,7 +669,7 @@ jobs:
           android.content.SharedPreferences sp=context.getSharedPreferences(PREFS,Context.MODE_PRIVATE);
           String requestedVersion=normalizedUpdateVersion(call.getString("version",""));
           String storedVersion=normalizedUpdateVersion(sp.getString(APK_VERSION,""));
-          if(!requestedVersion.isEmpty()&&!storedVersion.isEmpty()&&!requestedVersion.equals(storedVersion)){
+          if(!requestedVersion.isEmpty()&&!requestedVersion.equals(storedVersion)){
             String idText=sp.getString("download_id","");
             try{
               if(idText!=null&&!idText.isEmpty()){
