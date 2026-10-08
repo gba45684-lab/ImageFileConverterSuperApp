@@ -568,9 +568,13 @@ jobs:
           return;
           }
           Uri uri = FileProvider.getUriForFile(context, context.getPackageName() + ".fileprovider", apk);
-          Intent installer = new Intent(Intent.ACTION_VIEW);
-          installer.setDataAndType(uri, "application/vnd.android.package-archive");
+          Intent installer = new Intent(Intent.ACTION_INSTALL_PACKAGE);
+          installer.setData(uri);
+          installer.setType("application/vnd.android.package-archive");
           installer.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+          installer.setClipData(android.content.ClipData.newRawUri("ImageMate APK", uri));
+          installer.putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true);
+          if (installer.resolveActivity(context.getPackageManager()) == null) return;
           context.startActivity(installer);
           }
 
@@ -620,11 +624,21 @@ jobs:
           if(apk==null || !apk.exists()){ call.reject("Downloaded update is not ready"); return; }
           try {
           Uri contentUri=FileProvider.getUriForFile(context, context.getPackageName()+".fileprovider", apk);
-          Intent install=new Intent(Intent.ACTION_VIEW);
-          install.setDataAndType(contentUri,"application/vnd.android.package-archive");
+          Intent install=new Intent(Intent.ACTION_INSTALL_PACKAGE);
+          install.setData(contentUri);
+          install.setType("application/vnd.android.package-archive");
           install.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+          install.setClipData(android.content.ClipData.newRawUri("ImageMate APK", contentUri));
+          install.putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true);
+          if (install.resolveActivity(context.getPackageManager()) == null) {
+            call.reject("Android package installer is unavailable");
+            return;
+          }
           context.startActivity(install);
-          } catch(Exception e) { call.reject("Could not open Android installer: "+e.getMessage()); }
+          } catch(Exception e) {
+            android.util.Log.e("ImageMateUpdater", "Could not open Android installer", e);
+            call.reject("Could not open Android installer: " + (e.getMessage()==null ? e.getClass().getSimpleName() : e.getMessage()));
+          }
           }
           }
           JAVA
