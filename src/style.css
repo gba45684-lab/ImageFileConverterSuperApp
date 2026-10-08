@@ -480,3 +480,6 @@ footer{color:var(--editorial-muted)!important;border-top-color:var(--editorial-l
 @media(max-width:560px){
   .update-refresh{padding:0 8px}
 }
+
+/* Native AdMob banner safe area */
+.native-android main{padding-bottom:64px}

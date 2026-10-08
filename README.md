@@ -1,35 +1,33 @@
 # ImageMate — Image & File Converter SuperApp
 
-A privacy-first image utility web app designed for SEO traffic, PWA installation and future Android/Capacitor packaging.
+A privacy-first image and file utility app for local browser processing, PWA use and Android/Capacitor packaging.
 
 ## Current build
-- Image conversion, compression, resize and target-KB processing
-- Passport / ID photo sizing
-- Image → PDF export
-- Batch ZIP export
-- Expanded utility dashboard for PDF→Image, metadata, signature, crop, OCR and background-removal workflows
-- Local-first processing with no upload required for core image tools
-- Responsive premium UI and persistent dark mode
-- Capacitor Android APK with background updater and user-approved installation flow
-
-## v1
 - JPG / PNG / WebP / AVIF conversion where browser support exists
-- Compression
-- Target-size compression: 20 / 50 / 100 / 200 KB
-- Resize
-- Passport / ID photo sizing
-- Batch processing
-- Responsive premium UI
-- Dark mode
-- PWA manifest
-- Local browser processing
+- Image compression and target-size compression (20 / 50 / 100 / 200 KB)
+- Resize, passport / ID photo sizing and signature preparation
+- Image → PDF and PDF → image workflows
+- PDF merge, metadata cleaning and simple background removal
+- Crop / rotate and basic photo editor
+- Local OCR with Tesseract.js
+- Batch ZIP export where supported
+- Downloaded-file library with Android open, share and export actions
+- Responsive Editorial UI with persistent dark mode
+- Capacitor Android APK with background updater and user-approved installation
 
 ## Run
+```
 npm install
 npm run dev
+```
 
 ## Build
+```
 npm run build
+```
 
-## Roadmap
-HEIC decoding, production OCR, AI background removal, PDF→image rendering, SEO landing pages, AdSense/AdMob activation, premium no-ads plan, Capacitor Android APK. Image→PDF, batch ZIP, metadata cleaning, compression, resize and target-size tools are already in the current build.
+## Android release
+GitHub Actions builds the debug APK, verifies it, uploads an artifact and publishes `ImageMate.apk` to the versioned GitHub Release.
+
+## Privacy
+Core file processing is performed locally. ImageMate does not need to upload the selected source files to a server for the supported browser workflows.
