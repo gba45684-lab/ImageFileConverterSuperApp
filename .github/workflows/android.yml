@@ -429,10 +429,23 @@ jobs:
           return path.isEmpty() ? null : new File(path);
           }
 
+          private String normalizedUpdateVersion(String version) {
+          if (version == null) return "";
+          return version.trim().replaceFirst("^[vV]", "");
+          }
+
+          private String versionFromUpdateUrl(String url) {
+          if (url == null) return "";
+          java.util.regex.Matcher matcher = java.util.regex.Pattern.compile("/download/v([^/]+)/ImageMate\\.apk(?:[?].*)?$").matcher(url);
+          return matcher.find() ? normalizedUpdateVersion(matcher.group(1)) : "";
+          }
+
           @PluginMethod
           public void downloadUpdate(PluginCall call) {
           String url = call.getString("url");
           if (url == null || url.isEmpty()) { call.reject("Update URL is missing"); return; }
+          String requestedVersion = normalizedUpdateVersion(call.getString("version", ""));
+          if (requestedVersion.isEmpty()) requestedVersion = versionFromUpdateUrl(url);
           Context context = getContext();
           File dir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
           if (dir == null) { call.reject("Device storage is unavailable"); return; }
@@ -444,8 +457,35 @@ jobs:
 
           android.content.SharedPreferences sp = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
           String oldId = sp.getString("download_id", "");
+          String storedVersion = normalizedUpdateVersion(sp.getString(APK_VERSION, ""));
           if (oldId != null && !oldId.isEmpty()) {
-            try { dm.remove(Long.parseLong(oldId)); } catch (Exception ignored) {}
+            try {
+              long existingId = Long.parseLong(oldId);
+              android.database.Cursor existing = dm.query(new DownloadManager.Query().setFilterById(existingId));
+              if (existing != null) {
+                try {
+                  if (existing.moveToFirst()) {
+                    int existingStatus = existing.getInt(existing.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS));
+                    boolean sameVersion = requestedVersion.isEmpty() || storedVersion.isEmpty() || requestedVersion.equals(storedVersion);
+                    boolean active = existingStatus == DownloadManager.STATUS_PENDING ||
+                      existingStatus == DownloadManager.STATUS_RUNNING ||
+                      existingStatus == DownloadManager.STATUS_PAUSED;
+                    boolean complete = existingStatus == DownloadManager.STATUS_SUCCESSFUL;
+                    if (sameVersion && (active || complete)) {
+                      JSObject existingResult = new JSObject();
+                      existingResult.put("started", false);
+                      existingResult.put("existing", true);
+                      existingResult.put("background", true);
+                      existingResult.put("downloadId", existingId);
+                      existingResult.put("status", complete ? "complete" : "downloading");
+                      call.resolve(existingResult);
+                      return;
+                    }
+                  }
+                } finally { existing.close(); }
+              }
+              try { dm.remove(existingId); } catch (Exception ignored) {}
+            } catch (Exception ignored) {}
           }
 
           File target = new File(dir, "ImageMate-latest.apk");
@@ -464,6 +504,7 @@ jobs:
           sp.edit()
             .remove(APK_PATH)
             .putString("download_id", String.valueOf(id))
+            .putString(APK_VERSION, requestedVersion)
             .putString("update_error", "")
             .apply();
 
@@ -624,13 +665,36 @@ jobs:
 
           @PluginMethod
           public void hasDownloadedUpdate(PluginCall call) {
-          Context context=getContext(); File apk=recoverCompletedDownload(context);
-          JSObject out=new JSObject(); out.put("ready",apk!=null&&apk.exists()); call.resolve(out);
+          Context context=getContext();
+          android.content.SharedPreferences sp=context.getSharedPreferences(PREFS,Context.MODE_PRIVATE);
+          String requestedVersion=normalizedUpdateVersion(call.getString("version",""));
+          String storedVersion=normalizedUpdateVersion(sp.getString(APK_VERSION,""));
+          if(!requestedVersion.isEmpty()&&!storedVersion.isEmpty()&&!requestedVersion.equals(storedVersion)){
+            String idText=sp.getString("download_id","");
+            try{
+              if(idText!=null&&!idText.isEmpty()){
+                DownloadManager dm=(DownloadManager)context.getSystemService(Context.DOWNLOAD_SERVICE);
+                dm.remove(Long.parseLong(idText));
+              }
+            }catch(Exception ignored){}
+            String storedPath=sp.getString(APK_PATH,"");
+            if(storedPath!=null&&!storedPath.isEmpty())try{new File(storedPath).delete();}catch(Exception ignored){}
+            File target=new File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS),"ImageMate-latest.apk");
+            if(target.exists())try{target.delete();}catch(Exception ignored){}
+            sp.edit().remove(APK_PATH).remove(APK_VERSION).remove("download_id").apply();
+          }
+          File apk=recoverCompletedDownload(context);
+          JSObject out=new JSObject();
+          out.put("ready",apk!=null&&apk.exists());
+          out.put("version",normalizedUpdateVersion(sp.getString(APK_VERSION,"")));
+          call.resolve(out);
           }
 
           @PluginMethod
           public void installDownloadedUpdate(PluginCall call) {
           Context context=getContext();
+          String requestedVersion=normalizedUpdateVersion(call.getString("version",""));
+          String storedVersion=normalizedUpdateVersion(context.getSharedPreferences(PREFS,Context.MODE_PRIVATE).getString(APK_VERSION,""));
           if (Build.VERSION.SDK_INT >= 26 && !context.getPackageManager().canRequestPackageInstalls()) {
           Intent settings=new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:"+context.getPackageName()));
           settings.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); context.startActivity(settings);
@@ -638,6 +702,10 @@ jobs:
           }
           File apk=recoverCompletedDownload(context);
           if(apk==null || !apk.exists()){ call.reject("Downloaded update is not ready"); return; }
+          if(!requestedVersion.isEmpty()&&!storedVersion.isEmpty()&&!requestedVersion.equals(storedVersion)){
+            call.reject("Downloaded update is stale. Please download the latest update.");
+            return;
+          }
           try {
           Uri contentUri=FileProvider.getUriForFile(context, context.getPackageName()+".fileprovider", apk);
           Intent install=new Intent(Intent.ACTION_INSTALL_PACKAGE);
