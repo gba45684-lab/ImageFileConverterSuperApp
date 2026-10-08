@@ -247,10 +247,6 @@ jobs:
           stream.write(data);
           }
           Uri contentUri = FileProvider.getUriForFile(context, context.getPackageName() + ".fileprovider", out);
-          Intent open = new Intent(Intent.ACTION_VIEW);
-          open.setDataAndType(contentUri, mime);
-          open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
-          try { context.startActivity(open); } catch (Exception ignored) {}
           
           NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
           if (Build.VERSION.SDK_INT >= 26) {
