@@ -100,7 +100,11 @@ function showInstantUpdatePopup(version, mode='download'){
     const btn=document.querySelector('#update-now'), statusText=document.querySelector('#update-status-text');if(!btn)return;
     btn.disabled=true;btn.textContent=installMode?'Opening installer…':'Starting download…';
     try{
-      if(installMode){await installDownloadedAndroidUpdate();return;}
+      if(installMode){
+        localStorage.setItem('imagemate-update-installing','1');
+        await installDownloadedAndroidUpdate();
+        return;
+      }
       await downloadLatestAndroidUpdate(latestUpdateUrl);
       btn.textContent='Downloading…';
       if(statusText)statusText.textContent='Downloading the APK in the background. Please keep ImageMate open for automatic installation.';
@@ -144,6 +148,11 @@ async function checkForAndroidUpdate(){
     // The web bundle may be cached or built separately from the native APK.
     const nativeVersion=await getAndroidAppVersion().catch(()=>({version:APP_VERSION}));
     runtimeAppVersion=String(nativeVersion?.version||APP_VERSION);
+    // Never re-offer a completed APK while Android is handing it to the package installer.
+    // The native bridge clears its download state immediately before launching the installer.
+    if(localStorage.getItem('imagemate-update-installing')==='1'){
+      localStorage.removeItem('imagemate-update-installing');
+    }
     const ready=await hasDownloadedAndroidUpdate().catch(()=>({ready:false}));
     const b=document.querySelector('#update-btn');
     if(ready?.ready&&b){
