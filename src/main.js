@@ -113,7 +113,7 @@ function showInstantUpdatePopup(version, mode='download'){
             btn.textContent='Install now';
             btn.disabled=false;
             if(statusText)statusText.textContent='Download complete. Tap Install now to continue.';
-            try{const r=await installDownloadedAndroidUpdate();if(r?.needsPermission){if(statusText)statusText.textContent='Allow "Install unknown apps" for ImageMate, then tap Install now.';}}catch(e){console.error(e);btn.disabled=false;btn.textContent='Install now';if(statusText)statusText.textContent='Installer could not open: '+(e?.message||'Please try again.');}
+            // Do not launch the Android installer automatically. Keep ImageMate open until the user explicitly taps Install now.
           }else if(s?.status==='failed'||s?.status==='error'){
             clearInterval(timer);
             btn.disabled=false;btn.textContent='Retry update';
