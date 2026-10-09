@@ -253,6 +253,10 @@ async function checkForAndroidUpdate(force=false){
           localStorage.removeItem('imagemate-update-installing');
           localStorage.removeItem('imagemate-update-install-started-at');
           b.disabled=false;b.textContent='Install update';
+          const reason=String(e?.message||e||'Could not start the Android installer.');
+          alert(reason.includes('Signing key mismatch')
+            ? 'This update has a different signing key. Android cannot update this installation in place. Back up important files, uninstall ImageMate, then install the stable signed APK manually.'
+            : reason);
         }
       };
       showInstantUpdatePopup(latest,'install');

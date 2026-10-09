@@ -60,9 +60,37 @@ jobs:
       - name: Add Android
         run: npx cap add android
 
+      - name: Prepare persistent signing key
+        id: signing
+        shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.IMAGEMATE_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.IMAGEMATE_KEYSTORE_PASSWORD }}
+        run: |
+          EXPECTED_CERT="ff5d698c7f2a3a8a22501da0ae19597fdc1ec8767b99b67f8fdc94203f53a8ab"
+          if [[ -z "$KEYSTORE_BASE64" && -z "$KEYSTORE_PASSWORD" ]]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Stable release publishing is disabled until IMAGEMATE_KEYSTORE_BASE64 and IMAGEMATE_KEYSTORE_PASSWORD are configured."
+            exit 0
+          fi
+          if [[ -z "$KEYSTORE_BASE64" || -z "$KEYSTORE_PASSWORD" ]]; then
+            echo "::error::Both persistent signing secrets are required."
+            exit 1
+          fi
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > android/app/imagemate-release.jks
+          test -s android/app/imagemate-release.jks
+          ACTUAL_CERT="$(keytool -list -v -keystore android/app/imagemate-release.jks -storepass "$KEYSTORE_PASSWORD" -alias imagemate-release 2>/dev/null | awk '/SHA256:/ { gsub(":", "", $2); print tolower($2); exit }')"
+          if [[ "$ACTUAL_CERT" != "$EXPECTED_CERT" ]]; then
+            echo "::error::Configured keystore certificate does not match the pinned ImageMate release certificate."
+            exit 1
+          fi
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+          echo "Persistent ImageMate release key verified."
+
       - name: Configure Android
         env:
           APP_VERSION: ${{ steps.version.outputs.version }}
+          IMAGEMATE_SIGNING_READY: ${{ steps.signing.outputs.ready }}
         shell: bash
         run: |
           python3 - <<'PY'
@@ -72,6 +100,24 @@ jobs:
           s=p.read_text()
           s=re.sub(r'versionCode\s+\d+', f'versionCode {os.environ.get("GITHUB_RUN_NUMBER","1")}', s, count=1)
           s=re.sub(r'versionName\s+"[^"]+"', f'versionName "{os.environ["APP_VERSION"]}"', s, count=1)
+          if os.environ.get("IMAGEMATE_SIGNING_READY") == "true":
+              signing = """
+          signingConfigs {
+              release {
+                  storeFile file("imagemate-release.jks")
+                  storePassword System.getenv("IMAGEMATE_KEYSTORE_PASSWORD")
+                  keyAlias "imagemate-release"
+                  keyPassword System.getenv("IMAGEMATE_KEYSTORE_PASSWORD")
+              }
+          }
+          """
+              s=s.replace("android {", "android {\\n"+signing, 1)
+              build_types=s.find("buildTypes")
+              release_open=s.find("release {", build_types)
+              if build_types < 0 or release_open < 0:
+                  raise SystemExit("Could not configure release signing: buildTypes.release block is missing")
+              release_open += len("release {")
+              s=s[:release_open]+"\\n            signingConfig signingConfigs.release"+s[release_open:]
           p.write_text(s)
 
           manifest=Path('android/app/src/main/AndroidManifest.xml')
@@ -507,6 +553,45 @@ jobs:
           }
           }
 
+          private boolean signaturesMatch(android.content.pm.Signature[] installed, android.content.pm.Signature[] candidate) {
+          if (installed == null || candidate == null || installed.length == 0 || installed.length != candidate.length) return false;
+          for (android.content.pm.Signature signer : installed) {
+            boolean found = false;
+            for (android.content.pm.Signature other : candidate) {
+              if (signer.equals(other)) { found = true; break; }
+            }
+            if (!found) return false;
+          }
+          return true;
+          }
+
+          private boolean isSigningCertificateCompatible(Context context, File apk) {
+          try {
+            android.content.pm.PackageManager pm = context.getPackageManager();
+            int flags = Build.VERSION.SDK_INT >= 28
+              ? android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES
+              : android.content.pm.PackageManager.GET_SIGNATURES;
+            android.content.pm.PackageInfo installed = pm.getPackageInfo(context.getPackageName(), flags);
+            android.content.pm.PackageInfo candidate = pm.getPackageArchiveInfo(apk.getAbsolutePath(), flags);
+            if (candidate == null || !context.getPackageName().equals(candidate.packageName)) return false;
+
+            android.content.pm.Signature[] installedSigners;
+            android.content.pm.Signature[] candidateSigners;
+            if (Build.VERSION.SDK_INT >= 28) {
+              if (installed.signingInfo == null || candidate.signingInfo == null) return false;
+              installedSigners = installed.signingInfo.getApkContentsSigners();
+              candidateSigners = candidate.signingInfo.getApkContentsSigners();
+            } else {
+              installedSigners = installed.signatures;
+              candidateSigners = candidate.signatures;
+            }
+            return signaturesMatch(installedSigners, candidateSigners);
+          } catch (Exception e) {
+            android.util.Log.w("ImageMateUpdater", "Could not compare APK signing certificates", e);
+            return false;
+          }
+          }
+
           private void clearDownloadedUpdate(Context context) {
           android.content.SharedPreferences sp = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
           String idText = sp.getString("download_id", "");
@@ -831,6 +916,10 @@ jobs:
             call.reject("Downloaded update failed APK validation. Please download the latest update.");
             return;
           }
+          if(!isSigningCertificateCompatible(context, apk)) {
+            call.reject("Signing key mismatch: this downloaded APK was signed with a different key. Back up important files, uninstall the current ImageMate, then install the stable signed APK manually.");
+            return;
+          }
           try {
           Uri contentUri=FileProvider.getUriForFile(context, context.getPackageName()+".fileprovider", apk);
           startApkInstaller(context, contentUri);
@@ -855,35 +944,81 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Build debug APK
+      - name: Build APK
         working-directory: android
         timeout-minutes: 15
-        run: ./gradlew assembleDebug --stacktrace --no-daemon
+        env:
+          IMAGEMATE_SIGNING_READY: ${{ steps.signing.outputs.ready }}
+          IMAGEMATE_KEYSTORE_PASSWORD: ${{ secrets.IMAGEMATE_KEYSTORE_PASSWORD }}
+        run: |
+          if [[ "$IMAGEMATE_SIGNING_READY" == "true" ]]; then
+            ./gradlew assembleRelease --stacktrace --no-daemon
+          else
+            ./gradlew assembleDebug --stacktrace --no-daemon
+          fi
 
-      - name: Verify APK
+      - name: Verify stable release APK signing certificate
+        if: steps.signing.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="android/app/build/outputs/apk/release/app-release.apk"
+          test -s "$APK"
+          SDK_DIR="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/android-sdk}}"
+          APKSIGNER="$(find "$SDK_DIR/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          test -n "$APKSIGNER"
+          "$APKSIGNER" verify --verbose "$APK"
+          ACTUAL_CERT="$("$APKSIGNER" verify --print-certs "$APK" | awk -F': ' '/Signer #1 certificate SHA-256 digest:/ { print $2; exit }' | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
+          EXPECTED_CERT="ff5d698c7f2a3a8a22501da0ae19597fdc1ec8767b99b67f8fdc94203f53a8ab"
+          if [[ "$ACTUAL_CERT" != "$EXPECTED_CERT" ]]; then
+            echo "::error::Release APK certificate mismatch. Refusing to publish this APK."
+            exit 1
+          fi
+          echo "PASS: APK uses the pinned ImageMate signing certificate $ACTUAL_CERT."
+
+      - name: Verify debug APK
+        if: steps.signing.outputs.ready != 'true'
         shell: bash
         run: |
           test -s android/app/build/outputs/apk/debug/app-debug.apk
           ls -lh android/app/build/outputs/apk/debug/app-debug.apk
+          echo "DEBUG BUILD ONLY: this APK is not approved for stable releases or in-app updates."
 
-      - name: Upload APK artifact
+      - name: Upload stable signed APK artifact
+        if: steps.signing.outputs.ready == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: ImageMate-debug-apk
+          name: ImageMate-signed-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload debug-only APK artifact
+        if: steps.signing.outputs.ready != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ImageMate-debug-apk-DO-NOT-USE-FOR-UPDATES
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
 
       - name: Publish GitHub Release
+        if: steps.signing.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           APP_VERSION: ${{ steps.version.outputs.version }}
         shell: bash
         run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk ImageMate.apk
+          cp android/app/build/outputs/apk/release/app-release.apk ImageMate.apk
           if gh release view "v$APP_VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "v$APP_VERSION" ImageMate.apk --repo "$GITHUB_REPOSITORY" --clobber
           else
             gh release create "v$APP_VERSION" ImageMate.apk --repo "$GITHUB_REPOSITORY" --title "ImageMate v$APP_VERSION" --generate-notes
           fi
-          echo "Stable APK: https://github.com/$GITHUB_REPOSITORY/releases/latest/download/ImageMate.apk"
+          echo "Stable signed APK: https://github.com/$GITHUB_REPOSITORY/releases/latest/download/ImageMate.apk"
+
+      - name: Explain skipped stable release
+        if: steps.signing.outputs.ready != 'true'
+        shell: bash
+        run: |
+          echo "::warning::No stable release was published. Add IMAGEMATE_KEYSTORE_BASE64 and IMAGEMATE_KEYSTORE_PASSWORD repository secrets, then run this workflow again."
