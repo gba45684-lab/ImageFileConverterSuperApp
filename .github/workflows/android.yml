@@ -707,6 +707,29 @@ jobs:
           }
           }
 
+          private void startApkInstaller(Context context, Uri uri) {
+          final String apkMime = "application/vnd.android.package-archive";
+          Intent installer = new Intent(Intent.ACTION_INSTALL_PACKAGE);
+          installer.setDataAndType(uri, apkMime);
+          installer.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+          installer.setClipData(android.content.ClipData.newRawUri("ImageMate APK", uri));
+          installer.putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true);
+          try {
+            context.startActivity(installer);
+            return;
+          } catch (Exception primaryError) {
+            android.util.Log.w("ImageMateUpdater", "ACTION_INSTALL_PACKAGE failed; trying ACTION_VIEW", primaryError);
+          }
+
+          // Alternate path for Android builds whose package installer does not resolve
+          // ACTION_INSTALL_PACKAGE. Keep the exact same content URI and read grant.
+          Intent fallback = new Intent(Intent.ACTION_VIEW);
+          fallback.setDataAndType(uri, apkMime);
+          fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+          fallback.setClipData(android.content.ClipData.newRawUri("ImageMate APK", uri));
+          context.startActivity(fallback);
+          }
+
           private void launchDownloadedInstaller(Context context, File apk) {
           if (apk == null || !apk.exists()) return;
           if (Build.VERSION.SDK_INT >= 26 && !context.getPackageManager().canRequestPackageInstalls()) {
@@ -715,15 +738,12 @@ jobs:
           context.startActivity(settings);
           return;
           }
-          Uri uri = FileProvider.getUriForFile(context, context.getPackageName() + ".fileprovider", apk);
-          Intent installer = new Intent(Intent.ACTION_INSTALL_PACKAGE);
-          installer.setData(uri);
-          installer.setType("application/vnd.android.package-archive");
-          installer.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
-          installer.setClipData(android.content.ClipData.newRawUri("ImageMate APK", uri));
-          installer.putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true);
-          if (installer.resolveActivity(context.getPackageManager()) == null) return;
-          context.startActivity(installer);
+          try {
+            Uri uri = FileProvider.getUriForFile(context, context.getPackageName() + ".fileprovider", apk);
+            startApkInstaller(context, uri);
+          } catch (Exception e) {
+            android.util.Log.e("ImageMateUpdater", "Could not open APK installer", e);
+          }
           }
 
           private File recoverCompletedDownload(Context context) {
@@ -813,20 +833,7 @@ jobs:
           }
           try {
           Uri contentUri=FileProvider.getUriForFile(context, context.getPackageName()+".fileprovider", apk);
-          Intent install=new Intent(Intent.ACTION_INSTALL_PACKAGE);
-          install.setData(contentUri);
-          install.setType("application/vnd.android.package-archive");
-          install.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
-          install.setClipData(android.content.ClipData.newRawUri("ImageMate APK", contentUri));
-          install.putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true);
-          if (install.resolveActivity(context.getPackageManager()) == null) {
-            call.reject("Android package installer is unavailable");
-            return;
-          }
-          // Lock the update state before handing the APK to Android Package Installer.
-          // This prevents the next app launch/visibility check from treating the same APK
-          // as a fresh download and starting the update loop again.
-          context.startActivity(install);
+          startApkInstaller(context, contentUri);
           JSObject started = new JSObject();
           started.put("started", true);
           started.put("version", storedVersion);
