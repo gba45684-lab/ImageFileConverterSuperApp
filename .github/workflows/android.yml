@@ -111,13 +111,13 @@ jobs:
               }
           }
           """
-              s=s.replace("android {", "android {\\n"+signing, 1)
+              s=s.replace("android {", "android {\n"+signing, 1)
               build_types=s.find("buildTypes")
               release_open=s.find("release {", build_types)
               if build_types < 0 or release_open < 0:
                   raise SystemExit("Could not configure release signing: buildTypes.release block is missing")
               release_open += len("release {")
-              s=s[:release_open]+"\\n            signingConfig signingConfigs.release"+s[release_open:]
+              s=s[:release_open]+"\n            signingConfig signingConfigs.release"+s[release_open:]
           p.write_text(s)
 
           manifest=Path('android/app/src/main/AndroidManifest.xml')
