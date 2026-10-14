@@ -1111,6 +1111,19 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - name: Prepare OTA bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s dist/index.html
+          (cd dist && zip -qr "$GITHUB_WORKSPACE/ImageMate-ota.zip" .)
+          cd "$GITHUB_WORKSPACE"
+          sha256sum ImageMate-ota.zip > ImageMate-ota.sha256
+          unzip -t ImageMate-ota.zip >/dev/null
+          echo "Prepared signed-by-transport SHA-256 OTA bundle:"
+          cat ImageMate-ota.sha256
+          ls -lh ImageMate-ota.zip
+
       - name: Publish GitHub Release
         if: steps.signing.outputs.ready == 'true'
         env:
@@ -1118,13 +1131,30 @@ jobs:
           APP_VERSION: ${{ steps.version.outputs.version }}
         shell: bash
         run: |
+          set -euo pipefail
           cp android/app/build/outputs/apk/release/app-release.apk ImageMate.apk
           if gh release view "v$APP_VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "v$APP_VERSION" ImageMate.apk --repo "$GITHUB_REPOSITORY" --clobber
+            gh release upload "v$APP_VERSION" ImageMate.apk ImageMate-ota.zip ImageMate-ota.sha256 --repo "$GITHUB_REPOSITORY" --clobber
           else
-            gh release create "v$APP_VERSION" ImageMate.apk --repo "$GITHUB_REPOSITORY" --title "ImageMate v$APP_VERSION" --generate-notes
+            gh release create "v$APP_VERSION" ImageMate.apk ImageMate-ota.zip ImageMate-ota.sha256 --repo "$GITHUB_REPOSITORY" --title "ImageMate v$APP_VERSION" --generate-notes
           fi
-          echo "Stable signed APK: https://github.com/$GITHUB_REPOSITORY/releases/latest/download/ImageMate.apk"
+          echo "Stable signed APK and OTA bundle published to GitHub Release v$APP_VERSION."
+
+      - name: Publish OTA-only GitHub Release
+        if: steps.signing.outputs.ready != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APP_VERSION: ${{ steps.version.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="ota-$APP_VERSION"
+          gh release create "$TAG" ImageMate-ota.zip ImageMate-ota.sha256 \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "ImageMate OTA $APP_VERSION" \
+            --notes "Web-layer OTA bundle for ImageMate. Native Android changes are not included." \
+            --prerelease
+          echo "OTA-only prerelease published as $TAG. The stable APK release remains unchanged."
 
       - name: Explain skipped stable release
         if: steps.signing.outputs.ready != 'true'
