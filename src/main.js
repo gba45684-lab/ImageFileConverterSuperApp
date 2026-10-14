@@ -4,6 +4,7 @@ import packageJson from '../package.json';
 import './style.css';
 import './design-refresh.css';
 import { createIcons, icons } from 'lucide';
+import { initGitHubOta } from './ota.js';
 
 const app=document.querySelector('#app');
 if(isNativeAndroid()) document.documentElement.classList.add('native-android');
@@ -657,3 +658,4 @@ async function convertSpecial(file,kind){
 }
 
 render();
+initGitHubOta();
