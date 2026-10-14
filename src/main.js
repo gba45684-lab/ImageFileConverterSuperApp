@@ -4,6 +4,7 @@ import packageJson from '../package.json';
 import './style.css';
 import './design-refresh.css';
 import { createIcons, icons } from 'lucide';
+import { CapacitorUpdater } from '@capgo/capacitor-updater';
 
 const app=document.querySelector('#app');
 if(isNativeAndroid()) document.documentElement.classList.add('native-android');
@@ -657,3 +658,10 @@ async function convertSpecial(file,kind){
 }
 
 render();
+
+// Required by CapacitorUpdater: confirms the current web bundle started successfully.
+if (isNativeAndroid()) {
+  CapacitorUpdater.notifyAppReady().catch((error) => {
+    console.warn('ImageMate OTA readiness check failed:', error);
+  });
+}
