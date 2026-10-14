@@ -1036,7 +1036,8 @@ jobs:
           profile: pixel_2
           disable-animations: true
           script: |
-            set -euo pipefail
+            # android-emulator-runner executes this script using /usr/bin/sh, not bash.
+            set -eu
             APK="${{ steps.apk-validation.outputs.apk_path }}"
             PACKAGE_ID="com.gba45684.imagemate"
             SDK_DIR="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/android-sdk}}"
@@ -1045,18 +1046,18 @@ jobs:
             test -s "$APK"
             UPDATE_TESTED=false
 
-            if [[ "$IMAGEMATE_SIGNING_READY" == "true" ]]; then
+            if [ "$IMAGEMATE_SIGNING_READY" = "true" ]; then
               EXPECTED_CERT="$("$APKSIGNER" verify --print-certs "$APK" | awk -F': ' '/Signer #1 certificate SHA-256 digest:/ {print $2; exit}' | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
               PREVIOUS_TAG="$(gh release list --repo "$GITHUB_REPOSITORY" --limit 1 --json tagName --jq '.[0].tagName // empty' || true)"
-              if [[ -n "$PREVIOUS_TAG" && "$PREVIOUS_TAG" != "v$APP_VERSION" ]]; then
+              if [ -n "$PREVIOUS_TAG" ] && [ "$PREVIOUS_TAG" != "v$APP_VERSION" ]; then
                 PREVIOUS_DIR="$RUNNER_TEMP/imagemate-previous-release"
                 mkdir -p "$PREVIOUS_DIR"
                 if gh release download "$PREVIOUS_TAG" --repo "$GITHUB_REPOSITORY" --pattern ImageMate.apk --dir "$PREVIOUS_DIR"; then
                   PREVIOUS_APK="$PREVIOUS_DIR/ImageMate.apk"
-                  if [[ -s "$PREVIOUS_APK" ]] && unzip -t "$PREVIOUS_APK" >/dev/null 2>&1; then
+                  if [ -s "$PREVIOUS_APK" ] && unzip -t "$PREVIOUS_APK" >/dev/null 2>&1; then
                     PREVIOUS_PACKAGE="$("$APKANALYZER" manifest application-id "$PREVIOUS_APK" 2>/dev/null || true)"
                     PREVIOUS_CERT="$("$APKSIGNER" verify --print-certs "$PREVIOUS_APK" 2>/dev/null | awk -F': ' '/Signer #1 certificate SHA-256 digest:/ {print $2; exit}' | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
-                    if [[ "$PREVIOUS_PACKAGE" == "$PACKAGE_ID" && "$PREVIOUS_CERT" == "$EXPECTED_CERT" ]]; then
+                    if [ "$PREVIOUS_PACKAGE" = "$PACKAGE_ID" ] && [ "$PREVIOUS_CERT" = "$EXPECTED_CERT" ]; then
                       echo "Compatible stable baseline found: $PREVIOUS_TAG. Testing real update installation."
                       adb install "$PREVIOUS_APK"
                       adb install -r "$APK"
@@ -1073,7 +1074,7 @@ jobs:
               fi
             fi
 
-            if [[ "$UPDATE_TESTED" != "true" ]]; then
+            if [ "$UPDATE_TESTED" != "true" ]; then
               adb install "$APK"
             fi
 
