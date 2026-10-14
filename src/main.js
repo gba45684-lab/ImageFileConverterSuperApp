@@ -88,7 +88,10 @@ function render(){
     createIcons({icons,attrs:{'stroke-width':1.8}});
     try{
       if(isNativeAndroid()){
-        await checkForAndroidUpdate(true);
+        await Promise.all([
+          checkForAndroidUpdate(true),
+          initGitHubOta({ force: true })
+        ]);
       }else{
         alert('Update refresh is available in the Android app.');
       }
@@ -106,7 +109,17 @@ function render(){
   const defaultQuality=document.querySelector('#default-quality');
   if(defaultQuality) defaultQuality.oninput=e=>{S.quality=e.target.value/100;localStorage.setItem('imagemate-quality',String(S.quality));const out=document.querySelector('#default-quality-value');if(out)out.textContent=e.target.value+'%'};
   const updateSetting=document.querySelector('#update-setting');
-  if(updateSetting) updateSetting.onchange=e=>localStorage.setItem('imagemate-auto-update',e.target.checked?'1':'0');
+  if(updateSetting) updateSetting.onchange=async e=>{
+    const enabled=e.target.checked;
+    localStorage.setItem('imagemate-auto-update',enabled?'1':'0');
+    if(enabled && isNativeAndroid()){
+      // Start a fresh OTA check immediately when the user enables automatic updates.
+      await Promise.all([
+        checkForAndroidUpdate(true),
+        initGitHubOta({ force: true })
+      ]);
+    }
+  };
   const back=document.querySelector('#back-home');
   if(back) back.onclick=()=>{S.view='tools';S.files=[];render()};
   const backSettings=document.querySelector('#back-settings');
