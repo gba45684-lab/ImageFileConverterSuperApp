@@ -7,8 +7,10 @@ const UPDATE_CHECK_KEY = 'imagemate-github-ota-last-check';
 
 let checkInFlight = false;
 
-export async function initGitHubOta() {
+export async function initGitHubOta({ force = false } = {}) {
   if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'android') return;
+  // The Settings toggle controls automatic OTA checks. A user-requested manual refresh may still run while it is off.
+  if (!force && localStorage.getItem('imagemate-auto-update') === '0') return;
   if (checkInFlight) return;
   checkInFlight = true;
 
@@ -18,7 +20,7 @@ export async function initGitHubOta() {
     await LiveUpdate.ready();
 
     const lastCheck = Number(localStorage.getItem(UPDATE_CHECK_KEY) || 0);
-    if (Date.now() - lastCheck < 10 * 60 * 1000) return;
+    if (!force && Date.now() - lastCheck < 10 * 60 * 1000) return;
     localStorage.setItem(UPDATE_CHECK_KEY, String(Date.now()));
 
     const response = await fetch(RELEASES_API, {
