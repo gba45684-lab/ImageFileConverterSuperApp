@@ -970,6 +970,10 @@ jobs:
           "$APKSIGNER" verify --verbose "$APK"
           ACTUAL_CERT="$("$APKSIGNER" verify --print-certs "$APK" | awk -F': ' '/Signer #1 certificate SHA-256 digest:/ { print $2; exit }' | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
           EXPECTED_CERT="428abc10101024de916f8212fb5ddd6439bd02bcf36e8dfbfb541565e2a9c67e"
+          echo "Diagnostic: APK signer SHA-256=$ACTUAL_CERT"
+          echo "Diagnostic: expected signer SHA-256=$EXPECTED_CERT"
+          echo "Diagnostic: Gradle release signing config references:"
+          grep -n -A 8 -B 3 'signingConfigs.release\|signingConfigs {' android/app/build.gradle || true
           if [[ "$ACTUAL_CERT" != "$EXPECTED_CERT" ]]; then
             echo "::error::Release APK certificate mismatch. Refusing to publish this APK."
             exit 1
