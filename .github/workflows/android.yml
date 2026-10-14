@@ -85,7 +85,7 @@ jobs:
               "resetWhenUpdate": True,
               "periodCheckDelay": 600
           }
-          p.write_text(json.dumps(config, indent=2) + "\\n")
+          p.write_text(json.dumps(config, indent=2) + "\n")
           PY
 
       - name: Add Android
