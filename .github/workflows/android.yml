@@ -67,7 +67,7 @@ jobs:
           KEYSTORE_BASE64: ${{ secrets.IMAGEMATE_KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.IMAGEMATE_KEYSTORE_PASSWORD }}
         run: |
-          EXPECTED_CERT="ff5d698c7f2a3a8a22501da0ae19597fdc1ec8767b99b67f8fdc94203f53a8ab"
+          EXPECTED_CERT="428abc10101024de916f8212fb5ddd6439bd02bcf36e8dfbfb541565e2a9c67e"
           if [[ -z "$KEYSTORE_BASE64" && -z "$KEYSTORE_PASSWORD" ]]; then
             echo "ready=false" >> "$GITHUB_OUTPUT"
             echo "::warning::Stable release publishing is disabled until IMAGEMATE_KEYSTORE_BASE64 and IMAGEMATE_KEYSTORE_PASSWORD are configured."
@@ -969,7 +969,7 @@ jobs:
           test -n "$APKSIGNER"
           "$APKSIGNER" verify --verbose "$APK"
           ACTUAL_CERT="$("$APKSIGNER" verify --print-certs "$APK" | awk -F': ' '/Signer #1 certificate SHA-256 digest:/ { print $2; exit }' | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
-          EXPECTED_CERT="ff5d698c7f2a3a8a22501da0ae19597fdc1ec8767b99b67f8fdc94203f53a8ab"
+          EXPECTED_CERT="428abc10101024de916f8212fb5ddd6439bd02bcf36e8dfbfb541565e2a9c67e"
           if [[ "$ACTUAL_CERT" != "$EXPECTED_CERT" ]]; then
             echo "::error::Release APK certificate mismatch. Refusing to publish this APK."
             exit 1
@@ -983,6 +983,111 @@ jobs:
           test -s android/app/build/outputs/apk/debug/app-debug.apk
           ls -lh android/app/build/outputs/apk/debug/app-debug.apk
           echo "DEBUG BUILD ONLY: this APK is not approved for stable releases or in-app updates."
+
+      - name: Validate APK archive and manifest metadata
+        id: apk-validation
+        shell: bash
+        env:
+          APP_VERSION: ${{ steps.version.outputs.version }}
+          IMAGEMATE_SIGNING_READY: ${{ steps.signing.outputs.ready }}
+        run: |
+          set -euo pipefail
+          if [[ "$IMAGEMATE_SIGNING_READY" == "true" ]]; then
+            APK="android/app/build/outputs/apk/release/app-release.apk"
+          else
+            APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          fi
+          test -s "$APK"
+          unzip -t "$APK" >/dev/null
+          SDK_DIR="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/android-sdk}}"
+          APKANALYZER="$(find "$SDK_DIR" -type f -name apkanalyzer | sort -V | tail -n 1)"
+          APKSIGNER="$(find "$SDK_DIR" -type f -name apksigner | sort -V | tail -n 1)"
+          test -n "$APKANALYZER"
+          test -n "$APKSIGNER"
+          PACKAGE_ID="$("$APKANALYZER" manifest application-id "$APK")"
+          VERSION_NAME="$("$APKANALYZER" manifest version-name "$APK")"
+          VERSION_CODE="$("$APKANALYZER" manifest version-code "$APK")"
+          if [[ "$PACKAGE_ID" != "com.gba45684.imagemate" ]]; then
+            echo "::error::Unexpected APK application ID: $PACKAGE_ID"
+            exit 1
+          fi
+          if [[ "$VERSION_NAME" != "$APP_VERSION" ]]; then
+            echo "::error::APK versionName '$VERSION_NAME' does not match '$APP_VERSION'."
+            exit 1
+          fi
+          if [[ "$VERSION_CODE" != "$GITHUB_RUN_NUMBER" ]]; then
+            echo "::error::APK versionCode '$VERSION_CODE' does not match workflow run number '$GITHUB_RUN_NUMBER'."
+            exit 1
+          fi
+          "$APKSIGNER" verify --verbose "$APK"
+          echo "apk_path=$APK" >> "$GITHUB_OUTPUT"
+          echo "PASS: APK ZIP structure, signature, package ID, versionName and versionCode are valid."
+
+      - name: Smoke-test clean install and compatible update on Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APP_VERSION: ${{ steps.version.outputs.version }}
+          IMAGEMATE_SIGNING_READY: ${{ steps.signing.outputs.ready }}
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          script: |
+            set -euo pipefail
+            APK="${{ steps.apk-validation.outputs.apk_path }}"
+            PACKAGE_ID="com.gba45684.imagemate"
+            SDK_DIR="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/android-sdk}}"
+            APKSIGNER="$(find "$SDK_DIR" -type f -name apksigner | sort -V | tail -n 1)"
+            APKANALYZER="$(find "$SDK_DIR" -type f -name apkanalyzer | sort -V | tail -n 1)"
+            test -s "$APK"
+            UPDATE_TESTED=false
+
+            if [[ "$IMAGEMATE_SIGNING_READY" == "true" ]]; then
+              EXPECTED_CERT="$("$APKSIGNER" verify --print-certs "$APK" | awk -F': ' '/Signer #1 certificate SHA-256 digest:/ {print $2; exit}' | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
+              PREVIOUS_TAG="$(gh release list --repo "$GITHUB_REPOSITORY" --limit 1 --json tagName --jq '.[0].tagName // empty' || true)"
+              if [[ -n "$PREVIOUS_TAG" && "$PREVIOUS_TAG" != "v$APP_VERSION" ]]; then
+                PREVIOUS_DIR="$RUNNER_TEMP/imagemate-previous-release"
+                mkdir -p "$PREVIOUS_DIR"
+                if gh release download "$PREVIOUS_TAG" --repo "$GITHUB_REPOSITORY" --pattern ImageMate.apk --dir "$PREVIOUS_DIR"; then
+                  PREVIOUS_APK="$PREVIOUS_DIR/ImageMate.apk"
+                  if [[ -s "$PREVIOUS_APK" ]] && unzip -t "$PREVIOUS_APK" >/dev/null 2>&1; then
+                    PREVIOUS_PACKAGE="$("$APKANALYZER" manifest application-id "$PREVIOUS_APK" 2>/dev/null || true)"
+                    PREVIOUS_CERT="$("$APKSIGNER" verify --print-certs "$PREVIOUS_APK" 2>/dev/null | awk -F': ' '/Signer #1 certificate SHA-256 digest:/ {print $2; exit}' | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')"
+                    if [[ "$PREVIOUS_PACKAGE" == "$PACKAGE_ID" && "$PREVIOUS_CERT" == "$EXPECTED_CERT" ]]; then
+                      echo "Compatible stable baseline found: $PREVIOUS_TAG. Testing real update installation."
+                      adb install "$PREVIOUS_APK"
+                      adb install -r "$APK"
+                      UPDATE_TESTED=true
+                    else
+                      echo "::warning::Previous release '$PREVIOUS_TAG' uses a different signing certificate or is not a valid APK. Testing clean install; the first stable release requires a one-time reinstall for existing debug-signed installs."
+                    fi
+                  else
+                    echo "::warning::Previous release APK was not a valid archive. Testing a clean install of the candidate."
+                  fi
+                else
+                  echo "::warning::Could not download prior release APK. Testing a clean install of the candidate."
+                fi
+              fi
+            fi
+
+            if [[ "$UPDATE_TESTED" != "true" ]]; then
+              adb install "$APK"
+            fi
+
+            adb logcat -c
+            adb shell monkey -p "$PACKAGE_ID" -c android.intent.category.LAUNCHER 1
+            sleep 8
+            adb shell pm path "$PACKAGE_ID" | grep -q 'package:'
+            CRASH_LOG="$(adb logcat -d -s AndroidRuntime:E || true)"
+            if printf '%s' "$CRASH_LOG" | grep -F "Process: $PACKAGE_ID" >/dev/null; then
+              printf '%s\n' "$CRASH_LOG"
+              echo "::error::ImageMate crashed on startup in the Android emulator."
+              exit 1
+            fi
+            echo "PASS: APK installed, updated where signing-compatible, and launched without a detected fatal runtime exception."
 
       - name: Upload stable signed APK artifact
         if: steps.signing.outputs.ready == 'true'
