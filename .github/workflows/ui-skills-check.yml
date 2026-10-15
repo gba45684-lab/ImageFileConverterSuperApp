@@ -1,6 +1,16 @@
 name: ImageMate UI skill pack check
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "AGENTS.md"
+      - "CLAUDE.md"
+      - "README.md"
+      - "UI_IMPLEMENTATION_RUNBOOK.md"
+      - ".agents/skills/**"
+      - ".claude/skills/**"
+      - ".github/workflows/ui-skills-check.yml"
   pull_request:
     paths:
       - "AGENTS.md"
