@@ -1,1 +1,25 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#6d5dfc"/><path d="M128 350V162c0-19 15-34 34-34h188c19 0 34 15 34 34v188c0 19-15 34-34 34H162c-19 0-34-15-34-34Z" fill="white" opacity=".96"/><circle cx="210" cy="214" r="32" fill="#6d5dfc"/><path d="m158 350 66-82 48 54 38-45 74 73H158Z" fill="#6d5dfc"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="ImageMate iM app icon">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fffdf7"/>
+      <stop offset=".58" stop-color="#f2f4f8"/>
+      <stop offset="1" stop-color="#eaf0fb"/>
+    </linearGradient>
+    <radialGradient id="warm-glow" cx="0" cy="0" r="1" gradientTransform="translate(430 75) rotate(135) scale(235)">
+      <stop stop-color="#f4e8ff" stop-opacity=".7"/>
+      <stop offset="1" stop-color="#f4e8ff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="cool-glow" cx="0" cy="0" r="1" gradientTransform="translate(65 447) rotate(-35) scale(245)">
+      <stop stop-color="#dceaff" stop-opacity=".9"/>
+      <stop offset="1" stop-color="#dceaff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#tile)"/>
+  <rect width="512" height="512" fill="url(#warm-glow)"/>
+  <rect width="512" height="512" fill="url(#cool-glow)"/>
+  <g fill="none" stroke="#10213f" stroke-linecap="round" stroke-linejoin="round" stroke-width="48">
+    <path d="M128 190V354"/>
+    <path d="M204 354V220C204 190 232 182 251 207L293 260L335 209C356 183 384 195 384 224V354"/>
+  </g>
+  <circle cx="128" cy="123" r="24" fill="#ffb32c"/>
+</svg>
