@@ -38,8 +38,8 @@ Report changed files and commit, build status with links, whether the APK artifa
 ## Branding and logo placement — Option 7
 - Official mark: deep-navy iM monogram with a single warm amber dot above the i; keep the wordmark clean and primarily navy.
 - Keep `public/icon.svg`, `index.html` favicon/theme metadata and `manifest.webmanifest` icon/colors aligned. The main UI mark remains inline SVG so CSS can animate its dot without extra runtime dependencies.
-- Global header: left aligned, vertically centered, icon tile 42px desktop / 38px narrow mobile, followed by ImageMate wordmark. Hide the small descriptor on narrow phones to avoid crowding.
-- Home: small monogram immediately precedes the uppercase “IMAGEMATE / LOCAL-FIRST” eyebrow above the hero heading. Headline hierarchy stays stronger than the logo.
+- Global header: an unboxed ~40×38px iM mark on the left, vertically centered beside the ImageMate wordmark. “Image” uses navy/light text and “Mate” uses the indigo-purple accent. Hide the descriptor on narrow phones. Keep the standalone app icon tile-based.
+- Home: keep the identity in the global header; do not re-add the removed “IMAGEMATE / LOCAL-FIRST” eyebrow. The hero starts with the headline, then “Quick. Simple. Powerful.”
 - Use navy `#10213f`, amber `#ffb32c` and existing warm `--im-*` tokens. Give the mark a pale surface behind it in both themes so navy remains readable.
 - Animate only on interaction: a subtle one-shot 180–400ms hover response, with no infinite motion. Keep tap/focus visible and respect `prefers-reduced-motion`.
 - Validate sizes at 18px, 38px and 42px; inspect clipping, contrast, positioning and mobile header overflow. Do not use screenshot artwork as the actual UI logo.
