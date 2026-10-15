@@ -25,7 +25,7 @@ Use the shared open-source design system at https://github.com/gba45684-lab/prem
 
 ## Validation
 - Run npm run build after UI changes.
-- Test light/dark themes, mobile two-column tool cards, search, tool selection, upload/dropzone, settings, downloads, and the Android updater entry points.
+- Test light/dark themes, Home's mobile three-column × two-row popular-card grid, Tools catalog search/filter, tool selection, upload/dropzone, Settings, Downloads and Android updater entry points.
 - Report checks accurately; never claim a build or device test passed unless it was actually run.
 
 ## Whole-app UI/UX workflow — mandatory for every screen redesign
