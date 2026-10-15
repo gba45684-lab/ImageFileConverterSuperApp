@@ -89,3 +89,14 @@ A feature is done only when the code is changed, the relevant build/check passes
 - Design for 320px, 360px, 390px, tablet and desktop widths. Use `minmax(0,1fr)`, `min-width:0`, safe wrapping, semantic labels, visible focus, touch-friendly controls and reduced-motion support. Avoid clipped copy and horizontal overflow.
 - Test both themes and relevant empty/loading/error/success/disabled states. Click every affected control and verify persistence/navigation; do not leave decorative nonfunctional buttons.
 - Run `npm run build` and verify relevant GitHub Actions builds and APK artifact before reporting success. Clearly state when physical Android testing has not been performed.
+
+
+## Official ImageMate identity — Option 7
+- Use the approved **iM monogram**: bold deep-navy stem/M strokes with one warm amber dot above the i. Keep the mark geometric, minimal and legible at small sizes. Do not substitute generic “IM” text or emoji.
+- Primary editable vector source: `public/icon.svg`. Browser favicon and PWA metadata are defined in `index.html` and `manifest.webmanifest`. The app-header mark is inline SVG in `src/main.js` so its dot and paths can have accessible, lightweight CSS micro-interactions.
+- Header positioning: mark tile left-aligned and vertically centered beside the ImageMate wordmark. Use a 42px tile on desktop and 38px on narrow phones; keep the wordmark baseline aligned, and hide the secondary tagline on narrow screens rather than letting the header overflow.
+- Home positioning: a small inline monogram sits immediately before the uppercase “IMAGEMATE / LOCAL-FIRST” kicker above the main hero title. Keep the headline as the dominant element; never let the logo compete with “Tools for the paperwork of life.”
+- Brand colors: deep navy `#10213f`, amber dot `#ffb32c`, and the existing warm neutral `--im-*` backgrounds and surfaces. Use a light tile behind the icon in dark mode to preserve logo contrast. Do not recolor the mark arbitrarily per screen.
+- Animation: only short interaction-driven micro-motion (roughly 180–400ms) such as a one-shot dot pop on hover and a 1px lift. No continuous pulsing, spinning, bounce loops or movement that distracts from conversion tasks. Preserve normal focus indication, touch activation, and `prefers-reduced-motion`.
+- Responsive QA: inspect the mark at 18px in the Home kicker, 38–42px in the global header, and PWA icon sizes. Check pixel clarity, proportions, tap target and light/dark contrast.
+- Never use a screenshot/mockup of the branding board as a UI asset. Implement using vector paths and the shared design tokens so the logo stays sharp and maintainable.
