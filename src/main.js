@@ -165,7 +165,7 @@ function render(){
 function showInstantUpdatePopup(version, mode='download'){
   const existingPopup=document.querySelector('#update-popup');
   if(existingPopup){
-    if(mode==='install')existingPopup.promoteToInstall?.();
+    if(mode==='install'&&typeof existingPopup.promoteToInstall==='function')existingPopup.promoteToInstall();
     return;
   }
   if(mode==='download'&&localStorage.getItem('imagemate-update-dismissed-version')===String(version))return;
