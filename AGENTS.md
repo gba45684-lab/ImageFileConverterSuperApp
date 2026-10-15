@@ -79,3 +79,12 @@ Before any UI implementation, follow [UI_IMPLEMENTATION_RUNBOOK.md](UI_IMPLEMENT
 
 ### Exact Home reference details
 On phone widths, Home uses six initial Popular Tools cards in a 3-column × 2-row grid, ordered Image to PDF / PDF to Image / Compress / Resize / Convert / More Tools. Use distinct red, purple, green, blue, orange and neutral icon tiles respectively. No Home search field, no LOCAL-FIRST divider, no "6 tools" count, and no category/description lines on these compact mobile cards. Search is on the separate Tools screen.
+
+
+## Required UI/UX skill invocation
+Use the repo-local skills before and during UI work:
+1. Start with `.agents/skills/imagemate-ui-ux-implementation/SKILL.md` (or the matching `.claude/skills/` copy).
+2. After visual changes, run the process in `imagemate-visual-parity-review`.
+3. Run `imagemate-responsive-accessibility` for the stage's responsive and accessibility matrix.
+4. Run `imagemate-ui-regression-gate` before reporting the stage.
+Follow `UI_IMPLEMENTATION_RUNBOOK.md` as the stage authority. Only the current stage may be edited, and the next stage is blocked until the user explicitly approves the current one. Do not claim screenshot review, interaction tests or builds unless evidence exists.
