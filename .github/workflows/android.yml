@@ -954,7 +954,20 @@ jobs:
             return;
           }
           try {
-          Uri contentUri=FileProvider.getUriForFile(context, context.getPackageName()+".fileprovider", apk);
+          // Prefer the DownloadManager-owned content URI when available. Android's own
+          // completed-download notification uses this URI and it has the package-installer
+          // access path that is most reliable on OEM Android builds (including Motorola).
+          Uri contentUri = null;
+          try {
+            String downloadId = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("download_id", "");
+            if (downloadId != null && !downloadId.isEmpty()) {
+              DownloadManager dm = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
+              if (dm != null) contentUri = dm.getUriForDownloadedFile(Long.parseLong(downloadId));
+            }
+          } catch (Exception uriError) {
+            android.util.Log.w("ImageMateUpdater", "Could not use DownloadManager installer URI; falling back to FileProvider", uriError);
+          }
+          if (contentUri == null) contentUri = FileProvider.getUriForFile(context, context.getPackageName()+".fileprovider", apk);
           startApkInstaller(context, contentUri);
           JSObject started = new JSObject();
           started.put("started", true);
