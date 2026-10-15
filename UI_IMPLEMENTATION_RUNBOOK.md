@@ -95,3 +95,12 @@ Run a fresh web build and Android APK workflow on the approved commit; check arc
 - **Build:** exact run URL and success/failure/pending
 - **Visual issues left:** list, or “none found in tested states”
 - **Gate:** “Waiting for explicit user approval to start Stage N+1.” 
+
+
+## Required repo-local agentic skills
+Use these skills as a stage workflow, not as a batch redesign:
+1. **Implement:** `.agents/skills/imagemate-ui-ux-implementation/SKILL.md`.
+2. **Compare real screenshots:** `.agents/skills/imagemate-visual-parity-review/SKILL.md`.
+3. **Responsive/accessibility audit:** `.agents/skills/imagemate-responsive-accessibility/SKILL.md`.
+4. **Regression/build gate:** `.agents/skills/imagemate-ui-regression-gate/SKILL.md`.
+Claude Code-compatible mirrored copies are under `.claude/skills/`. The next stage still requires the user's explicit approval.
