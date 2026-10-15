@@ -1586,3 +1586,40 @@ button[hidden],.nav-btn[hidden]{display:none!important}
   .editorial-hero.is-changing .home-hero-copy{opacity:1;transform:none}
   .hero-page-dot:hover:not(.active){transform:none}
 }
+
+
+/* Stage 1 visual-review corrections: fit all six Home shortcuts above the mobile tab bar. */
+@media(max-width:760px){
+  .editorial-topbar #home-btn,.editorial-topbar #tools-btn{display:none!important}
+  .editorial-home .editorial-tool-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important}
+  .editorial-home .editorial-tool{
+    height:100px!important;min-height:100px!important;padding:9px!important;
+    border-radius:15px!important;align-items:stretch!important;
+  }
+  .editorial-home .editorial-tool .tool-top{gap:4px!important;min-height:27px!important}
+  .editorial-home .editorial-tool .tool-icon{width:29px!important;height:29px!important;flex:0 0 29px!important;border-radius:10px!important}
+  .editorial-home .editorial-tool .tool-icon svg{width:15px!important;height:15px!important}
+  .editorial-home .editorial-tool .tool-arrow{width:20px!important;height:20px!important;flex:0 0 20px!important}
+  .editorial-home .editorial-tool .tool-arrow svg{width:12px!important;height:12px!important}
+  .editorial-home .editorial-tool .tool-main{margin-top:7px!important;gap:3px!important}
+  .editorial-home .editorial-tool .tool-category{font-size:7px!important;letter-spacing:.09em!important}
+  .editorial-home .editorial-tool b{font-size:10px!important;line-height:1.2!important;overflow-wrap:anywhere}
+  .editorial-home .editorial-tool small{font-size:8px!important;line-height:1.25!important;overflow-wrap:anywhere}
+}
+@media(max-width:390px){
+  .editorial-hero{min-height:184px!important;padding:16px!important}
+  .hero-art{height:137px!important}
+  .hero-image{width:79px!important;height:79px!important}
+  .hero-image-front{width:88px!important;height:88px!important}
+  .editorial-home .editorial-tool-grid{gap:7px!important}
+  .editorial-home .editorial-tool{height:96px!important;min-height:96px!important;padding:8px!important}
+  .editorial-home .editorial-tool .tool-main{margin-top:6px!important}
+  .editorial-home .editorial-tool b{font-size:9.5px!important}
+  .editorial-home .editorial-tool small{font-size:7.5px!important}
+}
+@media(max-width:330px){
+  .editorial-home .editorial-tool{height:94px!important;min-height:94px!important}
+  .editorial-home .editorial-tool .tool-icon{width:26px!important;height:26px!important;flex-basis:26px!important}
+  .editorial-home .editorial-tool b{font-size:9px!important}
+  .editorial-home .editorial-tool small{font-size:7px!important}
+}
