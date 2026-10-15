@@ -1978,3 +1978,9 @@ button[hidden],.nav-btn[hidden]{display:none!important}
   .editorial-home{gap:8px!important}
   .hero-pagination{margin:-4px 0 -10px!important}
 }
+
+
+/* Visual-review fix: keep the iM mark legible against the dark navigation surface. */
+.dark .editorial-topbar .brand-mark .im-mark-stem,
+.dark .editorial-topbar .brand-mark .im-mark-m{stroke:#F5F7FF!important}
+.dark .editorial-topbar .brand-mark .im-mark-dot{fill:#FFBD45!important}
