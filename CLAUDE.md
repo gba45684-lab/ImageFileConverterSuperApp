@@ -33,7 +33,7 @@ Do not rewrite the application into another language or framework merely to imit
 - Prevent blank/white screens, broken event handlers, overflow and inaccessible controls.
 - Upload -> settings -> process -> result -> download must be a complete flow.
 - Buttons must perform the action their labels promise.
-- Use the latest approved ImageMate Option 7 brand guide as the source of truth for visual decisions. Keep all screens consistent with its premium minimal UI and bright indigo/purple, teal and amber accents; do not drift back to the earlier copper/warm-only theme.
+- Use the latest approved ImageMate Option 7 brand guide as the source of truth for visual decisions. Keep all screens consistent with its premium minimal UI and bright indigo/purple, teal and amber accents.
 
 ## Android
 - Preserve the existing update flow.
@@ -108,3 +108,11 @@ The Android workflow generates a fresh Capacitor project on each build, so it mu
 
 ## Whole-app reference fidelity
 Use the approved ImageMate Option 7 brand-guide image as a cross-screen reference. Redesign every component as a coherent system: global navigation, Home hero illustration and search, every tool card and processing field, drag/drop/upload, queue rows, actions, progress/error/success/results, downloads, Settings, update dialogs, and empty/loading states. Preserve actual app functions and navigation; do not copy static phone mockups or implement UI as an image.
+
+
+## Screen architecture acceptance
+- Home: hero, query-able Popular Tools preview (six initial items), and a working See all tools action.
+- Tools: separate route/view with functional All/Image/Document/Other filters, search and rows that open the existing workflows.
+- Settings: brand card, processing format/quality, Appearance toggle, auto-update toggle, manual update check, File Library and About/version.
+- Top navigation and mobile bottom navigation must route independently to Home, Tools, Files and Settings and show the active screen.
+- Verify the above paths as well as conversion upload/process/download flows after changing render markup.
