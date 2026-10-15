@@ -43,3 +43,9 @@ Report changed files and commit, build status with links, whether the APK artifa
 - Use navy `#10213f`, amber `#ffb32c` and existing warm `--im-*` tokens. Give the mark a pale surface behind it in both themes so navy remains readable.
 - Animate only on interaction: a subtle one-shot 180–400ms hover response, with no infinite motion. Keep tap/focus visible and respect `prefers-reduced-motion`.
 - Validate sizes at 18px, 38px and 42px; inspect clipping, contrast, positioning and mobile header overflow. Do not use screenshot artwork as the actual UI logo.
+
+
+## Native icon/build parity
+- Android CI recreates the Capacitor project. Keep the Android manifest launcher resource pointing to the Option 7 vector, and review the generated manifest/resource references whenever the icon changes.
+- The native icon, PWA/browser icon and in-app header mark must remain consistent; the SVG/PWA icon does not automatically update Capacitor launcher resources.
+- Re-run and verify Android packaging after changing launcher resources; do not mark the native icon complete based only on a web build.
