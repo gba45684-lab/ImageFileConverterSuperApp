@@ -33,7 +33,7 @@ If an actual screenshot of the running app cannot be produced, say so plainly. D
 - Compact top bar: iM + ImageMate wordmark on the left; navigation/actions on the right on desktop and tight icon controls on mobile.
 - Large rounded hero card with the exact headline “Tools for the paperwork of life.”, brief “Quick. Simple. Powerful.” supporting copy, pastel gradients, layered image-card illustration and four small page indicators.
 - Four small page indicators immediately below the hero, then the title-case “Popular Tools” heading and “See All”. Do not add a LOCAL-FIRST divider, extra tool-count label, or search field on Home; search belongs on the distinct Tools screen.
-- Six initial tool cards in a three-column × two-row phone grid: Image to PDF, PDF to Image, Compress, Resize, Convert and More Tools. Use compact, colorful icon tiles and short labels without category/description clutter on mobile; preserve fuller helper descriptions on wider layouts. All six cards must be visible before scrolling, without clipping or overlapping the bottom bar.
+- Six initial tool cards in a two-column × three-row phone grid: Image to PDF, PDF to Image, Compress, Resize, Convert and More Tools. Use compact, colorful icon tiles and short labels without category/description clutter on mobile; preserve fuller helper descriptions on wider layouts. All six cards must be visible without clipping or overlapping the bottom bar.
 - Four-item mobile bottom bar: Home, Tools, Files, Settings. Only Home is active on Home. See All opens the distinct Tools screen. Page indicators must have a real, accessible state change if they look interactive. Search is tested on the Tools screen, not on Home.
 
 ### Tools reference
