@@ -68,17 +68,19 @@ function render(){
     content='<section class="screen-head"><button id="back-home" class="secondary back-btn" type="button"><i data-lucide="arrow-left"></i><span>All tools</span></button><div class="screen-title"><p class="eyebrow">DEDICATED TOOL</p><div class="screen-title-row"><span class="screen-title-icon"><i data-lucide="'+tool[1]+'"></i></span><h1>'+title+'</h1></div><p>'+desc+'</p></div><span class="privacy"><i data-lucide="shield-check"></i> Local processing</span></section><section class="workspace"><div class="workspace-head"><p class="eyebrow">WORKSPACE</p></div><div id="drop" class="dropzone"><input id="file" type="file" accept="'+accept+'" multiple hidden><div class="upload-icon"><i data-lucide="upload-cloud"></i></div><h3>'+dropLabel+'</h3><p>or choose files from your device</p><button id="choose" class="primary"><i data-lucide="folder-open"></i><span>'+uploadLabel+'</span></button><small>'+subLabel+'</small></div><div id="queue"></div><div id="progress-wrap" class="progress-wrap" hidden><div class="progress-top"><b class="progress-text">Processing 0%</b><span>Local</span></div><div class="progress-track"><div class="progress-bar" style="width:0%"></div></div></div><div id="settings"></div><div class="ad-slot"><span>ADVERTISEMENT</span></div></section>';
   }
 
-  app.innerHTML='<div class="shell '+(S.dark?'dark':'')+'">'+header+'<main>'+content+'<footer>© 2026 ImageMate <span>•</span> Private file tools for everyone</footer></main></div>';
+  const mobileActive=settingsScreen?'settings':downloads?'files':task?'tools':(S.mobileTab==='tools'?'tools':'home');
+  const mobileNav='<nav class="mobile-bottom-nav" aria-label="Primary navigation"><button type="button" data-mobile-tab="home" class="'+(mobileActive==='home'?'active':'')+'" '+(mobileActive==='home'?'aria-current="page"':'')+'><i data-lucide="house"></i><span>Home</span></button><button type="button" data-mobile-tab="tools" class="'+(mobileActive==='tools'?'active':'')+'" '+(mobileActive==='tools'?'aria-current="page"':'')+'><i data-lucide="grid-2x2"></i><span>Tools</span></button><button type="button" data-mobile-tab="files" class="'+(mobileActive==='files'?'active':'')+'" '+(mobileActive==='files'?'aria-current="page"':'')+'><i data-lucide="folder"></i><span>Files</span></button><button type="button" data-mobile-tab="settings" class="'+(mobileActive==='settings'?'active':'')+'" '+(mobileActive==='settings'?'aria-current="page"':'')+'><i data-lucide="settings-2"></i><span>Settings</span></button></nav>';
+  app.innerHTML='<div class="shell '+(S.dark?'dark':'')+'">'+header+'<main>'+content+'<footer>© 2026 ImageMate <span>•</span> Private file tools for everyone</footer></main>'+mobileNav+'</div>';
   createIcons({ icons, attrs: { 'stroke-width': 1.8 } });
   bind(); settings(); queue();
 
-  const goHome=()=>{S.view='tools';S.files=[];render()};
+  const goHome=()=>{S.view='tools';S.mobileTab='home';S.files=[];render();window.scrollTo({top:0,behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'})};
   const brandHome=document.querySelector('#brand-home');
   if(brandHome)brandHome.onclick=goHome;
   const homeBtn=document.querySelector('#home-btn');
   if(homeBtn) homeBtn.onclick=goHome;
   const settingsBtn=document.querySelector('#settings-btn');
-  if(settingsBtn) settingsBtn.onclick=()=>{S.view='settings';S.files=[];render()};
+  if(settingsBtn) settingsBtn.onclick=()=>{S.view='settings';S.mobileTab='settings';S.files=[];render()};
   const refreshUpdate=document.querySelector('#refresh-update-btn');
   if(refreshUpdate) refreshUpdate.onclick=async()=>{
     if(refreshUpdate.disabled)return;
@@ -102,8 +104,17 @@ function render(){
       createIcons({icons,attrs:{'stroke-width':1.8}});
     }
   };
+  document.querySelectorAll('[data-mobile-tab]').forEach(button=>button.onclick=()=>{
+    const tab=button.dataset.mobileTab;
+    const behavior=window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth';
+    S.files=[];
+    if(tab==='home'){S.view='tools';S.mobileTab='home';render();window.scrollTo({top:0,behavior});return}
+    if(tab==='tools'){S.view='tools';S.mobileTab='tools';render();requestAnimationFrame(()=>document.querySelector('#tool-grid')?.scrollIntoView({behavior,block:'start'}));return}
+    if(tab==='files'){S.view='downloads';S.mobileTab='files';render();return}
+    if(tab==='settings'){S.view='settings';S.mobileTab='settings';render()}
+  });
   const openDownloads=document.querySelector('#open-downloads');
-  if(openDownloads) openDownloads.onclick=()=>{S.view='downloads';S.files=[];render()};
+  if(openDownloads) openDownloads.onclick=()=>{S.view='downloads';S.mobileTab='files';S.files=[];render()};
   const defaultFormat=document.querySelector('#default-format');
   if(defaultFormat) defaultFormat.onchange=e=>{S.format=e.target.value;localStorage.setItem('imagemate-format',S.format)};
   const defaultQuality=document.querySelector('#default-quality');
@@ -121,9 +132,9 @@ function render(){
     }
   };
   const back=document.querySelector('#back-home');
-  if(back) back.onclick=()=>{S.view='tools';S.files=[];render()};
+  if(back) back.onclick=()=>{S.view='tools';S.mobileTab='home';S.files=[];render()};
   const backSettings=document.querySelector('#back-settings');
-  if(backSettings) backSettings.onclick=()=>{S.view='tools';S.files=[];render()};
+  if(backSettings) backSettings.onclick=()=>{S.view='tools';S.mobileTab='home';S.files=[];render()};
   const pro=document.querySelector('.pro');
   if(pro) pro.onclick=()=>alert('ImageMate PRO is coming soon. All core tools are currently available for free.');
   if(downloads) renderDownloads();
