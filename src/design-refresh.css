@@ -814,6 +814,13 @@ body{
     radial-gradient(ellipse at 80% 64%,rgba(15,118,110,.08),transparent 28rem),
     var(--im-bg)!important;
 }
+.shell.dark{
+  background:
+    radial-gradient(ellipse at 5% 0%,rgba(49,46,129,.18),transparent 32rem),
+    radial-gradient(ellipse at 94% 3%,rgba(88,28,135,.15),transparent 34rem),
+    radial-gradient(ellipse at 80% 64%,rgba(15,118,110,.08),transparent 28rem),
+    var(--im-bg)!important;
+}
 main{width:100%;max-width:none!important;min-width:0}
 .editorial-topbar{
   height:72px!important;
