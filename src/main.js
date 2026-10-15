@@ -163,9 +163,13 @@ function render(){
   checkForAndroidUpdate(); startUpdateMonitor(); initNativeAds().catch(()=>{});
 }
 function showInstantUpdatePopup(version, mode='download'){
-  if(document.querySelector('#update-popup'))return;
+  const existingPopup=document.querySelector('#update-popup');
+  if(existingPopup){
+    if(mode==='install'&&typeof existingPopup.promoteToInstall==='function')existingPopup.promoteToInstall();
+    return;
+  }
   if(mode==='download'&&localStorage.getItem('imagemate-update-dismissed-version')===String(version))return;
-  const installMode=mode==='install';
+  let installMode = mode === 'install';
   const overlay=document.createElement('div');
   overlay.id='update-popup';
   overlay.innerHTML='<div style="position:fixed;inset:0;z-index:99999;background:rgba(7,8,18,.62);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:20px">'+
@@ -179,6 +183,15 @@ function showInstantUpdatePopup(version, mode='download'){
     '<button id="update-now" class="primary">'+(installMode?'Install now':'Update now')+'</button>'+
     '</div></div></div>';
   document.body.appendChild(overlay);
+  // Keep the UI label and the action state in sync. The button may transition
+  // from a background download to installation while this popup stays mounted.
+  overlay.promoteToInstall=()=>{
+    installMode=true;
+    const installButton=overlay.querySelector('#update-now');
+    const installStatus=overlay.querySelector('#update-status-text');
+    if(installButton){installButton.disabled=false;installButton.textContent='Install now';}
+    if(installStatus)installStatus.textContent='The update is downloaded and ready to install. Tap Install now to open the Android installer.';
+  };
   createIcons({icons,attrs:{'stroke-width':1.8}});
   const close=()=>{
     if(!installMode)localStorage.setItem('imagemate-update-dismissed-version',String(version));
@@ -213,9 +226,7 @@ function showInstantUpdatePopup(version, mode='download'){
           const s=await getAndroidUpdateStatus();
           if(s?.status==='complete'){
             clearInterval(timer);
-            btn.textContent='Install now';
-            btn.disabled=false;
-            if(statusText)statusText.textContent='Download complete. Tap Install now to continue.';
+            overlay.promoteToInstall();
             // Do not launch the Android installer automatically. Keep ImageMate open until the user explicitly taps Install now.
           }else if(s?.status==='failed'||s?.status==='error'){
             clearInterval(timer);
