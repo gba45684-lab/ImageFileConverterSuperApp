@@ -116,3 +116,7 @@ Use the approved ImageMate Option 7 brand-guide image as a cross-screen referenc
 - Settings: brand card, processing format/quality, Appearance toggle, auto-update toggle, manual update check, File Library and About/version.
 - Top navigation and mobile bottom navigation must route independently to Home, Tools, Files and Settings and show the active screen.
 - Verify the above paths as well as conversion upload/process/download flows after changing render markup.
+
+
+## Mandatory stage gate for UI work
+Read [UI_IMPLEMENTATION_RUNBOOK.md](UI_IMPLEMENTATION_RUNBOOK.md) before editing UI. Execute its numbered stages strictly in order, one stage per iteration/commit. Compare genuine browser screenshots of the current running app with the user-provided UI guide, check the specified interactions and builds, fix issues within the same stage, present the evidence, and then wait for explicit user approval to begin the following stage. Do not silently continue through later stages. A successful build alone is not visual confirmation. If the runtime screenshot cannot be captured, stop and report that exact limitation instead of pretending visual parity was checked.
