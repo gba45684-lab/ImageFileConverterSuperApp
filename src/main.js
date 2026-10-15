@@ -7,6 +7,7 @@ import './catalog-refresh.css';
 import './settings-refresh.css';
 import './workspace-refresh.css';
 import './results-refresh.css';
+import './responsive-a11y-refresh.css';
 import { createIcons, icons } from 'lucide';
 import { initGitHubOta } from './ota.js';
 
