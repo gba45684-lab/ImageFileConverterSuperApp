@@ -70,6 +70,8 @@ jobs:
           if (await page.locator('#catalog-empty').isHidden()) throw new Error('Empty-state message should appear for no matches.');
           await page.locator('#catalog-search').fill('');
           await page.locator('[data-tool-category="All"]').click();
+          await page.locator('#back-home').click();
+          await page.locator('.editorial-home').waitFor();
           await page.setViewportSize({ width: 390, height: 844 });
           await page.locator('#see-all-tools').click();
           await page.getByRole('heading', { name: /all tools/i }).waitFor();
@@ -78,6 +80,15 @@ jobs:
           await page.locator('[data-tool="pdf"]').first().click();
           await page.getByRole('heading', { name: /image to pdf/i }).waitFor();
           await page.locator('[data-mobile-tab="home"]').click();
+          await page.locator('.editorial-home').waitFor();
+          await page.locator('[data-mobile-tab="settings"]').click();
+          await page.getByRole('heading', { name: /^settings$/i }).waitFor();
+          await page.screenshot({ path: 'ui-evidence/settings-mobile.png', fullPage: true });
+          await page.locator('#settings-theme-toggle').click();
+          await page.getByRole('heading', { name: /^settings$/i }).waitFor();
+          await page.locator('#default-quality').fill('75');
+          if (await page.locator('#default-quality-value').textContent() !== '75%') throw new Error('Settings quality slider did not update its displayed value.');
+          await page.locator('#back-settings').click();
           await page.locator('.editorial-home').waitFor();
           await page.waitForTimeout(650);
           await page.screenshot({ path: 'ui-evidence/home-mobile.png', fullPage: true });
