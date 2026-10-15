@@ -32,9 +32,9 @@ If an actual screenshot of the running app cannot be produced, say so plainly. D
 ### Home reference
 - Compact top bar: iM + ImageMate wordmark on the left; navigation/actions on the right on desktop and tight icon controls on mobile.
 - Large rounded hero card with the exact headline “Tools for the paperwork of life.”, brief “Quick. Simple. Powerful.” supporting copy, pastel gradients, layered image-card illustration and four small page indicators.
-- Search bar immediately under the hero, then a small uppercase section marker and “Popular Tools” with “See All”.
+- Four small page indicators immediately below the hero, then a small uppercase section marker and “Popular Tools” with “See All”. Keep Home uncluttered; the search field belongs on the distinct Tools screen, not Home.
 - Six initial tool cards in two columns on phone: Image to PDF, PDF to Image, Compress, Resize, Convert and More Tools/See all. Each card has an icon tile, short name, concise description/arrow, consistent height and no clipped text.
-- Four-item mobile bottom bar: Home, Tools, Files, Settings. Only Home is active on Home. Search works; See All opens the distinct Tools screen. Page indicators must have a real, accessible state change if they look interactive.
+- Four-item mobile bottom bar: Home, Tools, Files, Settings. Only Home is active on Home. See All opens the distinct Tools screen. Page indicators must have a real, accessible state change if they look interactive. Search is tested on the Tools screen, not on Home.
 
 ### Tools reference
 - Its own screen, not a renamed Home. A compact header/back path, All/Image/Document/Other category chips and a search field.
@@ -59,7 +59,7 @@ Inventory screens, event handlers, localStorage keys, updater and native bridge 
 **Exit:** baseline evidence and test limitations documented.
 
 ### Stage 1 — Home screen (this must be completed and approved first)
-Match only Home's hero, headline, supporting copy, layered illustration, four page indicators, search, section header, six popular tools, card details and Home active state. Keep the Tools and Settings screen contents out of this stage except for required navigation wiring. Verify search, carousel/page-indicator actions, each popular card, See All and mobile Home nav.
+Match only Home's hero, headline, supporting copy, layered illustration, four page indicators, section header, six popular tools, card details and Home active state. Keep Home free of a separate search input; search belongs to Tools. Keep the Tools and Settings screen contents out of this stage except for required navigation wiring. Verify carousel/page-indicator actions, each popular card, See All and mobile Home nav. Search is owned by the Tools stage.
 **Exit:** screenshots and all Home visual criteria pass; web build passes; user explicitly approves Step 1.
 
 ### Stage 2 — Tools catalog
