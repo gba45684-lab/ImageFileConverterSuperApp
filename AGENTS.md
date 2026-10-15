@@ -29,7 +29,7 @@ Use the shared open-source design system at https://github.com/gba45684-lab/prem
 - Report checks accurately; never claim a build or device test passed unless it was actually run.
 
 ## Whole-app UI/UX workflow — mandatory for every screen redesign
-Before UI work, inspect `src/main.js`, `src/style.css`, `src/design-refresh.css`, the relevant feature module, and the shared design system. Read `https://github.com/gba45684-lab/premium-ui-library/blob/main/UI_UX_RULES.md` and `presets/STYLE_PRESETS.md`. Use **Premium Minimalism** as the primary preset with restrained **Glassmorphism** as the supporting motif. Match every screen to the approved brand guide: near-white #F8FAFC background, navy #10213F text/mark, indigo #6366F1 primary, purple #885CFF secondary, teal #14B8A6 accent, amber #F59E0B highlight, and consistent white rounded cards.
+Before UI work, inspect `src/main.js`, `src/style.css`, `src/design-refresh.css`, the relevant feature module, and the shared design system. Read `https://github.com/gba45684-lab/premium-ui-library/blob/main/UI_UX_RULES.md` and `presets/STYLE_PRESETS.md`. Use **Premium Minimalism** as the primary preset with restrained **Glassmorphism** as the supporting motif. Match every screen to the approved brand guide: near-white #F8FAFC background, navy #10213F text/mark, indigo #6366F1 primary, purple #885CFF secondary, teal #14B8A6 accent, amber #F59E0B highlight, and consistent rounded cards.
 
 ### Required steps
 1. Inventory current controls, IDs, event listeners, localStorage keys, navigation paths, native bridges and feature dependencies before editing.
@@ -38,7 +38,7 @@ Before UI work, inspect `src/main.js`, `src/style.css`, `src/design-refresh.css`
 4. Use consistent spacing/radius/type tokens; responsive Grid/Flex with `minmax(0,1fr)`, `min-width:0`, wrapping and `overflow-wrap:anywhere`. Avoid fixed text-card heights and horizontal overflow.
 5. Include accessible names, visible keyboard focus, comfortable touch targets, reduced-motion support, and useful loading/empty/error/success/disabled states.
 6. Check light/dark themes and 320/360/390px, tablet and desktop widths. Test long copy, both toggle states, empty libraries, failed updates and repeated back/navigation actions.
-7. Verify Home → Settings → Back, Settings → File Library → Back, format/quality persistence, automatic-update on/off and manual Refresh. Do not add a duplicate Theme/Appearance setting; Theme already lives in the global header.
+7. Verify Home → Settings → Back, Settings → File Library → Back, format/quality persistence, automatic-update on/off and manual Refresh. Keep the Appearance toggle in Settings; do not duplicate it in the global header.
 8. Do not add dependencies, remote assets, analytics, uploads or permissions for visual-only changes. Preserve local processing, ads, updater, Capacitor and file-saving behavior.
 9. Run `npm run build`; inspect GitHub Actions web and Android builds and logs. Verify APK artifact/release asset when relevant. Never claim a physical-device test unless performed.
 10. Review the final diff for accidental logic changes, dead/duplicate CSS, broken selectors, overflow, contrast and regressions before reporting.
@@ -63,3 +63,11 @@ The Android workflow generates a fresh Capacitor project on each build, so it mu
 
 ## End-to-end visual acceptance
 Treat the uploaded ImageMate Option 7 UI brand guide as the visual target for every screen, not only Home and Settings. Apply its token palette, consistent corner radii, icon tiles, strong typography hierarchy, restrained illustration and calm transitions to all tool screens and states. Do not recreate the reference's phone mockups inside the live app. Use actual app layout and working controls, never a static screenshot as the product UI.
+
+
+## Home / Tools / Settings screen contract
+- Home is the discovery screen: brand hero + illustration, searchable six-tool "Popular tools" preview, and a real "See all tools" route.
+- Tools is a distinct screen with an All / Image / Document / Other category filter, search, and accessible rows for all 14 utilities. Every row opens the existing dedicated tool workflow.
+- Settings is a real preferences screen with ImageMate brand card, format and quality defaults, Appearance toggle, automatic update preference, manual update check, File Library entry and About/version information.
+- Desktop global navigation and mobile bottom navigation must take users to these separate screens, keep the active destination visibly selected, and work in light and dark modes.
+- Required navigation QA: Home → See all tools → category/search → open tool → Back; Home → Settings → change theme → return; Settings → File Library → Back; verify all setting changes preserve their stored preferences.
