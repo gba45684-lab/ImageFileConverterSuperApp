@@ -2,7 +2,7 @@ name: ImageMate UI visual checks
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, 'redesign/stage-1-home-option-7']
     paths:
       - 'src/**'
       - 'index.html'
@@ -43,7 +43,7 @@ jobs:
           done
           cat /tmp/imagemate-preview.log
           exit 1
-      - name: Capture Home screenshots and test core navigation
+      - name: Capture Home and Tools screenshots and test core navigation
         run: |
           mkdir -p ui-evidence
           node --input-type=module <<'NODE'
@@ -58,7 +58,27 @@ jobs:
           if (await page.locator('[data-hero-slide="2"]').getAttribute('aria-pressed') !== 'true') throw new Error('Home highlight control did not update aria-pressed.');
           await page.locator('#see-all-tools').click();
           await page.getByRole('heading', { name: /all tools/i }).waitFor();
+          await page.screenshot({ path: 'ui-evidence/tools-desktop.png', fullPage: true });
+          if (await page.locator('.catalog-tool-row').count() !== 14) throw new Error('Expected all 14 catalog tools.');
+          await page.locator('[data-tool-category="Image"]').click();
+          if (await page.locator('.catalog-tool-row:visible').count() === 0) throw new Error('Image category filter returned no tools.');
+          if (await page.locator('[data-tool-category="Image"]').getAttribute('aria-pressed') !== 'true') throw new Error('Image category did not reflect active state.');
+          await page.locator('#catalog-search').fill('pdf');
+          if (await page.locator('.catalog-tool-row:visible').count() === 0) throw new Error('Search did not return PDF tools.');
+          await page.locator('#catalog-search').fill('no-such-tool-xyz');
+          if (await page.locator('.catalog-tool-row:visible').count() !== 0) throw new Error('No-match search should hide all tool rows.');
+          if (await page.locator('#catalog-empty').isHidden()) throw new Error('Empty-state message should appear for no matches.');
+          await page.locator('#catalog-search').fill('');
+          await page.locator('[data-tool-category="All"]').click();
           await page.setViewportSize({ width: 390, height: 844 });
+          await page.locator('#see-all-tools').click();
+          await page.getByRole('heading', { name: /all tools/i }).waitFor();
+          await page.waitForTimeout(250);
+          await page.screenshot({ path: 'ui-evidence/tools-mobile.png', fullPage: true });
+          await page.locator('[data-tool="pdf"]').first().click();
+          await page.getByRole('heading', { name: /image to pdf/i }).waitFor();
+          await page.locator('[data-mobile-tab="home"]').click();
+          await page.locator('.editorial-home').waitFor();
           await page.locator('[data-mobile-tab="home"]').click();
           await page.locator('[data-tool="pdf"]').first().click();
           await page.getByRole('heading', { name: /image to pdf/i }).waitFor();
