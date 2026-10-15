@@ -1812,3 +1812,33 @@ button[hidden],.nav-btn[hidden]{display:none!important}
   .editorial-home .editorial-tool .tool-arrow{width:16px!important;height:16px!important;flex-basis:16px!important}
   .editorial-home .editorial-tool b{font-size:8px!important}
 }
+
+
+/* Stage 1 reference match: bottom navigation is a full-width in-screen bar,
+   with purple active icon/label rather than a floating selected capsule. */
+@media(max-width:760px){
+  .mobile-bottom-nav{
+    left:0!important;bottom:0!important;transform:none!important;
+    width:100%!important;max-width:none!important;
+    border:0!important;border-top:1px solid rgba(148,163,184,.13)!important;
+    border-radius:0!important;
+    padding:7px 12px calc(7px + env(safe-area-inset-bottom,0px))!important;
+    background:rgba(255,255,255,.97)!important;
+    box-shadow:none!important;backdrop-filter:blur(16px)!important;-webkit-backdrop-filter:blur(16px)!important;
+  }
+  .mobile-bottom-nav button{border:1px solid transparent!important;background:transparent!important;border-radius:12px!important}
+  .mobile-bottom-nav button.active{
+    border-color:transparent!important;
+    background:transparent!important;
+    color:#6366f1!important;
+    box-shadow:none!important;
+  }
+  .mobile-bottom-nav button.active svg{color:#6366f1!important;fill:rgba(99,102,241,.04)}
+  .dark .mobile-bottom-nav{
+    background:rgba(11,18,32,.97)!important;
+    border-top-color:rgba(181,197,225,.13)!important;
+    box-shadow:none!important;
+  }
+  .dark .mobile-bottom-nav button.active{background:transparent!important;color:#a5a6ff!important}
+  .dark .mobile-bottom-nav button.active svg{color:#a5a6ff!important}
+}
