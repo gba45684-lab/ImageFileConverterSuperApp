@@ -1,0 +1,87 @@
+name: ImageMate UI visual checks
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'index.html'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/ui-visual-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  visual-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install app dependencies
+        run: npm ci
+      - name: Build production app
+        run: npm run build
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Start production preview
+        run: |
+          npm run preview -- --host 127.0.0.1 > /tmp/imagemate-preview.log 2>&1 &
+          echo $! > /tmp/imagemate-preview.pid
+          for i in $(seq 1 40); do
+            if curl --silent --fail http://127.0.0.1:4173/ > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/imagemate-preview.log
+          exit 1
+      - name: Capture Home screenshots and test core navigation
+        run: |
+          mkdir -p ui-evidence
+          node --input-type=module <<'NODE'
+          import { chromium } from 'playwright';
+          const browser = await chromium.launch({ headless: true });
+          const errors = [];
+          const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
+          page.on('pageerror', error => errors.push(error.message));
+          await page.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
+          await page.screenshot({ path: 'ui-evidence/home-desktop.png', fullPage: true });
+          await page.locator('[data-hero-slide="2"]').click();
+          if (await page.locator('[data-hero-slide="2"]').getAttribute('aria-pressed') !== 'true') throw new Error('Home highlight control did not update aria-pressed.');
+          await page.locator('#see-all-tools').click();
+          await page.getByRole('heading', { name: /all tools/i }).waitFor();
+          await page.locator('[data-mobile-tab="home"]').click();
+          await page.locator('[data-tool="pdf"]').first().click();
+          await page.getByRole('heading', { name: /image to pdf/i }).waitFor();
+          await page.setViewportSize({ width: 390, height: 844 });
+          await page.locator('[data-mobile-tab="home"]').click();
+          await page.locator('.editorial-home').waitFor();
+          await page.screenshot({ path: 'ui-evidence/home-mobile.png', fullPage: true });
+          await page.evaluate(() => localStorage.setItem('imagemate-dark', '1'));
+          await page.reload({ waitUntil: 'networkidle' });
+          await page.screenshot({ path: 'ui-evidence/home-mobile-dark.png', fullPage: true });
+          for (const width of [320, 360, 390, 768, 1440]) {
+            await page.setViewportSize({ width, height: 844 });
+            const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+            if (overflow) throw new Error('Horizontal overflow at viewport width ' + width + 'px.');
+          }
+          if (errors.length) throw new Error('Browser errors: ' + errors.join(' | '));
+          await browser.close();
+          NODE
+      - name: Upload visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: imagemate-ui-visual-evidence
+          path: ui-evidence/
+          if-no-files-found: warn
+          retention-days: 14
