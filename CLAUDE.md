@@ -80,3 +80,12 @@ After significant changes:
 
 ## Definition of done
 A feature is done only when the code is changed, the relevant build/check passes, the user-facing flow works, and any requested Android artifact/release is actually verified.
+
+
+## Mandatory UI redesign checklist for all screens
+- Use `AGENTS.md`, `UI_UX_GUIDELINES.md` and the shared `premium-ui-library` UI rules as the design source of truth before changing any screen.
+- ImageMate visual baseline: Editorial / Swiss + Premium Minimalism; use Home's warm neutral palette, semantic tokens, restrained glass surfaces, Lucide icons, consistent card rhythm and typography across Home, Settings, tools, results and Downloads.
+- Inspect actual markup and all control IDs/handlers first. Keep visual changes scoped; preserve conversion logic, localStorage keys, navigation, updater, ads and native bridge behavior.
+- Design for 320px, 360px, 390px, tablet and desktop widths. Use `minmax(0,1fr)`, `min-width:0`, safe wrapping, semantic labels, visible focus, touch-friendly controls and reduced-motion support. Avoid clipped copy and horizontal overflow.
+- Test both themes and relevant empty/loading/error/success/disabled states. Click every affected control and verify persistence/navigation; do not leave decorative nonfunctional buttons.
+- Run `npm run build` and verify relevant GitHub Actions builds and APK artifact before reporting success. Clearly state when physical Android testing has not been performed.
