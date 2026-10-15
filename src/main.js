@@ -3,6 +3,8 @@ import { downloadLatestAndroidUpdate, installDownloadedAndroidUpdate, hasDownloa
 import packageJson from '../package.json';
 import './style.css';
 import './design-refresh.css';
+import './catalog-refresh.css';
+import './settings-refresh.css';
 import { createIcons, icons } from 'lucide';
 import { initGitHubOta } from './ota.js';
 
