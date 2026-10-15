@@ -6,8 +6,8 @@ import './design-refresh.css';
 import './catalog-refresh.css';
 import './settings-refresh.css';
 import './workspace-refresh.css';
+import './results-refresh.css';
 import { createIcons, icons } from 'lucide';
 import { initGitHubOta } from './ota.js';
 
 const app=document.querySelector('#app');
-if(isNativeAndroid()) document.documentElement.classList.add('native-android');
