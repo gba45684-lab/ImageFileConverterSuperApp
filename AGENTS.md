@@ -71,3 +71,7 @@ Treat the uploaded ImageMate Option 7 UI brand guide as the visual target for ev
 - Settings is a real preferences screen with ImageMate brand card, format and quality defaults, Appearance toggle, automatic update preference, manual update check, File Library entry and About/version information.
 - Desktop global navigation and mobile bottom navigation must take users to these separate screens, keep the active destination visibly selected, and work in light and dark modes.
 - Required navigation QA: Home → See all tools → category/search → open tool → Back; Home → Settings → change theme → return; Settings → File Library → Back; verify all setting changes preserve their stored preferences.
+
+
+## Mandatory gated execution — do not skip approval
+Before any UI implementation, follow [UI_IMPLEMENTATION_RUNBOOK.md](UI_IMPLEMENTATION_RUNBOOK.md). The runbook is the execution authority for the user-provided Option 7 reference. Work on one numbered stage at a time. For each stage: set acceptance criteria first; implement only that stage; build; capture genuine running-app screenshots at desktop and phone sizes and compare each visual criterion; test affected interactions; fix same-stage failures; commit; report evidence. **Then STOP and wait for the user's explicit approval before starting the next stage.** Never combine multiple stages, claim visual match based only on source/build, substitute a static mockup for a running-app screenshot, or claim tests that were not performed. If screenshots cannot be produced, state the blocker and pause.
