@@ -233,8 +233,15 @@ function showInstantUpdatePopup(version, mode='download'){
         }catch(e){}
       },800);
     }catch(e){
-      console.error(e);btn.disabled=false;btn.textContent='Retry update';
-      if(statusText)statusText.textContent='Unable to start update: '+(e?.message||'Download Manager rejected the request.')+' Tap Retry update.';
+      console.error(e);
+      btn.disabled=false;
+      btn.textContent=installMode?'Try install again':'Retry update';
+      if(statusText){
+        const reason=String(e?.message||e||'Could not open the Android installer.');
+        statusText.textContent=installMode
+          ? 'Android could not open the installer: '+reason+'. Your downloaded APK is kept. Tap Try install again, or use the completed-download notification.'
+          : 'Unable to start update: '+reason+'. Tap Retry update.';
+      }
     }
   };
   if(navigator.vibrate)navigator.vibrate([250,120,250]);
