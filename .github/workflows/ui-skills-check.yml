@@ -1,0 +1,60 @@
+name: ImageMate UI skill pack check
+
+on:
+  pull_request:
+    paths:
+      - "AGENTS.md"
+      - "CLAUDE.md"
+      - "README.md"
+      - "UI_IMPLEMENTATION_RUNBOOK.md"
+      - ".agents/skills/**"
+      - ".claude/skills/**"
+      - ".github/workflows/ui-skills-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-skills:
+    name: Verify mirrored agentic skills
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Ensure required skills exist and copies match
+        shell: bash
+        run: |
+          set -euo pipefail
+          skills=(
+            imagemate-ui-ux-implementation
+            imagemate-visual-parity-review
+            imagemate-responsive-accessibility
+            imagemate-ui-regression-gate
+          )
+          for skill in "${skills[@]}"; do
+            codex_file=".agents/skills/$skill/SKILL.md"
+            claude_file=".claude/skills/$skill/SKILL.md"
+            test -s "$codex_file"
+            test -s "$claude_file"
+            diff -u "$codex_file" "$claude_file"
+            grep -q '^name: ' "$codex_file"
+            grep -q '^description: ' "$codex_file"
+            echo "PASS: $skill is present and mirrored"
+          done
+
+      - name: Verify staged approval gate is documented
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q "Required UI/UX skill invocation" AGENTS.md
+          grep -q "Required UI/UX skill invocation" CLAUDE.md
+          grep -q "Required repo-local agentic skills" UI_IMPLEMENTATION_RUNBOOK.md
+          grep -q "wait for explicit user approval" .agents/skills/imagemate-ui-ux-implementation/SKILL.md
+          echo "PASS: staged approval gates remain documented"
+
+      - name: Report scope
+        run: |
+          echo "This workflow verifies skill installation and mirror consistency only."
+          echo "It does not launch an AI agent or claim that visual checks were performed."
