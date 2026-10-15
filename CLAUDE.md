@@ -124,3 +124,12 @@ Read [UI_IMPLEMENTATION_RUNBOOK.md](UI_IMPLEMENTATION_RUNBOOK.md) before editing
 
 ### Exact Home reference details
 Home mobile must follow the supplied screenshot: logo/wordmark and settings icon in the header; hero card with the exact headline and “Quick. Simple. Powerful.” copy; four small page indicators; title-case Popular Tools heading with See All; six cards in a 3-column × 2-row grid in the order Image to PDF, PDF to Image, Compress, Resize, Convert, More Tools. Do not add a Home search, LOCAL-FIRST divider, a count label, or mobile category/subtitle clutter. Search belongs to Tools.
+
+
+## Required UI/UX skill invocation
+Use the repo-local skills before and during UI work:
+1. Start with `.agents/skills/imagemate-ui-ux-implementation/SKILL.md` (or the matching `.claude/skills/` copy).
+2. After visual changes, run the process in `imagemate-visual-parity-review`.
+3. Run `imagemate-responsive-accessibility` for the stage's responsive and accessibility matrix.
+4. Run `imagemate-ui-regression-gate` before reporting the stage.
+Follow `UI_IMPLEMENTATION_RUNBOOK.md` as the stage authority. Only the current stage may be edited, and the next stage is blocked until the user explicitly approves the current one. Do not claim screenshot review, interaction tests or builds unless evidence exists.
