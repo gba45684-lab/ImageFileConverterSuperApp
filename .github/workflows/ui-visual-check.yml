@@ -63,8 +63,9 @@ jobs:
           await page.locator('[data-tool-category="Image"]').click();
           if (await page.locator('.catalog-tool-row:visible').count() === 0) throw new Error('Image category filter returned no tools.');
           if (await page.locator('[data-tool-category="Image"]').getAttribute('aria-pressed') !== 'true') throw new Error('Image category did not reflect active state.');
+          await page.locator('[data-tool-category="Document"]').click();
           await page.locator('#catalog-search').fill('pdf');
-          if (await page.locator('.catalog-tool-row:visible').count() === 0) throw new Error('Search did not return PDF tools.');
+          if (await page.locator('.catalog-tool-row:visible').count() === 0) throw new Error('Combined Document category and PDF search returned no tools.');
           await page.locator('#catalog-search').fill('no-such-tool-xyz');
           if (await page.locator('.catalog-tool-row:visible').count() !== 0) throw new Error('No-match search should hide all tool rows.');
           if (await page.locator('#catalog-empty').isHidden()) throw new Error('Empty-state message should appear for no matches.');
