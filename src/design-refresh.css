@@ -1750,3 +1750,34 @@ button[hidden],.nav-btn[hidden]{display:none!important}
   .editorial-home .editorial-tool .tool-icon{width:26px!important;height:26px!important;flex-basis:26px!important}
   .editorial-home .editorial-tool b{font-size:8px!important}
 }
+
+
+/* Stage 1 parity fix: the reference Home has a two-column, three-row mobile grid. */
+@media(max-width:760px){
+  .editorial-home .editorial-tool-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
+  .editorial-home .editorial-tool{
+    height:78px!important;min-height:78px!important;padding:9px 11px!important;
+    border-radius:14px!important;display:flex!important;flex-direction:column!important;
+  }
+  .editorial-home .editorial-tool .tool-top{gap:7px!important;min-height:27px!important}
+  .editorial-home .editorial-tool .tool-icon{width:29px!important;height:29px!important;flex:0 0 29px!important;border-radius:10px!important}
+  .editorial-home .editorial-tool .tool-icon svg{width:15px!important;height:15px!important}
+  .editorial-home .editorial-tool .tool-arrow{width:21px!important;height:21px!important;flex:0 0 21px!important}
+  .editorial-home .editorial-tool .tool-arrow svg{width:12px!important;height:12px!important}
+  .editorial-home .editorial-tool .tool-main{margin-top:5px!important;gap:0!important}
+  .editorial-home .editorial-tool .tool-category,
+  .editorial-home .editorial-tool small{display:none!important}
+  .editorial-home .editorial-tool b{font-size:10px!important;line-height:1.2!important;overflow-wrap:anywhere}
+}
+@media(max-width:390px){
+  .editorial-home .editorial-tool-grid{gap:8px!important}
+  .editorial-home .editorial-tool{height:76px!important;min-height:76px!important;padding:8px 9px!important}
+  .editorial-home .editorial-tool .tool-icon{width:27px!important;height:27px!important;flex-basis:27px!important}
+  .editorial-home .editorial-tool b{font-size:9.5px!important}
+}
+@media(max-width:330px){
+  .editorial-home .editorial-tool{height:74px!important;min-height:74px!important;padding:7px!important}
+  .editorial-home .editorial-tool .tool-icon{width:25px!important;height:25px!important;flex-basis:25px!important}
+  .editorial-home .editorial-tool .tool-arrow{width:18px!important;height:18px!important;flex-basis:18px!important}
+  .editorial-home .editorial-tool b{font-size:8.5px!important}
+}
