@@ -673,3 +673,76 @@ footer{color:var(--im-muted)!important;padding-top:22px!important}
 @media(prefers-reduced-motion:reduce){
   .settings-page-head{backdrop-filter:none;-webkit-backdrop-filter:none}
 }
+
+
+/* ImageMate Brand System — Option 7: the iM monogram.
+   Mark geometry stays crisp and stable; motion is interaction-led, never looping. */
+:root{
+  --im-brand-ink:#10213f;
+  --im-brand-amber:#ffb32c;
+}
+.dark{
+  --im-brand-ink:#112343;
+  --im-brand-amber:#ffbd45;
+}
+.editorial-topbar .brand-mark{
+  width:42px!important;height:42px!important;flex:0 0 42px!important;
+  display:grid!important;place-items:center!important;
+  padding:5px!important;overflow:hidden!important;
+  border:1px solid rgba(16,33,63,.09)!important;border-radius:14px!important;
+  background:linear-gradient(145deg,#fffdf8 0%,#f0f4fa 100%)!important;
+  box-shadow:0 4px 12px rgba(16,33,63,.08)!important;
+  transition:transform .24s cubic-bezier(.2,.8,.2,1),box-shadow .24s ease,border-color .24s ease!important;
+}
+.editorial-topbar .brand-mark .imagemate-mark{
+  width:100%;height:100%;display:block;overflow:visible;
+}
+.im-mark-dot{fill:var(--im-brand-amber);transform-box:fill-box;transform-origin:center}
+.im-mark-stem,.im-mark-m{
+  fill:none;stroke:var(--im-brand-ink);stroke-width:8.5;stroke-linecap:round;stroke-linejoin:round;
+  vector-effect:non-scaling-stroke;
+}
+.editorial-topbar .brand-mark:hover{
+  transform:translateY(-1px) rotate(-1deg)!important;
+  border-color:rgba(255,179,44,.42)!important;
+  box-shadow:0 7px 17px rgba(16,33,63,.13)!important;
+}
+.editorial-topbar .brand-mark:hover .im-mark-dot{
+  animation:imBrandDotPop .38s cubic-bezier(.2,.85,.3,1.35) both;
+}
+.editorial-topbar .brand-mark:active{transform:scale(.96)!important}
+.editorial-topbar .brand-mark:focus-visible{
+  outline:3px solid rgba(255,179,44,.55)!important;outline-offset:3px!important;
+}
+.editorial-topbar .brand-copy .brand-wordmark{
+  color:var(--im-brand-ink)!important;
+  font-size:16px!important;font-weight:850!important;
+  letter-spacing:-.045em!important;line-height:1.05!important;
+}
+.dark .editorial-topbar .brand-copy .brand-wordmark{color:#f7f1e9!important}
+.editorial-topbar .brand-copy>span{
+  margin-top:4px!important;font-size:10px!important;letter-spacing:.005em;
+}
+.home-brandline{
+  display:inline-flex!important;align-items:center!important;gap:7px!important;
+  width:max-content;max-width:100%;
+}
+.home-brand-symbol{display:inline-flex;align-items:center;justify-content:center;width:19px;height:17px;flex:0 0 19px}
+.home-brand-symbol .imagemate-mark{width:100%;height:100%;display:block;overflow:visible}
+.home-brandline>span:last-child{min-width:0;overflow-wrap:anywhere}
+@keyframes imBrandDotPop{
+  0%{transform:translateY(0) scale(1)}
+  45%{transform:translateY(-2px) scale(1.16)}
+  100%{transform:translateY(0) scale(1)}
+}
+@media(max-width:600px){
+  .editorial-topbar .brand-mark{width:38px!important;height:38px!important;flex-basis:38px!important;border-radius:12px!important}
+  .editorial-topbar .brand-copy .brand-wordmark{font-size:15px!important}
+  .editorial-topbar .brand-copy>span{display:none!important}
+  .home-brandline{gap:6px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .editorial-topbar .brand-mark{transition:none!important}
+  .editorial-topbar .brand-mark:hover{transform:none!important}
+  .editorial-topbar .brand-mark:hover .im-mark-dot{animation:none!important}
+}
