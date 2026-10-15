@@ -3,10 +3,10 @@
 This is the required checklist for every UI change in ImageMate. It supplements `AGENTS.md` and `CLAUDE.md` and follows the shared design system at https://github.com/gba45684-lab/premium-ui-library.
 
 ## Visual system
-- Primary preset: **Editorial / Swiss + Premium Minimalism**.
-- Supporting motif: restrained glassmorphism only where it improves hierarchy.
-- Home is the visual reference: warm neutral backgrounds, readable ink/muted text, copper accent, thin borders, consistent rounded cards, quiet depth and Lucide icons.
-- Reuse the existing `--im-*` design tokens in `src/design-refresh.css`. Do not introduce unrelated colors, font systems or one-off shadows for a single screen.
+- Primary preset: **Premium Minimalism**. Supporting motif: **restrained Glassmorphism** for selected hero/surface treatments.
+- Use the brand guide’s soft aurora pastel gradients selectively for the Home hero and a few emphasis surfaces; don't decorate every component.
+- The approved Option 7 brand guide is the reference for the whole app: #F8FAFC background, #10213F navy, #6366F1 indigo primary, #885CFF purple secondary, #14B8A6 teal accent, #F59E0B amber highlight, clean rounded white cards, subtle gradients, Lucide icons and quiet depth.
+- Reuse and update the existing `--im-*` tokens in `src/design-refresh.css`. Don't introduce unrelated colors, font systems or one-off effects.
 - Keep screens compact and purposeful: clear title, short helper copy, grouped controls, primary action and minimal decoration.
 - Do not add a duplicate Appearance/Theme control to Settings; Theme remains in the global header.
 
@@ -49,3 +49,7 @@ Report changed files and commit, build status with links, whether the APK artifa
 - Android CI recreates the Capacitor project. Keep the Android manifest launcher resource pointing to the Option 7 vector, and review the generated manifest/resource references whenever the icon changes.
 - The native icon, PWA/browser icon and in-app header mark must remain consistent; the SVG/PWA icon does not automatically update Capacitor launcher resources.
 - Re-run and verify Android packaging after changing launcher resources; do not mark the native icon complete based only on a web build.
+
+
+## Whole-app visual scope
+The reference covers more than the logo and landing page. Apply the same component system to every dedicated tool screen, tool selector/icon tile, format and range control, upload/dropzone, selected-file queue, processing action bar, progress indicator, error/success/result card, PDF/OCR output, downloads library, Settings, update dialog, navigation header, footer and responsive states. Preserve actual workflows and use semantic, live UI rather than embedding a reference screenshot.
