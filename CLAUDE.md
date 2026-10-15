@@ -33,7 +33,7 @@ Do not rewrite the application into another language or framework merely to imit
 - Prevent blank/white screens, broken event handlers, overflow and inaccessible controls.
 - Upload -> settings -> process -> result -> download must be a complete flow.
 - Buttons must perform the action their labels promise.
-- Do not silently change the established visual language without a clear reason.
+- Use the latest approved ImageMate Option 7 brand guide as the source of truth for visual decisions. Keep all screens consistent with its premium minimal UI and bright indigo/purple, teal and amber accents; do not drift back to the earlier copper/warm-only theme.
 
 ## Android
 - Preserve the existing update flow.
@@ -84,7 +84,7 @@ A feature is done only when the code is changed, the relevant build/check passes
 
 ## Mandatory UI redesign checklist for all screens
 - Use `AGENTS.md`, `UI_UX_GUIDELINES.md` and the shared `premium-ui-library` UI rules as the design source of truth before changing any screen.
-- ImageMate visual baseline: Editorial / Swiss + Premium Minimalism; use Home's warm neutral palette, semantic tokens, restrained glass surfaces, Lucide icons, consistent card rhythm and typography across Home, Settings, tools, results and Downloads.
+- ImageMate visual baseline: Premium Minimalism with restrained Glassmorphism. Use #F8FAFC background, #10213F navy, #6366F1 indigo, #885CFF purple, #14B8A6 teal, #F59E0B amber, semantic tokens, Lucide icons, consistent card rhythm and typography across Home, all tools, Settings, results, dialogs and Downloads.
 - Inspect actual markup and all control IDs/handlers first. Keep visual changes scoped; preserve conversion logic, localStorage keys, navigation, updater, ads and native bridge behavior.
 - Design for 320px, 360px, 390px, tablet and desktop widths. Use `minmax(0,1fr)`, `min-width:0`, safe wrapping, semantic labels, visible focus, touch-friendly controls and reduced-motion support. Avoid clipped copy and horizontal overflow.
 - Test both themes and relevant empty/loading/error/success/disabled states. Click every affected control and verify persistence/navigation; do not leave decorative nonfunctional buttons.
@@ -104,3 +104,7 @@ A feature is done only when the code is changed, the relevant build/check passes
 
 ### Native launcher icon parity
 The Android workflow generates a fresh Capacitor project on each build, so it must also apply the Option 7 vector launcher icon after `npx cap add android`. Keep its icon resource, app-header inline SVG, `public/icon.svg`, browser favicon and PWA manifest aligned. If the icon changes, check the generated Android manifest resource references and validate the Android build; do not assume the PWA icon automatically becomes the native launcher icon.
+
+
+## Whole-app reference fidelity
+Use the approved ImageMate Option 7 brand-guide image as a cross-screen reference. Redesign every component as a coherent system: global navigation, Home hero illustration and search, every tool card and processing field, drag/drop/upload, queue rows, actions, progress/error/success/results, downloads, Settings, update dialogs, and empty/loading states. Preserve actual app functions and navigation; do not copy static phone mockups or implement UI as an image.
