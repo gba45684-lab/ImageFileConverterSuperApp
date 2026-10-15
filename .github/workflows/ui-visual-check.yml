@@ -1,0 +1,113 @@
+name: ImageMate UI visual checks
+
+on:
+  pull_request:
+    branches: [main, 'redesign/stage-1-home-option-7']
+    paths:
+      - 'src/**'
+      - 'index.html'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/ui-visual-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  visual-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install app dependencies
+        run: npm install
+      - name: Build production app
+        run: npm run build
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Start production preview
+        run: |
+          npm run preview -- --host 127.0.0.1 > /tmp/imagemate-preview.log 2>&1 &
+          echo $! > /tmp/imagemate-preview.pid
+          for i in $(seq 1 40); do
+            if curl --silent --fail http://127.0.0.1:4173/ > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/imagemate-preview.log
+          exit 1
+      - name: Capture Home and Tools screenshots and test core navigation
+        run: |
+          mkdir -p ui-evidence
+          node --input-type=module <<'NODE'
+          import { chromium } from 'playwright';
+          const browser = await chromium.launch({ headless: true });
+          const errors = [];
+          const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
+          page.on('pageerror', error => errors.push(error.message));
+          await page.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
+          await page.screenshot({ path: 'ui-evidence/home-desktop.png', fullPage: true });
+          await page.locator('[data-hero-slide="2"]').click();
+          if (await page.locator('[data-hero-slide="2"]').getAttribute('aria-pressed') !== 'true') throw new Error('Home highlight control did not update aria-pressed.');
+          await page.locator('#see-all-tools').click();
+          await page.getByRole('heading', { name: /all tools/i }).waitFor();
+          await page.screenshot({ path: 'ui-evidence/tools-desktop.png', fullPage: true });
+          if (await page.locator('.catalog-tool-row').count() !== 14) throw new Error('Expected all 14 catalog tools.');
+          await page.locator('[data-tool-category="Image"]').click();
+          if (await page.locator('.catalog-tool-row:visible').count() === 0) throw new Error('Image category filter returned no tools.');
+          if (await page.locator('[data-tool-category="Image"]').getAttribute('aria-pressed') !== 'true') throw new Error('Image category did not reflect active state.');
+          await page.locator('#catalog-search').fill('pdf');
+          if (await page.locator('.catalog-tool-row:visible').count() === 0) throw new Error('Search did not return PDF tools.');
+          await page.locator('#catalog-search').fill('no-such-tool-xyz');
+          if (await page.locator('.catalog-tool-row:visible').count() !== 0) throw new Error('No-match search should hide all tool rows.');
+          if (await page.locator('#catalog-empty').isHidden()) throw new Error('Empty-state message should appear for no matches.');
+          await page.locator('#catalog-search').fill('');
+          await page.locator('[data-tool-category="All"]').click();
+          await page.locator('#back-home').click();
+          await page.locator('.editorial-home').waitFor();
+          await page.setViewportSize({ width: 390, height: 844 });
+          await page.locator('#see-all-tools').click();
+          await page.getByRole('heading', { name: /all tools/i }).waitFor();
+          await page.waitForTimeout(250);
+          await page.screenshot({ path: 'ui-evidence/tools-mobile.png', fullPage: true });
+          await page.locator('[data-tool="pdf"]').first().click();
+          await page.getByRole('heading', { name: /image to pdf/i }).waitFor();
+          await page.locator('[data-mobile-tab="home"]').click();
+          await page.locator('.editorial-home').waitFor();
+          await page.locator('[data-mobile-tab="settings"]').click();
+          await page.getByRole('heading', { name: /^settings$/i }).waitFor();
+          await page.screenshot({ path: 'ui-evidence/settings-mobile.png', fullPage: true });
+          await page.locator('#settings-theme-toggle').click();
+          await page.getByRole('heading', { name: /^settings$/i }).waitFor();
+          await page.locator('#default-quality').fill('75');
+          if (await page.locator('#default-quality-value').textContent() !== '75%') throw new Error('Settings quality slider did not update its displayed value.');
+          await page.locator('#back-settings').click();
+          await page.locator('.editorial-home').waitFor();
+          await page.waitForTimeout(650);
+          await page.screenshot({ path: 'ui-evidence/home-mobile.png', fullPage: true });
+          await page.evaluate(() => localStorage.setItem('imagemate-dark', '1'));
+          await page.reload({ waitUntil: 'networkidle' });
+          await page.screenshot({ path: 'ui-evidence/home-mobile-dark.png', fullPage: true });
+          for (const width of [320, 360, 390, 768, 1440]) {
+            await page.setViewportSize({ width, height: 844 });
+            const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+            if (overflow) throw new Error('Horizontal overflow at viewport width ' + width + 'px.');
+          }
+          if (errors.length) throw new Error('Browser errors: ' + errors.join(' | '));
+          await browser.close();
+          NODE
+      - name: Upload visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: imagemate-ui-visual-evidence
+          path: ui-evidence/
+          if-no-files-found: warn
+          retention-days: 14
