@@ -827,25 +827,28 @@ jobs:
 
           private void startApkInstaller(Context context, Uri uri) {
           final String apkMime = "application/vnd.android.package-archive";
+          // Match Android DownloadManager's completed-download notification: ACTION_VIEW
+          // with the APK MIME type and an explicit read grant. On some OEM builds,
+          // ACTION_INSTALL_PACKAGE starts but then fails to hand the content URI to
+          // Package Installer, leaving the in-app button appearing to do nothing.
+          Intent viewInstaller = new Intent(Intent.ACTION_VIEW);
+          viewInstaller.setDataAndType(uri, apkMime);
+          viewInstaller.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+          viewInstaller.setClipData(android.content.ClipData.newRawUri("ImageMate APK", uri));
+          try {
+            context.startActivity(viewInstaller);
+            return;
+          } catch (Exception viewError) {
+            android.util.Log.w("ImageMateUpdater", "ACTION_VIEW failed; trying ACTION_INSTALL_PACKAGE", viewError);
+          }
+
+          // Fallback for Android builds that prefer the explicit install action.
           Intent installer = new Intent(Intent.ACTION_INSTALL_PACKAGE);
           installer.setDataAndType(uri, apkMime);
           installer.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
           installer.setClipData(android.content.ClipData.newRawUri("ImageMate APK", uri));
           installer.putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true);
-          try {
-            context.startActivity(installer);
-            return;
-          } catch (Exception primaryError) {
-            android.util.Log.w("ImageMateUpdater", "ACTION_INSTALL_PACKAGE failed; trying ACTION_VIEW", primaryError);
-          }
-
-          // Alternate path for Android builds whose package installer does not resolve
-          // ACTION_INSTALL_PACKAGE. Keep the exact same content URI and read grant.
-          Intent fallback = new Intent(Intent.ACTION_VIEW);
-          fallback.setDataAndType(uri, apkMime);
-          fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
-          fallback.setClipData(android.content.ClipData.newRawUri("ImageMate APK", uri));
-          context.startActivity(fallback);
+          context.startActivity(installer);
           }
 
           private void launchDownloadedInstaller(Context context, File apk) {
