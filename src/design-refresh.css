@@ -611,3 +611,7 @@ footer{color:var(--im-muted)!important;padding-top:22px!important}
   .settings-screen .settings-card{transition:none!important}
   .settings-screen .settings-card:hover{transform:none}
 }
+
+/* Keep the existing update-state badge aligned with the Home palette. */
+.settings-screen .settings-card:has(#update-setting:checked) .settings-copy:after{border-color:var(--im-line-strong)!important;background:var(--im-accent-wash)!important;color:var(--im-accent)!important}
+.settings-screen .settings-card:has(#update-setting:not(:checked)) .settings-copy:after{border-color:var(--im-line)!important;background:var(--im-soft)!important;color:var(--im-muted)!important}
