@@ -75,3 +75,7 @@ Treat the uploaded ImageMate Option 7 UI brand guide as the visual target for ev
 
 ## Mandatory gated execution — do not skip approval
 Before any UI implementation, follow [UI_IMPLEMENTATION_RUNBOOK.md](UI_IMPLEMENTATION_RUNBOOK.md). The runbook is the execution authority for the user-provided Option 7 reference. Work on one numbered stage at a time. For each stage: set acceptance criteria first; implement only that stage; build; capture genuine running-app screenshots at desktop and phone sizes and compare each visual criterion; test affected interactions; fix same-stage failures; commit; report evidence. **Then STOP and wait for the user's explicit approval before starting the next stage.** Never combine multiple stages, claim visual match based only on source/build, substitute a static mockup for a running-app screenshot, or claim tests that were not performed. If screenshots cannot be produced, state the blocker and pause.
+
+
+### Exact Home reference details
+On phone widths, Home uses six initial Popular Tools cards in a 3-column × 2-row grid, ordered Image to PDF / PDF to Image / Compress / Resize / Convert / More Tools. Use distinct red, purple, green, blue, orange and neutral icon tiles respectively. No Home search field, no LOCAL-FIRST divider, no "6 tools" count, and no category/description lines on these compact mobile cards. Search is on the separate Tools screen.
