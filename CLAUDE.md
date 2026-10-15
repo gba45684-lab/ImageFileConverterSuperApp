@@ -100,3 +100,7 @@ A feature is done only when the code is changed, the relevant build/check passes
 - Animation: only short interaction-driven micro-motion (roughly 180–400ms) such as a one-shot dot pop on hover and a 1px lift. No continuous pulsing, spinning, bounce loops or movement that distracts from conversion tasks. Preserve normal focus indication, touch activation, and `prefers-reduced-motion`.
 - Responsive QA: inspect the mark at 18px in the Home kicker, 38–42px in the global header, and PWA icon sizes. Check pixel clarity, proportions, tap target and light/dark contrast.
 - Never use a screenshot/mockup of the branding board as a UI asset. Implement using vector paths and the shared design tokens so the logo stays sharp and maintainable.
+
+
+### Native launcher icon parity
+The Android workflow generates a fresh Capacitor project on each build, so it must also apply the Option 7 vector launcher icon after `npx cap add android`. Keep its icon resource, app-header inline SVG, `public/icon.svg`, browser favicon and PWA manifest aligned. If the icon changes, check the generated Android manifest resource references and validate the Android build; do not assume the PWA icon automatically becomes the native launcher icon.
