@@ -111,7 +111,7 @@ Use the approved ImageMate Option 7 brand-guide image as a cross-screen referenc
 
 
 ## Screen architecture acceptance
-- Home: hero, query-able Popular Tools preview (six initial items), and a working See all tools action.
+- Home: hero, six-item Popular Tools preview, and a working See all tools action. Keep search on the separate Tools screen.
 - Tools: separate route/view with functional All/Image/Document/Other filters, search and rows that open the existing workflows.
 - Settings: brand card, processing format/quality, Appearance toggle, auto-update toggle, manual update check, File Library and About/version.
 - Top navigation and mobile bottom navigation must route independently to Home, Tools, Files and Settings and show the active screen.
