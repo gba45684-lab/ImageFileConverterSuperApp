@@ -4,7 +4,7 @@ Use the shared open-source design system at https://github.com/gba45684-lab/prem
 
 ## Product and visual direction
 - Build a polished, compact, privacy-first image/document utility app. Prioritize fast task completion over decorative UI.
-- Current direction: warm editorial minimalism with restrained glassmorphism; use translucent surfaces only where contrast remains clear.
+- Current visual system: premium minimalism with restrained glassmorphism, based on the approved ImageMate Option 7 UI brand guide. Use a cool near-white background, navy text, indigo/purple primary actions, teal success/accent states, amber highlights and white rounded cards. Use gradients selectively in the Home hero and selected surfaces.
 - Keep layouts responsive across small Android phones, larger phones, tablets, and desktop browsers.
 - Use consistent spacing, typography, borders, focus states, icon sizing, and light/dark theme tokens.
 - Use Lucide icons already available in the project; avoid emoji as interface icons.
@@ -29,7 +29,7 @@ Use the shared open-source design system at https://github.com/gba45684-lab/prem
 - Report checks accurately; never claim a build or device test passed unless it was actually run.
 
 ## Whole-app UI/UX workflow — mandatory for every screen redesign
-Before UI work, inspect `src/main.js`, `src/style.css`, `src/design-refresh.css`, the relevant feature module, and the shared design system. Read `https://github.com/gba45684-lab/premium-ui-library/blob/main/UI_UX_RULES.md` and `presets/STYLE_PRESETS.md`. Use **Editorial / Swiss + Premium Minimalism** as the ImageMate baseline, with restrained glass surfaces as the only supporting motif. Match every screen to Home's warm palette, card borders, typography and spacing instead of introducing a separate visual theme.
+Before UI work, inspect `src/main.js`, `src/style.css`, `src/design-refresh.css`, the relevant feature module, and the shared design system. Read `https://github.com/gba45684-lab/premium-ui-library/blob/main/UI_UX_RULES.md` and `presets/STYLE_PRESETS.md`. Use **Premium Minimalism** as the primary preset with restrained **Glassmorphism** as the supporting motif. Match every screen to the approved brand guide: near-white #F8FAFC background, navy #10213F text/mark, indigo #6366F1 primary, purple #885CFF secondary, teal #14B8A6 accent, amber #F59E0B highlight, and consistent white rounded cards.
 
 ### Required steps
 1. Inventory current controls, IDs, event listeners, localStorage keys, navigation paths, native bridges and feature dependencies before editing.
@@ -59,3 +59,7 @@ See [UI_UX_GUIDELINES.md](UI_UX_GUIDELINES.md) for the full implementation and a
 
 ### Native launcher icon parity
 The Android workflow generates a fresh Capacitor project on each build, so it must also apply the Option 7 vector launcher icon after `npx cap add android`. Keep its icon resource, app-header inline SVG, `public/icon.svg`, browser favicon and PWA manifest aligned. If the icon changes, check the generated Android manifest resource references and validate the Android build; do not assume the PWA icon automatically becomes the native launcher icon.
+
+
+## End-to-end visual acceptance
+Treat the uploaded ImageMate Option 7 UI brand guide as the visual target for every screen, not only Home and Settings. Apply its token palette, consistent corner radii, icon tiles, strong typography hierarchy, restrained illustration and calm transitions to all tool screens and states. Do not recreate the reference's phone mockups inside the live app. Use actual app layout and working controls, never a static screenshot as the product UI.
