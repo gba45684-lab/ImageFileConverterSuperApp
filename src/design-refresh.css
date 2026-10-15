@@ -1878,3 +1878,22 @@ button[hidden],.nav-btn[hidden]{display:none!important}
   .editorial-home .editorial-tool .tool-icon svg{width:16px!important;height:16px!important}
   .editorial-home .editorial-tool b{font-size:8px!important}
 }
+
+
+/* Stage 1 header lockup: unboxed iM monogram and stronger wordmark, as pictured. */
+.editorial-topbar .brand-mark{
+  width:40px!important;height:38px!important;flex:0 0 40px!important;
+  padding:0!important;border:0!important;border-radius:0!important;
+  background:transparent!important;box-shadow:none!important;
+}
+.editorial-topbar .brand-mark:hover{
+  border-color:transparent!important;background:transparent!important;box-shadow:none!important;
+}
+.editorial-topbar .brand-mark .imagemate-mark{width:100%!important;height:100%!important}
+.editorial-topbar .brand-copy .brand-wordmark{
+  font-size:17px!important;font-weight:900!important;letter-spacing:-.045em!important;
+}
+@media(max-width:390px){
+  .editorial-topbar .brand-mark{width:40px!important;height:36px!important;flex-basis:40px!important;padding:0!important}
+  .editorial-topbar .brand-copy .brand-wordmark{font-size:16.5px!important}
+}
