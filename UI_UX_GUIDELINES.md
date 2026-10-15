@@ -65,3 +65,7 @@ The reference covers more than the logo and landing page. Apply the same compone
 
 ## Sequential implementation and confirmation gate
 For actual implementation use [UI_IMPLEMENTATION_RUNBOOK.md](UI_IMPLEMENTATION_RUNBOOK.md). Do not finish all screens in one large patch. Complete one stage, capture genuine screenshots from the built/running app, compare with the uploaded UI reference, check every interaction and build, commit the stage, and wait for the user's explicit approval before the next stage. Report visual comparison evidence separately from build/test status. If the current app cannot be screenshot-tested, do not call that stage visually approved.
+
+
+### Exact Home mobile composition
+Follow the uploaded reference: header with iM/ImageMate wordmark and settings gear; rounded pastel hero with “Tools for the paperwork of life.” and “Quick. Simple. Powerful.”; four indicators; “Popular Tools” plus See All; 3×2 compact card grid in the order Image to PDF, PDF to Image, Compress, Resize, Convert, More Tools. Remove extra Home search, LOCAL-FIRST divider, count label and category/subtitle clutter on mobile cards. Keep search on the Tools page.
