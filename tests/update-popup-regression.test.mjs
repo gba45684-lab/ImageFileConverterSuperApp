@@ -1,0 +1,24 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+
+const source = readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
+
+test('the update popup promotes its live action to install when the APK download completes', () => {
+  const completeBranch = source.match(/if\(s\?\.status===['"]complete['"]\)\{([\s\S]*?)\}else if\(s\?\.status===['"]failed['"]/);
+  assert.ok(completeBranch, 'download-complete branch must exist');
+  assert.match(completeBranch[1], /overlay\.promoteToInstall\(\)/,
+    'download completion must switch the popup action, not only change its label');
+});
+
+test('an already-open download popup is promoted when a later update check finds the APK ready', () => {
+  assert.match(source, /const existingPopup\s*=\s*document\.querySelector\(['"]#update-popup['"]\)/,
+    'the popup must detect an existing instance before creating another');
+  assert.match(source, /existingPopup\.promoteToInstall\(\)/,
+    'a ready-state update check must promote the existing popup instead of leaving a stale download handler');
+});
+
+test('the install click handler reads the current popup mode rather than a captured initial mode', () => {
+  assert.match(source, /let installMode\s*=\s*mode\s*===\s*['"]install['"]/,
+    'popup mode must be mutable across download-to-install transition');
+});
