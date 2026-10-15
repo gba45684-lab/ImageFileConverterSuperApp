@@ -56,7 +56,7 @@ The reference covers more than the logo and landing page. Apply the same compone
 
 
 ## Home, Tools and Settings component contract
-- **Home:** brand header, hero illustration, search, six Popular Tools cards and a working See all tools action.
+- **Home:** brand header, hero illustration, four hero indicators, six Popular Tools cards and a working See all tools action. Search is on Tools, not Home.
 - **Tools:** a separate catalog screen with All / Image / Document / Other chips, search and rows for all 14 current utilities. Category and search filters must combine, update empty state and retain the appropriate active-navigation state.
 - **Settings:** brand card; format selector; quality slider and live percentage; Appearance toggle; Automatic updates; Check now; File library; About and app version. Every control is functional and uses existing preference keys/native updater behavior.
 - **Navigation:** Home, Tools, Files and Settings work as independent destinations on mobile; desktop navigation matches and highlights the current destination. Returning from a dedicated tool has a clear path back to the catalog/Home.
