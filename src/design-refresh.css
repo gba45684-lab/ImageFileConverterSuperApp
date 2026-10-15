@@ -508,3 +508,26 @@ footer{color:var(--im-muted)!important;padding-top:22px!important}
   .settings-screen .settings-card{transition:none!important}
   .settings-screen .settings-card:hover{transform:none}
 }
+
+
+/* Settings screen layout hardening: avoid card controls colliding at narrow widths. */
+.settings-screen{min-width:0;overflow:hidden}
+.settings-screen .settings-card{min-width:0;flex-wrap:wrap}
+.settings-screen .settings-copy{flex:1 1 220px;min-width:0}
+.settings-screen .settings-copy b,.settings-screen .settings-copy span{overflow-wrap:anywhere}
+.settings-screen .settings-stack label{min-width:0;width:100%}
+.settings-screen .settings-stack select{width:100%;max-width:100%}
+.settings-screen .settings-stack input[type=range]{width:100%;min-width:0}
+.settings-screen .settings-card .switch{margin-left:auto;align-self:center}
+.settings-screen .settings-about{align-items:flex-start}
+@media(max-width:700px){
+  .settings-screen .settings-card{align-items:flex-start}
+  .settings-screen .settings-card>.secondary{margin-left:auto;max-width:100%}
+  .settings-screen .settings-card .switch{margin-left:auto}
+}
+@media(max-width:380px){
+  .settings-screen{width:calc(100% - 20px)!important;padding:10px!important}
+  .settings-screen .settings-card{padding:12px!important;gap:10px}
+  .settings-screen .settings-card>.secondary{min-height:36px;padding:0 9px;font-size:10px}
+  .settings-screen .settings-copy{flex-basis:calc(100% - 50px)}
+}
