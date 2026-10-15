@@ -1,0 +1,35 @@
+/* Stage 6 — final responsive, focus, safe-area and reduced-motion audit layer. */
+:root{scroll-padding-top:76px}
+button,a,input,select,textarea{touch-action:manipulation}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{
+  outline:3px solid color-mix(in srgb,var(--im-accent,#6366f1) 62%,transparent)!important;
+  outline-offset:3px!important;
+}
+button:disabled,[aria-disabled=true]{cursor:not-allowed!important;opacity:.62}
+img,svg,video,canvas{max-width:100%}
+main,section,.workspace,.settings-screen,.tools-catalog,.catalog-tool-copy,.settings-copy{min-width:0}
+#app,.shell,main{max-width:100%;min-width:0}
+.mobile-bottom-nav{
+  padding-bottom:max(7px,env(safe-area-inset-bottom))!important;
+  box-sizing:border-box!important;
+}
+.native-android main{padding-bottom:calc(70px + env(safe-area-inset-bottom))!important}
+@media(max-width:560px){
+  .editorial-topbar{padding-left:max(12px,env(safe-area-inset-left))!important;padding-right:max(12px,env(safe-area-inset-right))!important}
+  .editorial-home,.catalog-head,.settings-page-head,.tools-catalog,.settings-screen,.workspace{
+    max-width:calc(100% - 24px)!important;
+  }
+  .screen-head .privacy{max-width:100%;white-space:normal!important;overflow-wrap:anywhere}
+  footer{padding-left:14px!important;padding-right:14px!important;text-align:center!important;line-height:1.6!important}
+}
+@media(max-width:360px){
+  .brand-copy{min-width:0!important}
+  .brand-wordmark{font-size:18px!important}
+  .top-actions{gap:3px!important}
+  .top-actions .nav-btn{padding-left:6px!important;padding-right:6px!important}
+  .settings-screen .settings-action{white-space:normal!important;text-align:center!important}
+  .download-item button,.download-item a{white-space:normal!important}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
