@@ -8,7 +8,7 @@ This is the required checklist for every UI change in ImageMate. It supplements 
 - The approved Option 7 brand guide is the reference for the whole app: #F8FAFC background, #10213F navy, #6366F1 indigo primary, #885CFF purple secondary, #14B8A6 teal accent, #F59E0B amber highlight, clean rounded white cards, subtle gradients, Lucide icons and quiet depth.
 - Reuse and update the existing `--im-*` tokens in `src/design-refresh.css`. Don't introduce unrelated colors, font systems or one-off effects.
 - Keep screens compact and purposeful: clear title, short helper copy, grouped controls, primary action and minimal decoration.
-- Do not add a duplicate Appearance/Theme control to Settings; Theme remains in the global header.
+- The Appearance control is provided in Settings and persisted to local storage; do not add an unnecessary duplicate theme control to the global header.
 
 ## Required implementation sequence
 1. **Inspect first.** Read repository instructions, shared UI rules, target markup/styles, event handlers and related modules. Record IDs, storage keys, navigation, native calls and behavior that must remain intact.
@@ -53,3 +53,11 @@ Report changed files and commit, build status with links, whether the APK artifa
 
 ## Whole-app visual scope
 The reference covers more than the logo and landing page. Apply the same component system to every dedicated tool screen, tool selector/icon tile, format and range control, upload/dropzone, selected-file queue, processing action bar, progress indicator, error/success/result card, PDF/OCR output, downloads library, Settings, update dialog, navigation header, footer and responsive states. Preserve actual workflows and use semantic, live UI rather than embedding a reference screenshot.
+
+
+## Home, Tools and Settings component contract
+- **Home:** brand header, hero illustration, search, six Popular Tools cards and a working See all tools action.
+- **Tools:** a separate catalog screen with All / Image / Document / Other chips, search and rows for all 14 current utilities. Category and search filters must combine, update empty state and retain the appropriate active-navigation state.
+- **Settings:** brand card; format selector; quality slider and live percentage; Appearance toggle; Automatic updates; Check now; File library; About and app version. Every control is functional and uses existing preference keys/native updater behavior.
+- **Navigation:** Home, Tools, Files and Settings work as independent destinations on mobile; desktop navigation matches and highlights the current destination. Returning from a dedicated tool has a clear path back to the catalog/Home.
+- Test the screen contract in both themes and at 320/360/390px, tablet and desktop. Test combined search/category filtering, all navigation, theme persistence, format/quality persistence, updater/manual check, file library and one real processing flow per affected class of tool.
