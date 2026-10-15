@@ -1535,3 +1535,54 @@ button[hidden],.nav-btn[hidden]{display:none!important}
   .catalog-tool-row,.catalog-categories button,.editorial-view-all{transition:none!important}
   .catalog-tool-row:hover,.editorial-view-all:hover{transform:none}
 }
+
+
+/* Stage 1 — Home hero pager and reference-accurate Popular Tools pattern. */
+.editorial-hero .home-hero-copy{
+  transition:opacity .2s ease,transform .2s ease;
+}
+.editorial-hero.is-changing .home-hero-copy{
+  opacity:.28;
+  transform:translateY(3px);
+}
+.hero-pagination{
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  min-height:14px;margin:-8px 0 -2px;padding:0;
+}
+.hero-page-dot{
+  width:7px;height:7px;min-width:7px;min-height:7px;
+  padding:0;border:0;border-radius:999px;
+  display:inline-flex;align-items:center;justify-content:center;
+  background:transparent;cursor:pointer;
+  transition:width .22s ease,background .22s ease,transform .22s ease;
+}
+.hero-page-dot span{
+  display:block;width:7px;height:7px;border-radius:999px;
+  background:#d1d8e8;transition:width .22s ease,background .22s ease,box-shadow .22s ease;
+}
+.hero-page-dot.active{width:20px}
+.hero-page-dot.active span{
+  width:20px;background:linear-gradient(90deg,#6366f1,#885cff);
+  box-shadow:0 2px 7px rgba(99,102,241,.23);
+}
+.hero-page-dot:hover:not(.active){transform:scale(1.12)}
+.hero-page-dot:hover:not(.active) span{background:#9ca9c7}
+.hero-page-dot:focus-visible{outline:3px solid rgba(99,102,241,.30);outline-offset:4px}
+.dark .hero-page-dot span{background:#42506a}
+.dark .hero-page-dot.active span{background:linear-gradient(90deg,#8585ff,#ac89ff)}
+.editorial-tool-more .tool-icon{
+  background:linear-gradient(135deg,rgba(99,102,241,.14),rgba(136,92,255,.14))!important;
+  color:#6366f1!important;
+}
+.editorial-tool-more:hover .tool-icon{
+  background:linear-gradient(135deg,rgba(99,102,241,.22),rgba(136,92,255,.22))!important;
+}
+.dark .editorial-tool-more .tool-icon{color:#aaaaff!important}
+@media(max-width:760px){
+  .hero-pagination{margin:-5px 0 0;min-height:13px}
+}
+@media(prefers-reduced-motion:reduce){
+  .editorial-hero .home-hero-copy,.hero-page-dot,.hero-page-dot span{transition:none!important}
+  .editorial-hero.is-changing .home-hero-copy{opacity:1;transform:none}
+  .hero-page-dot:hover:not(.active){transform:none}
+}
