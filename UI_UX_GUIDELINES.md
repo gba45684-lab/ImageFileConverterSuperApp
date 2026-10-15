@@ -61,3 +61,7 @@ The reference covers more than the logo and landing page. Apply the same compone
 - **Settings:** brand card; format selector; quality slider and live percentage; Appearance toggle; Automatic updates; Check now; File library; About and app version. Every control is functional and uses existing preference keys/native updater behavior.
 - **Navigation:** Home, Tools, Files and Settings work as independent destinations on mobile; desktop navigation matches and highlights the current destination. Returning from a dedicated tool has a clear path back to the catalog/Home.
 - Test the screen contract in both themes and at 320/360/390px, tablet and desktop. Test combined search/category filtering, all navigation, theme persistence, format/quality persistence, updater/manual check, file library and one real processing flow per affected class of tool.
+
+
+## Sequential implementation and confirmation gate
+For actual implementation use [UI_IMPLEMENTATION_RUNBOOK.md](UI_IMPLEMENTATION_RUNBOOK.md). Do not finish all screens in one large patch. Complete one stage, capture genuine screenshots from the built/running app, compare with the uploaded UI reference, check every interaction and build, commit the stage, and wait for the user's explicit approval before the next stage. Report visual comparison evidence separately from build/test status. If the current app cannot be screenshot-tested, do not call that stage visually approved.
