@@ -1897,3 +1897,16 @@ button[hidden],.nav-btn[hidden]{display:none!important}
   .editorial-topbar .brand-mark{width:40px!important;height:36px!important;flex-basis:40px!important;padding:0!important}
   .editorial-topbar .brand-copy .brand-wordmark{font-size:16.5px!important}
 }
+
+
+/* Stage 1: reference pager uses four compact dots; selected dot changes color, not shape. */
+.hero-page-dot,.hero-page-dot.active{
+  width:9px!important;min-width:9px!important;max-width:9px!important;
+}
+.hero-page-dot span,.hero-page-dot.active span{
+  width:8px!important;height:8px!important;border-radius:50%!important;
+}
+.hero-page-dot.active span{
+  background:#6366f1!important;box-shadow:0 1px 5px rgba(99,102,241,.24)!important;
+}
+.dark .hero-page-dot.active span{background:#a5a6ff!important}
