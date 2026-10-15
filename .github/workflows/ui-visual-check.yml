@@ -59,10 +59,10 @@ jobs:
           if (await page.locator('[data-hero-slide="2"]').getAttribute('aria-pressed') !== 'true') throw new Error('Home highlight control did not update aria-pressed.');
           await page.locator('#see-all-tools').click();
           await page.getByRole('heading', { name: /all tools/i }).waitFor();
+          await page.setViewportSize({ width: 390, height: 844 });
           await page.locator('[data-mobile-tab="home"]').click();
           await page.locator('[data-tool="pdf"]').first().click();
           await page.getByRole('heading', { name: /image to pdf/i }).waitFor();
-          await page.setViewportSize({ width: 390, height: 844 });
           await page.locator('[data-mobile-tab="home"]').click();
           await page.locator('.editorial-home').waitFor();
           await page.screenshot({ path: 'ui-evidence/home-mobile.png', fullPage: true });
