@@ -120,3 +120,7 @@ Use the approved ImageMate Option 7 brand-guide image as a cross-screen referenc
 
 ## Mandatory stage gate for UI work
 Read [UI_IMPLEMENTATION_RUNBOOK.md](UI_IMPLEMENTATION_RUNBOOK.md) before editing UI. Execute its numbered stages strictly in order, one stage per iteration/commit. Compare genuine browser screenshots of the current running app with the user-provided UI guide, check the specified interactions and builds, fix issues within the same stage, present the evidence, and then wait for explicit user approval to begin the following stage. Do not silently continue through later stages. A successful build alone is not visual confirmation. If the runtime screenshot cannot be captured, stop and report that exact limitation instead of pretending visual parity was checked.
+
+
+### Exact Home reference details
+Home mobile must follow the supplied screenshot: logo/wordmark and settings icon in the header; hero card with the exact headline and “Quick. Simple. Powerful.” copy; four small page indicators; title-case Popular Tools heading with See All; six cards in a 3-column × 2-row grid in the order Image to PDF, PDF to Image, Compress, Resize, Convert, More Tools. Do not add a Home search, LOCAL-FIRST divider, a count label, or mobile category/subtitle clutter. Search belongs to Tools.
