@@ -700,7 +700,6 @@ footer{color:var(--im-muted)!important;padding-top:22px!important}
 .im-mark-dot{fill:var(--im-brand-amber);transform-box:fill-box;transform-origin:center}
 .im-mark-stem,.im-mark-m{
   fill:none;stroke:var(--im-brand-ink);stroke-width:8.5;stroke-linecap:round;stroke-linejoin:round;
-  vector-effect:non-scaling-stroke;
 }
 .editorial-topbar .brand-mark:hover{
   transform:translateY(-1px) rotate(-1deg)!important;
