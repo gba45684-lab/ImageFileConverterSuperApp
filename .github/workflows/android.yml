@@ -60,6 +60,39 @@ jobs:
       - name: Add Android
         run: npx cap add android
 
+      - name: Apply ImageMate Option 7 native launcher icon
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          manifest = Path("android/app/src/main/AndroidManifest.xml")
+          xml = manifest.read_text()
+          updated = re.sub(r'android:icon="[^"]+"', 'android:icon="@drawable/imagemate_launcher"', xml, count=1)
+          updated = re.sub(r'android:roundIcon="[^"]+"', 'android:roundIcon="@drawable/imagemate_launcher"', updated, count=1)
+          if updated == xml or '@drawable/imagemate_launcher' not in updated:
+              raise SystemExit("Could not apply the ImageMate icon to AndroidManifest.xml")
+          manifest.write_text(updated)
+
+          resources = Path("android/app/src/main/res/drawable")
+          resources.mkdir(parents=True, exist_ok=True)
+          icon = """<?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp"
+              android:height="108dp"
+              android:viewportWidth="512"
+              android:viewportHeight="512">
+              <path android:fillColor="#F5F2EB" android:pathData="M112,0H400A112,112 0,0 1 512,112V400A112,112 0,0 1 400,512H112A112,112 0,0 1 0,400V112A112,112 0,0 1 112,0Z"/>
+              <path android:strokeColor="#10213F" android:strokeWidth="48" android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000" android:pathData="M128,190V354"/>
+              <path android:strokeColor="#10213F" android:strokeWidth="48" android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000" android:pathData="M204,354V220C204,190 232,182 251,207L293,260L335,209C356,183 384,195 384,224V354"/>
+              <path android:fillColor="#FFB32C" android:pathData="M128,99A24,24 0,1 0 128,147A24,24 0,1 0 128,99Z"/>
+          </vector>
+          """
+          resources.joinpath("imagemate_launcher.xml").write_text(icon)
+          print("Applied native ImageMate iM launcher icon (navy monogram + amber dot).")
+          PY
+
       - name: Prepare persistent signing key
         id: signing
         shell: bash
