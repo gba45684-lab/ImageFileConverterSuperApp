@@ -66,7 +66,7 @@ Treat the uploaded ImageMate Option 7 UI brand guide as the visual target for ev
 
 
 ## Home / Tools / Settings screen contract
-- Home is the discovery screen: brand hero + illustration, searchable six-tool "Popular tools" preview, and a real "See all tools" route.
+- Home is the discovery screen: brand hero + illustration, six-tool "Popular Tools" preview, and a real "See all tools" route. Search belongs to the separate Tools screen.
 - Tools is a distinct screen with an All / Image / Document / Other category filter, search, and accessible rows for all 14 utilities. Every row opens the existing dedicated tool workflow.
 - Settings is a real preferences screen with ImageMate brand card, format and quality defaults, Appearance toggle, automatic update preference, manual update check, File Library entry and About/version information.
 - Desktop global navigation and mobile bottom navigation must take users to these separate screens, keep the active destination visibly selected, and work in light and dark modes.
