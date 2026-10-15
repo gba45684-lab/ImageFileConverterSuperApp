@@ -27,3 +27,20 @@ Use the shared open-source design system at https://github.com/gba45684-lab/prem
 - Run npm run build after UI changes.
 - Test light/dark themes, mobile two-column tool cards, search, tool selection, upload/dropzone, settings, downloads, and the Android updater entry points.
 - Report checks accurately; never claim a build or device test passed unless it was actually run.
+
+## Whole-app UI/UX workflow — mandatory for every screen redesign
+Before UI work, inspect `src/main.js`, `src/style.css`, `src/design-refresh.css`, the relevant feature module, and the shared design system. Read `https://github.com/gba45684-lab/premium-ui-library/blob/main/UI_UX_RULES.md` and `presets/STYLE_PRESETS.md`. Use **Editorial / Swiss + Premium Minimalism** as the ImageMate baseline, with restrained glass surfaces as the only supporting motif. Match every screen to Home's warm palette, card borders, typography and spacing instead of introducing a separate visual theme.
+
+### Required steps
+1. Inventory current controls, IDs, event listeners, localStorage keys, navigation paths, native bridges and feature dependencies before editing.
+2. Plan the page hierarchy: header/back path, main content groups, helper copy, status feedback and footer.
+3. Keep UI markup, styles and behavior separate. Prefer scoped CSS and semantic markup. Preserve IDs and handlers unless a functional change is explicitly requested.
+4. Use consistent spacing/radius/type tokens; responsive Grid/Flex with `minmax(0,1fr)`, `min-width:0`, wrapping and `overflow-wrap:anywhere`. Avoid fixed text-card heights and horizontal overflow.
+5. Include accessible names, visible keyboard focus, comfortable touch targets, reduced-motion support, and useful loading/empty/error/success/disabled states.
+6. Check light/dark themes and 320/360/390px, tablet and desktop widths. Test long copy, both toggle states, empty libraries, failed updates and repeated back/navigation actions.
+7. Verify Home → Settings → Back, Settings → File Library → Back, format/quality persistence, automatic-update on/off and manual Refresh. Do not add a duplicate Theme/Appearance setting; Theme already lives in the global header.
+8. Do not add dependencies, remote assets, analytics, uploads or permissions for visual-only changes. Preserve local processing, ads, updater, Capacitor and file-saving behavior.
+9. Run `npm run build`; inspect GitHub Actions web and Android builds and logs. Verify APK artifact/release asset when relevant. Never claim a physical-device test unless performed.
+10. Review the final diff for accidental logic changes, dead/duplicate CSS, broken selectors, overflow, contrast and regressions before reporting.
+
+See [UI_UX_GUIDELINES.md](UI_UX_GUIDELINES.md) for the full implementation and acceptance checklist.
