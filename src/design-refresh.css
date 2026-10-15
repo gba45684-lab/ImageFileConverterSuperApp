@@ -1623,3 +1623,8 @@ button[hidden],.nav-btn[hidden]{display:none!important}
   .editorial-home .editorial-tool b{font-size:9px!important}
   .editorial-home .editorial-tool small{font-size:7px!important}
 }
+
+
+/* Stage 1 visual correction: let Home share the cool brand-canvas backdrop. */
+.editorial-home{background:transparent!important}
+.dark .editorial-home{background:transparent!important}
