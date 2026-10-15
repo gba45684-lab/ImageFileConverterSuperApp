@@ -1,0 +1,71 @@
+/* Stage 5 — result states, file library and update-dialog polish. Existing actions remain wired. */
+#download-library{display:flex!important;flex-direction:column!important;gap:10px!important;min-width:0!important}
+.download-item{
+  display:grid!important;
+  grid-template-columns:44px minmax(0,1fr) auto!important;
+  align-items:center!important;
+  gap:12px!important;
+  min-width:0!important;
+  padding:14px!important;
+  border:1px solid var(--im-line)!important;
+  border-radius:16px!important;
+  background:var(--im-surface)!important;
+  box-shadow:0 3px 12px rgba(31,41,80,.035)!important;
+}
+.download-icon{width:44px!important;height:44px!important;display:grid!important;place-items:center!important;border-radius:13px!important}
+.download-item>div,.download-item .download-copy{min-width:0!important}
+.download-item b,.download-item strong{display:block!important;overflow-wrap:anywhere!important;word-break:break-word!important;color:var(--im-ink)!important;font-size:13px!important;line-height:1.4!important}
+.download-item small,.download-item p{color:var(--im-muted)!important;font-size:11px!important;line-height:1.5!important;overflow-wrap:anywhere!important}
+.download-item .download-actions,.download-item .actions{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:7px!important;flex-wrap:wrap!important}
+.download-item button,.download-item a{display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:7px!important;min-height:36px!important;padding:8px 11px!important;border:1px solid var(--im-line)!important;border-radius:10px!important;background:var(--im-surface-strong)!important;color:var(--im-ink)!important;font-size:11px!important;font-weight:700!important;text-decoration:none!important}
+.empty-downloads,.downloads-empty{
+  padding:32px 20px!important;
+  border:1px dashed var(--im-line-strong)!important;
+  border-radius:18px!important;
+  background:var(--im-soft)!important;
+  color:var(--im-muted)!important;
+  text-align:center!important;
+  font-size:13px!important;
+  line-height:1.6!important;
+}
+.result-card{
+  min-width:0!important;
+  padding:18px!important;
+  border:1px solid var(--im-line)!important;
+  border-radius:17px!important;
+  background:var(--im-surface)!important;
+  color:var(--im-ink)!important;
+  box-shadow:0 5px 18px rgba(31,41,80,.04)!important;
+}
+.result-card h2,.result-card h3{margin:0 0 8px!important;font-size:16px!important;line-height:1.35!important;letter-spacing:-.02em!important;color:var(--im-ink)!important}
+.result-card p{font-size:12px!important;line-height:1.6!important;color:var(--im-muted)!important;overflow-wrap:anywhere!important}
+.result-card pre,.result-card textarea,.result-card [contenteditable=true]{max-width:100%!important;min-width:0!important;overflow:auto!important;border:1px solid var(--im-line)!important;border-radius:12px!important;background:var(--im-surface-strong)!important;color:var(--im-ink)!important}
+.result-card button,.result-card a{display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;min-height:38px!important;padding:9px 13px!important;border-radius:11px!important;font-size:11px!important;font-weight:750!important}
+.success{display:inline-flex!important;align-items:center!important;gap:7px!important;font-size:12px!important;font-weight:750!important}
+.success svg{width:16px!important;height:16px!important;flex:0 0 auto!important}
+#update-popup{color:var(--im-ink)!important}
+#update-popup>div{padding:20px!important}
+#update-popup>div>div{
+  width:min(440px,100%)!important;
+  max-height:min(88dvh,760px)!important;
+  overflow:auto!important;
+  padding:clamp(20px,4vw,28px)!important;
+  border:1px solid var(--im-line)!important;
+  border-radius:22px!important;
+  background:var(--im-surface-strong,#fff)!important;
+  color:var(--im-ink)!important;
+  box-shadow:0 28px 90px rgba(15,23,42,.28)!important;
+}
+#update-popup h2{font-size:clamp(20px,4vw,25px)!important;line-height:1.2!important;letter-spacing:-.035em!important}
+#update-popup p{font-size:13px!important;line-height:1.65!important;color:var(--im-muted)!important;overflow-wrap:anywhere!important}
+#update-popup button{min-height:42px!important;border-radius:12px!important}
+@media(max-width:760px){
+ .download-item{grid-template-columns:38px minmax(0,1fr)!important;gap:10px!important;padding:11px!important}
+ .download-icon{width:38px!important;height:38px!important}
+ .download-item .download-actions,.download-item .actions{grid-column:1/-1!important;justify-content:flex-start!important}
+ .download-item button,.download-item a{min-height:38px!important}
+ .result-card{padding:14px!important;border-radius:15px!important}
+ #update-popup>div{padding:14px!important}
+ #update-popup>div>div{border-radius:19px!important}
+}
+@media(prefers-reduced-motion:reduce){.download-item,.result-card,#update-popup *{transition:none!important;animation:none!important}}
