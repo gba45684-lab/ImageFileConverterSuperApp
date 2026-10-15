@@ -1628,3 +1628,63 @@ button[hidden],.nav-btn[hidden]{display:none!important}
 /* Stage 1 visual correction: let Home share the cool brand-canvas backdrop. */
 .editorial-home{background:transparent!important}
 .dark .editorial-home{background:transparent!important}
+
+
+/* Stage 1 — tighten Home fidelity to the provided mobile reference. */
+.editorial-topbar .brand-copy .brand-wordmark .brand-word-image,
+.editorial-topbar .brand-copy .brand-wordmark .brand-word-mate{
+  display:inline!important;font:inherit!important;letter-spacing:inherit!important;white-space:nowrap!important;
+}
+.editorial-topbar .brand-copy .brand-wordmark .brand-word-image{color:#10213f!important}
+.editorial-topbar .brand-copy .brand-wordmark .brand-word-mate{
+  color:#6f55ee!important;
+  background:linear-gradient(100deg,#6366f1,#885cff);
+  background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.dark .editorial-topbar .brand-copy .brand-wordmark .brand-word-image{color:#f3f6ff!important}
+.dark .editorial-topbar .brand-copy .brand-wordmark .brand-word-mate{
+  background:linear-gradient(100deg,#a5b4fc,#c4b5fd);
+  background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.editorial-tools-head #home-tools-label{
+  color:var(--im-ink)!important;font-size:13px!important;font-weight:850!important;
+  letter-spacing:-.025em!important;text-transform:none!important;
+}
+.editorial-tools-head #home-tools-count{font-size:10px!important;color:var(--im-muted)!important}
+@media(max-width:760px){
+  .editorial-home .editorial-tool-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
+  .editorial-home .editorial-tool{
+    width:100%!important;height:94px!important;min-height:94px!important;padding:10px!important;
+    border-radius:15px!important;display:flex!important;flex-direction:column!important;
+  }
+  .editorial-home .editorial-tool .tool-top{gap:7px!important;min-height:29px!important}
+  .editorial-home .editorial-tool .tool-icon{width:31px!important;height:31px!important;flex:0 0 31px!important;border-radius:10px!important}
+  .editorial-home .editorial-tool .tool-icon svg{width:16px!important;height:16px!important}
+  .editorial-home .editorial-tool .tool-arrow{width:22px!important;height:22px!important;flex:0 0 22px!important}
+  .editorial-home .editorial-tool .tool-arrow svg{width:12px!important;height:12px!important}
+  .editorial-home .editorial-tool .tool-main{margin-top:6px!important;gap:3px!important}
+  .editorial-home .editorial-tool .tool-category{font-size:7px!important;letter-spacing:.09em!important}
+  .editorial-home .editorial-tool b{font-size:10px!important;line-height:1.2!important;overflow-wrap:anywhere}
+  .editorial-home .editorial-tool small{font-size:8px!important;line-height:1.2!important;white-space:normal!important;overflow-wrap:anywhere}
+  .mobile-bottom-nav{
+    left:0!important;bottom:0!important;transform:none!important;width:100%!important;max-width:none!important;
+    border:0!important;border-top:1px solid var(--im-line)!important;border-radius:17px 17px 0 0!important;
+    padding:7px 16px calc(7px + env(safe-area-inset-bottom,0px))!important;
+    box-shadow:0 -5px 22px rgba(31,41,80,.055)!important;
+  }
+  .dark .mobile-bottom-nav{border-top:1px solid var(--im-line)!important;box-shadow:0 -5px 22px rgba(0,0,0,.18)!important}
+  .native-android .mobile-bottom-nav{bottom:0!important}
+}
+@media(max-width:390px){
+  .editorial-home .editorial-tool-grid{gap:8px!important}
+  .editorial-home .editorial-tool{height:96px!important;min-height:96px!important;padding:9px!important}
+  .editorial-home .editorial-tool .tool-main{margin-top:6px!important}
+  .editorial-home .editorial-tool b{font-size:9.5px!important}
+  .editorial-home .editorial-tool small{font-size:7.8px!important}
+}
+@media(max-width:330px){
+  .editorial-home .editorial-tool{height:100px!important;min-height:100px!important}
+  .editorial-home .editorial-tool .tool-icon{width:28px!important;height:28px!important;flex-basis:28px!important}
+  .editorial-home .editorial-tool b{font-size:9px!important}
+  .editorial-home .editorial-tool small{font-size:7.3px!important}
+}
