@@ -1910,3 +1910,62 @@ button[hidden],.nav-btn[hidden]{display:none!important}
   background:#6366f1!important;box-shadow:0 1px 5px rgba(99,102,241,.24)!important;
 }
 .dark .hero-page-dot.active span{background:#a5a6ff!important}
+
+
+/* Stage 1 user refinement: tighten the Home hero/menu-to-Popular-Tools spacing. */
+.editorial-home{gap:12px!important}
+.hero-pagination{margin:-5px 0 -3px!important;min-height:12px!important}
+.editorial-tools-head{margin:0!important;align-items:center!important}
+.editorial-home .editorial-tool-grid{margin-top:0!important}
+
+/* Smooth ImageMate branding entrance and interaction micro-motion.
+   No looping animation; reduced-motion users get the static logo. */
+@keyframes imBrandMarkIn{
+  0%{opacity:0;transform:translateY(5px) scale(.96)}
+  70%{opacity:1;transform:translateY(-1px) scale(1.015)}
+  100%{opacity:1;transform:translateY(0) scale(1)}
+}
+@keyframes imBrandWordIn{
+  0%{opacity:0;transform:translateX(-5px)}
+  100%{opacity:1;transform:translateX(0)}
+}
+@keyframes imBrandDotIntro{
+  0%{opacity:.65;transform:scale(.72)}
+  65%{opacity:1;transform:scale(1.12)}
+  100%{opacity:1;transform:scale(1)}
+}
+@media(prefers-reduced-motion:no-preference){
+  .editorial-topbar .brand-mark .imagemate-mark{
+    transform-origin:center;
+    animation:imBrandMarkIn .52s cubic-bezier(.2,.8,.2,1) both;
+  }
+  .editorial-topbar .brand-copy{
+    animation:imBrandWordIn .42s ease-out .06s both;
+  }
+  .editorial-topbar .brand-mark .im-mark-dot{
+    animation:imBrandDotIntro .5s cubic-bezier(.2,.8,.2,1) .08s both;
+  }
+  .editorial-topbar .brand-mark{
+    transition:transform .22s cubic-bezier(.2,.8,.2,1),filter .22s ease!important;
+  }
+  .editorial-topbar .brand-mark:hover{
+    transform:translateY(-1px) scale(1.035)!important;
+    filter:drop-shadow(0 3px 5px rgba(99,102,241,.18));
+  }
+  .editorial-topbar .brand-mark:active{transform:scale(.97)!important}
+  .editorial-topbar .brand-copy .brand-wordmark{
+    transition:letter-spacing .22s ease,filter .22s ease!important;
+  }
+  .editorial-topbar .brand:hover .brand-wordmark{letter-spacing:-.035em!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .editorial-topbar .brand-mark .imagemate-mark,
+  .editorial-topbar .brand-copy,
+  .editorial-topbar .brand-mark .im-mark-dot{animation:none!important}
+  .editorial-topbar .brand-mark,.editorial-topbar .brand-copy .brand-wordmark{transition:none!important}
+}
+@media(max-width:760px){
+  .editorial-home{gap:10px!important}
+  .hero-pagination{margin:-4px 0 -4px!important}
+  .editorial-tools-head{margin:0!important}
+}
