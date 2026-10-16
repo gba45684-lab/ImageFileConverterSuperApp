@@ -210,6 +210,14 @@ jobs:
               await page.locator('#default-quality').inputValue() !== '88') {
             throw new Error('Missing quality preference must default to 88%, not ' + await page.locator('#default-quality-value').textContent());
           }
+          await page.evaluate(() => localStorage.setItem('imagemate-quality', 'invalid'));
+          await page.reload({ waitUntil: 'networkidle' });
+          await page.locator('[data-mobile-tab="settings"]').click();
+          await page.getByRole('heading', { name: /^settings$/i }).waitFor();
+          if (await page.locator('#default-quality-value').textContent() !== '88%' ||
+              await page.locator('#default-quality').inputValue() !== '88') {
+            throw new Error('Invalid quality preference must safely default to 88%.');
+          }
           const settingsA11yLight = await new AxeBuilder({ page }).analyze();
           if (settingsA11yLight.violations.length) {
             const details = settingsA11yLight.violations.map(v => v.id + ' (' + v.impact + '): ' + v.help + ' — ' + v.nodes.map(n => n.target.join(', ')).join('; ')).join(' | ');
@@ -313,6 +321,7 @@ jobs:
         run: |
           node --input-type=module <<'NODE'
           import { chromium } from 'playwright';
+          import AxeBuilder from '@axe-core/playwright';
           const browser = await chromium.launch({ headless: true });
           const errors = [];
           const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, acceptDownloads: true });

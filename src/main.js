@@ -42,7 +42,7 @@ const tools=[
 const savedFormat=localStorage.getItem('imagemate-format');
 const allowedFormats=['image/webp','image/jpeg','image/png','image/avif'];
 const storedQualityValue=localStorage.getItem('imagemate-quality');
-const parsedStoredQuality=storedQualityValue===null?0.88:Number(storedQualityValue);
+const parsedStoredQuality=storedQualityValue===null||storedQualityValue.trim()===''?0.88:Number(storedQualityValue);
 const safeQuality=Number.isFinite(parsedStoredQuality)?Math.min(1,Math.max(.1,parsedStoredQuality)):.88;
 const S={tool:'convert',files:[],format:allowedFormats.includes(savedFormat)?savedFormat:'image/webp',quality:safeQuality,width:'',height:'',target:100,pdfFormat:'image/png',pdfScale:1.5,rotation:0,brightness:0,contrast:0,dark:localStorage.getItem('imagemate-dark')==='1',catalogCategory:'All',mobileTab:'home',view:'tools',downloadsReturnView:'tools'};
 
