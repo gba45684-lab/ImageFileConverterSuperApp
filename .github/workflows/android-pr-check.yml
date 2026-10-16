@@ -70,8 +70,14 @@ jobs:
           test -s "$APK"
           unzip -t "$APK" >/dev/null
           SDK_DIR="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/android-sdk}}"
-          APKANALYZER="$(find "$SDK_DIR" -type f -name apkanalyzer | sort -V | tail -n 1)"
-          test -n "$APKANALYZER"
+          APKANALYZER="$(command -v apkanalyzer || true)"
+          if [[ -z "$APKANALYZER" ]]; then
+            APKANALYZER="$(find "$SDK_DIR/cmdline-tools" -type f -name apkanalyzer -print -quit 2>/dev/null || true)"
+          fi
+          if [[ -z "$APKANALYZER" ]]; then
+            echo "::error::Could not locate apkanalyzer in Android SDK command-line tools."
+            exit 1
+          fi
           APP_ID="$("$APKANALYZER" manifest application-id "$APK")"
           VERSION_NAME="$("$APKANALYZER" manifest version-name "$APK")"
           VERSION_CODE="$("$APKANALYZER" manifest version-code "$APK")"
