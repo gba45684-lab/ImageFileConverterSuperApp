@@ -493,6 +493,60 @@ jobs:
           await page.waitForTimeout(650);
           await page.screenshot({ path: 'ui-evidence/workspace-result-mobile.png', fullPage: true });
 
+          // Verify image-to-PDF processing and that the generated PDF is downloaded.
+          await page.locator('[data-mobile-tab="home"]').click();
+          await page.locator('#see-all-tools').click();
+          await page.locator('[data-tool="pdf"]').click();
+          await page.getByRole('heading', { name: /image to pdf/i }).waitFor();
+          await assertAdSlotPlacement('Image-to-PDF workspace mobile');
+          await page.locator('#file').setInputFiles({ name: 'pixel.png', mimeType: 'image/png', buffer: pixel });
+          await page.locator('.file-row').waitFor();
+          await page.locator('#process').waitFor();
+          const pdfDownloadPromise = page.waitForEvent('download', { timeout: 45000 });
+          await page.locator('#process').click();
+          const pdfDownload = await pdfDownloadPromise;
+          if (!/\\.pdf$/i.test(pdfDownload.suggestedFilename())) {
+            throw new Error('Image-to-PDF workflow did not download a PDF: ' + pdfDownload.suggestedFilename());
+          }
+          await page.getByText('PDF created', { exact: true }).waitFor({ timeout: 45000 });
+          await page.screenshot({ path: 'ui-evidence/workspace-pdf-result-mobile.png', fullPage: true });
+
+          // Exercise OCR with a high-contrast local fixture and verify the TXT export.
+          await page.locator('[data-mobile-tab="home"]').click();
+          await page.locator('#see-all-tools').click();
+          await page.locator('[data-tool="ocr"]').click();
+          await page.getByRole('heading', { name: /ocr text/i }).waitFor();
+          await assertAdSlotPlacement('OCR workspace mobile');
+          const ocrBase64 = await page.evaluate(() => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1000; canvas.height = 260;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#000000'; ctx.font = 'bold 100px Arial';
+            ctx.textBaseline = 'middle'; ctx.fillText('IMAGEMATE TEST 123', 35, 130);
+            return canvas.toDataURL('image/png').split(',')[1];
+          });
+          await page.locator('#file').setInputFiles({
+            name: 'imagemate-ocr-test.png',
+            mimeType: 'image/png',
+            buffer: Buffer.from(ocrBase64, 'base64')
+          });
+          await page.locator('.file-row').waitFor();
+          await page.locator('#process').click();
+          await page.locator('#ocr-output').waitFor({ timeout: 120000 });
+          const ocrText = (await page.locator('#ocr-output').inputValue()).trim();
+          if (!ocrText || /No text detected/i.test(ocrText)) {
+            throw new Error('OCR did not extract text from the generated high-contrast fixture.');
+          }
+          const txtDownloadPromise = page.waitForEvent('download', { timeout: 30000 });
+          await page.locator('#download-ocr').click();
+          const txtDownload = await txtDownloadPromise;
+          if (!/-ocr\\.txt$/i.test(txtDownload.suggestedFilename())) {
+            throw new Error('OCR export did not download a TXT file: ' + txtDownload.suggestedFilename());
+          }
+          await assertAdSlotPlacement('OCR result mobile');
+          await page.screenshot({ path: 'ui-evidence/workspace-ocr-result-mobile.png', fullPage: true });
+
           // Capture Settings and the File Library on desktop at the same checked commit.
           await page.setViewportSize({ width: 1440, height: 1000 });
           await page.locator('#settings-btn').click();
