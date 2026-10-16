@@ -12,6 +12,24 @@ import { createIcons, icons } from 'lucide';
 import { initGitHubOta } from './ota.js';
 
 const app=document.querySelector('#app');
+let adSlotResizeBound=false;
+
+function positionSharedAdSlot(){
+  const slot=document.querySelector('#app-ad-slot');
+  const nav=document.querySelector('.mobile-bottom-nav');
+  if(!slot||!nav)return;
+  if(window.innerWidth>760)return;
+  const navRect=nav.getBoundingClientRect();
+  if(!navRect.height)return;
+  const bottomOffset=Math.max(0,Math.ceil(window.innerHeight-navRect.top+6));
+  // Match the slot to the actual nav rectangle: Home/workspaces use a fixed
+  // nav, while catalog/Settings lay it out in-flow at the bottom of the shell.
+  slot.style.setProperty('bottom',bottomOffset+'px','important');
+  if(!adSlotResizeBound){
+    adSlotResizeBound=true;
+    window.addEventListener('resize',()=>window.requestAnimationFrame(positionSharedAdSlot),{passive:true});
+  }
+}
 if(isNativeAndroid()) document.documentElement.classList.add('native-android');
 const UPDATE_API='https://api.github.com/repos/gba45684-lab/ImageFileConverterSuperApp/releases/latest';
 const UPDATE_APK='https://github.com/gba45684-lab/ImageFileConverterSuperApp/releases/latest/download/ImageMate.apk';
@@ -80,6 +98,7 @@ function render(){
   const mobileNav='<nav class="mobile-bottom-nav" aria-label="Primary navigation"><button type="button" data-mobile-tab="home" class="'+(mobileActive==='home'?'active':'')+'" '+(mobileActive==='home'?'aria-current="page"':'')+'><i data-lucide="house"></i><span>Home</span></button><button type="button" data-mobile-tab="tools" class="'+(mobileActive==='tools'?'active':'')+'" '+(mobileActive==='tools'?'aria-current="page"':'')+'><i data-lucide="grid-2x2"></i><span>Tools</span></button><button type="button" data-mobile-tab="files" class="'+(mobileActive==='files'?'active':'')+'" '+(mobileActive==='files'?'aria-current="page"':'')+'><i data-lucide="folder"></i><span>Files</span></button><button type="button" data-mobile-tab="settings" class="'+(mobileActive==='settings'?'active':'')+'" '+(mobileActive==='settings'?'aria-current="page"':'')+'><i data-lucide="settings-2"></i><span>Settings</span></button></nav>';
   app.innerHTML='<div class="shell '+(S.dark?'dark':'')+(toolsScreen?' tools-catalog-shell':'')+(settingsScreen?' settings-view-shell':'')+'">'+header+'<main>'+content+'<footer>© 2026 ImageMate <span>•</span> Private file tools for everyone</footer></main><aside id="app-ad-slot" class="app-ad-slot" aria-label="Advertisement"><span>ADVERTISEMENT</span></aside>'+mobileNav+'</div>';
   createIcons({ icons, attrs: { 'stroke-width': 1.8 } });
+  positionSharedAdSlot();
   bind(); settings(); queue();
   if(isNativeAndroid()) requestAnimationFrame(()=>syncNativeAdPlacement().catch(error=>console.debug('ImageMate ad placement refresh skipped',error)));
 
