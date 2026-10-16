@@ -53,6 +53,7 @@ jobs:
           const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
           page.on('pageerror', error => errors.push(error.message));
           await page.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
+          await page.waitForTimeout(650);
           const seeAllLabel = (await page.locator('#see-all-tools').innerText()).trim();
           if (seeAllLabel !== 'See All') throw new Error('Home See All control must match the approved title-case copy; received: ' + seeAllLabel);
           await page.screenshot({ path: 'ui-evidence/home-desktop.png', fullPage: true });
@@ -60,6 +61,7 @@ jobs:
           if (await page.locator('[data-hero-slide="2"]').getAttribute('aria-pressed') !== 'true') throw new Error('Home highlight control did not update aria-pressed.');
           await page.locator('#see-all-tools').click();
           await page.getByRole('heading', { name: /all tools/i }).waitFor();
+          await page.waitForTimeout(650);
           await page.screenshot({ path: 'ui-evidence/tools-desktop.png', fullPage: true });
           if (await page.locator('.catalog-tool-row').count() !== 14) throw new Error('Expected all 14 catalog tools.');
           await page.locator('[data-tool-category="Image"]').click();
@@ -78,14 +80,16 @@ jobs:
           await page.setViewportSize({ width: 390, height: 844 });
           await page.locator('#see-all-tools').click();
           await page.getByRole('heading', { name: /all tools/i }).waitFor();
-          await page.waitForTimeout(250);
+          await page.waitForTimeout(650);
           await page.screenshot({ path: 'ui-evidence/tools-mobile.png', fullPage: true });
           await page.locator('[data-tool="pdf"]').first().click();
           await page.getByRole('heading', { name: /image to pdf/i }).waitFor();
+          await page.waitForTimeout(650);
           await page.locator('[data-mobile-tab="home"]').click();
           await page.locator('.editorial-home').waitFor();
           await page.locator('[data-mobile-tab="settings"]').click();
           await page.getByRole('heading', { name: /^settings$/i }).waitFor();
+          await page.waitForTimeout(650);
           await page.screenshot({ path: 'ui-evidence/settings-mobile.png', fullPage: true });
           await page.locator('#settings-theme-toggle').click();
           await page.getByRole('heading', { name: /^settings$/i }).waitFor();
@@ -93,10 +97,13 @@ jobs:
           if (await page.locator('#default-quality-value').textContent() !== '75%') throw new Error('Settings quality slider did not update its displayed value.');
           await page.locator('#back-settings').click();
           await page.locator('.editorial-home').waitFor();
+          await page.evaluate(() => localStorage.setItem('imagemate-dark', '0'));
+          await page.reload({ waitUntil: 'networkidle' });
           await page.waitForTimeout(650);
           await page.screenshot({ path: 'ui-evidence/home-mobile.png', fullPage: true });
           await page.evaluate(() => localStorage.setItem('imagemate-dark', '1'));
           await page.reload({ waitUntil: 'networkidle' });
+          await page.waitForTimeout(650);
           await page.screenshot({ path: 'ui-evidence/home-mobile-dark.png', fullPage: true });
           for (const width of [320, 360, 390, 768, 1440]) {
             await page.setViewportSize({ width, height: 844 });
@@ -120,6 +127,7 @@ jobs:
           // Capture File Library through the actual mobile navigation.
           await page.locator('[data-mobile-tab="files"]').click();
           await page.getByRole('heading', { name: /downloaded files/i }).waitFor();
+          await page.waitForTimeout(650);
           await page.screenshot({ path: 'ui-evidence/downloads-mobile.png', fullPage: true });
 
           // Validate and capture a complete image-conversion happy path with a tiny local fixture.
@@ -127,22 +135,27 @@ jobs:
           await page.locator('#see-all-tools').click();
           await page.locator('[data-tool="convert"]').click();
           await page.getByRole('heading', { name: /convert images/i }).waitFor();
+          await page.waitForTimeout(650);
           await page.screenshot({ path: 'ui-evidence/workspace-empty-mobile.png', fullPage: true });
           const pixel = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=', 'base64');
           await page.locator('#file').setInputFiles({ name: 'pixel.png', mimeType: 'image/png', buffer: pixel });
           await page.locator('.file-row').waitFor();
+          await page.waitForTimeout(650);
           await page.screenshot({ path: 'ui-evidence/workspace-queued-mobile.png', fullPage: true });
           await page.locator('#process').click();
           await page.locator('.result-card').waitFor({ timeout: 45000 });
+          await page.waitForTimeout(650);
           await page.screenshot({ path: 'ui-evidence/workspace-result-mobile.png', fullPage: true });
 
           // Capture Settings and the File Library on desktop at the same checked commit.
           await page.setViewportSize({ width: 1440, height: 1000 });
           await page.locator('#settings-btn').click();
           await page.getByRole('heading', { name: /^settings$/i }).waitFor();
+          await page.waitForTimeout(650);
           await page.screenshot({ path: 'ui-evidence/settings-desktop.png', fullPage: true });
           await page.locator('#open-downloads').click();
           await page.getByRole('heading', { name: /downloaded files/i }).waitFor();
+          await page.waitForTimeout(650);
           await page.screenshot({ path: 'ui-evidence/downloads-desktop.png', fullPage: true });
 
           if (errors.length) throw new Error('Browser errors: ' + errors.join(' | '));
