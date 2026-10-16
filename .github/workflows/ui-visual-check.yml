@@ -410,6 +410,42 @@ jobs:
           const page = await context.newPage();
           page.on('pageerror', error => errors.push(error.message));
           page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+          async function assertAdSlotPlacement(route) {
+            const geometry = await page.evaluate(() => {
+              const slots = [...document.querySelectorAll('#app-ad-slot')];
+              const slot = slots[0];
+              const nav = document.querySelector('.mobile-bottom-nav');
+              const box = element => {
+                const rect = element?.getBoundingClientRect();
+                return rect ? { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right, width: rect.width, height: rect.height } : null;
+              };
+              return {
+                count: slots.length,
+                display: slot ? getComputedStyle(slot).display : 'missing',
+                text: slot?.textContent?.trim(),
+                slot: box(slot),
+                navDisplay: nav ? getComputedStyle(nav).display : 'missing',
+                nav: box(nav),
+                width: document.documentElement.clientWidth,
+                height: window.innerHeight
+              };
+            });
+            if (geometry.count !== 1) throw new Error(route + ': expected one shared ad slot, got ' + geometry.count);
+            if (geometry.width > 760) {
+              if (geometry.display !== 'none') throw new Error(route + ': mobile banner placeholder should be hidden on desktop: ' + JSON.stringify(geometry));
+              return;
+            }
+            if (geometry.display === 'none' || !geometry.slot || !geometry.nav || geometry.navDisplay === 'none') {
+              throw new Error(route + ': mobile ad slot or primary navigation is missing: ' + JSON.stringify(geometry));
+            }
+            const gap = geometry.nav.top - geometry.slot.bottom;
+            if (Math.abs(geometry.slot.height - 50) > 1 || geometry.slot.top < -1 ||
+                geometry.slot.left < -1 || geometry.slot.right > geometry.width + 1 ||
+                gap < -1 || gap > 12 || geometry.nav.bottom > geometry.height + 2) {
+              throw new Error(route + ': ad slot must stay inside the viewport directly above the primary navigation: ' + JSON.stringify({ ...geometry, gap }));
+            }
+            if (!/ADVERTISEMENT/i.test(geometry.text || '')) throw new Error(route + ': the web preview ad placeholder needs its label.');
+          }
           await page.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
 
           // Capture File Library through the actual mobile navigation.
