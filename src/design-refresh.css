@@ -1325,7 +1325,7 @@ button[hidden],.nav-btn[hidden]{display:none!important}
 /* Mobile navigation mirrors the brand-guide bottom bar and keeps each destination reachable. */
 .mobile-bottom-nav{display:none}
 @media(max-width:760px){
-  main{padding-bottom:94px!important}
+  main{padding-bottom:154px!important}
   .mobile-bottom-nav{
     position:fixed;z-index:45;left:50%;bottom:calc(8px + env(safe-area-inset-bottom,0px));
     transform:translateX(-50%);width:calc(100% - 24px);max-width:480px;
@@ -1984,3 +1984,35 @@ button[hidden],.nav-btn[hidden]{display:none!important}
 .dark .editorial-topbar .brand-mark .im-mark-stem,
 .dark .editorial-topbar .brand-mark .im-mark-m{stroke:#F5F7FF!important}
 .dark .editorial-topbar .brand-mark .im-mark-dot{fill:#FFBD45!important}
+
+
+/* Shared mobile banner space above the primary navigation, used on every route. */
+.app-ad-slot{display:none}
+@media(max-width:760px){
+  .app-ad-slot{
+    position:fixed!important;
+    z-index:44!important;
+    left:50%!important;
+    bottom:calc(68px + env(safe-area-inset-bottom,0px))!important;
+    transform:translateX(-50%)!important;
+    display:grid!important;
+    place-items:center!important;
+    width:min(calc(100% - 24px),340px)!important;
+    height:50px!important;
+    min-height:50px!important;
+    box-sizing:border-box!important;
+    overflow:hidden!important;
+    border:1px dashed var(--im-line-strong)!important;
+    border-radius:12px!important;
+    background:rgba(248,250,252,.84)!important;
+    color:var(--im-muted)!important;
+    font-size:9px!important;
+    font-weight:800!important;
+    letter-spacing:.16em!important;
+    line-height:1!important;
+    pointer-events:none!important;
+  }
+  .dark .app-ad-slot{background:rgba(11,18,32,.88)!important;border-color:var(--im-line)!important;color:#94a3b8!important}
+  /* Android displays the actual native AdMob view in this reserved position. */
+  .native-android .app-ad-slot{display:none!important}
+}
