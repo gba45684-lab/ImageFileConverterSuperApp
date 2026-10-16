@@ -1,0 +1,122 @@
+name: ImageMate Android PR Smoke Test
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [audit/full-app-coverage]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Lint JavaScript
+        run: npm run lint
+      - name: Run regression tests
+        run: npm test
+      - name: Build production web app
+        run: npm run build
+      - name: Generate Capacitor Android project
+        run: |
+          npx cap init ImageMate com.gba45684.imagemate --web-dir dist
+          npx cap add android
+          npx cap sync android
+      - name: Configure Google Mobile Ads test app ID
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          manifest = Path("android/app/src/main/AndroidManifest.xml")
+          xml = manifest.read_text()
+          if "com.google.android.gms.ads.APPLICATION_ID" not in xml:
+              xml = xml.replace(
+                  "</application>",
+                  '    <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="@string/admob_app_id" />\n  </application>'
+              )
+              manifest.write_text(xml)
+
+          values = Path("android/app/src/main/res/values/strings.xml")
+          text = values.read_text()
+          if 'name="admob_app_id"' not in text:
+              text = text.replace(
+                  "</resources>",
+                  '    <string name="admob_app_id">ca-app-pub-3940256099942544~3347511713</string>\n</resources>'
+              )
+              values.write_text(text)
+          PY
+      - name: Build debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --stacktrace --no-daemon
+        timeout-minutes: 20
+      - name: Validate debug APK archive and package ID
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          unzip -t "$APK" >/dev/null
+          SDK_DIR="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/android-sdk}}"
+          APKANALYZER="$(find "$SDK_DIR" -type f -name apkanalyzer | sort -V | tail -n 1)"
+          test -n "$APKANALYZER"
+          APP_ID="$("$APKANALYZER" manifest application-id "$APK")"
+          if [[ "$APP_ID" != "com.gba45684.imagemate" ]]; then
+            echo "::error::Unexpected Android package ID: $APP_ID"
+            exit 1
+          fi
+          echo "PASS: debug APK archive is valid and package ID is $APP_ID."
+      - name: Smoke-test install and launch in Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          emulator-boot-timeout: 1200
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: |
+            set -euo pipefail
+            APK="$GITHUB_WORKSPACE/android/app/build/outputs/apk/debug/app-debug.apk"
+            adb install "$APK"
+            adb logcat -c
+            adb shell monkey -p com.gba45684.imagemate -c android.intent.category.LAUNCHER 1
+            sleep 8
+            if ! adb shell pm path com.gba45684.imagemate | tr -d '\r' | grep -q 'package:'; then
+              echo "::error::ImageMate is not installed after emulator smoke test."
+              exit 1
+            fi
+            CRASH_LOG="$(adb logcat -d -s AndroidRuntime:E || true)"
+            if printf '%s\n' "$CRASH_LOG" | grep -F "Process: com.gba45684.imagemate" >/dev/null; then
+              printf '%s\n' "$CRASH_LOG"
+              echo "::error::ImageMate crashed on startup in the Android emulator."
+              exit 1
+            fi
+            echo "PASS: debug APK installed and launched without a detected fatal runtime exception."
+      - name: Upload debug APK for inspection
+        uses: actions/upload-artifact@v4
+        with:
+          name: ImageMate-PR-debug-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
