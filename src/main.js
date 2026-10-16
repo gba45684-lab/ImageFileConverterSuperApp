@@ -12,30 +12,12 @@ import { createIcons, icons } from 'lucide';
 import { initGitHubOta } from './ota.js';
 
 const app=document.querySelector('#app');
-let adSlotResizeBound=false;
-
 function positionSharedAdSlot(){
+  // Keep the common ad placeholder in normal document flow; CSS reserves the
+  // same 50px row on web and (invisible) Android spacer while native AdMob is
+  // aligned above the now-in-flow primary navigation.
   const slot=document.querySelector('#app-ad-slot');
-  const nav=document.querySelector('.mobile-bottom-nav');
-  if(!slot||!nav)return;
-  if(!adSlotResizeBound){
-    adSlotResizeBound=true;
-    window.addEventListener('resize',()=>window.requestAnimationFrame(positionSharedAdSlot),{passive:true});
-  }
-  if(window.innerWidth>760)return;
-  const shell=slot.closest('.shell');
-  if(shell?.classList.contains('tools-catalog-shell')||shell?.classList.contains('settings-view-shell')){
-    // Catalog and Settings already use a flex scroll viewport with an in-flow
-    // nav. Let the slot reserve real layout height between main and nav.
-    slot.style.removeProperty('bottom');
-    return;
-  }
-  const navRect=nav.getBoundingClientRect();
-  if(!navRect.height)return;
-  const bottomOffset=Math.max(0,Math.ceil(window.innerHeight-navRect.top+6));
-  // Home/workspaces use a fixed nav, so align the shared slot to the live
-  // menu rectangle instead of covering the final content row.
-  slot.style.setProperty('bottom',bottomOffset+'px','important');
+  if(slot)slot.style.removeProperty('bottom');
 }
 if(isNativeAndroid()) document.documentElement.classList.add('native-android');
 const UPDATE_API='https://api.github.com/repos/gba45684-lab/ImageFileConverterSuperApp/releases/latest';
