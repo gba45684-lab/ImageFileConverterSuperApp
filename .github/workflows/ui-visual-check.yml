@@ -203,6 +203,7 @@ jobs:
           await page.setViewportSize({ width: 390, height: 844 });
           await page.locator('[data-mobile-tab="settings"]').click();
           await page.getByRole('heading', { name: /^settings$/i }).waitFor();
+          if (await page.locator('.settings-brand-card').count() !== 0) throw new Error('Settings must not repeat the ImageMate brand card beneath its heading.');
           await page.waitForTimeout(650);
           await page.screenshot({ path: 'ui-evidence/settings-mobile-light.png', fullPage: true });
           await page.screenshot({ path: 'ui-evidence/settings-mobile-light-viewport.png' });
@@ -278,10 +279,34 @@ jobs:
             throw new Error('Settings mobile nav/scroll viewport layout is invalid: ' + JSON.stringify(settingsMobileLayout));
           }
           if (settingsMobileLayout.scrollWidth > settingsMobileLayout.width) throw new Error('Settings horizontal overflow at 390px.');
-          await page.locator('#update-setting').uncheck();
-          if (await page.evaluate(() => localStorage.getItem('imagemate-auto-update')) !== '0') throw new Error('Automatic updates OFF state did not persist.');
-          await page.locator('#update-setting').check();
-          if (await page.evaluate(() => localStorage.getItem('imagemate-auto-update')) !== '1') throw new Error('Automatic updates ON state did not persist.');
+          const updateSwitch = page.locator('.settings-card-updates .switch');
+          const updateCheckbox = page.locator('#update-setting');
+          const switchHitArea = await updateSwitch.evaluate(el => {
+            const sw = el.getBoundingClientRect();
+            const input = el.querySelector('input').getBoundingClientRect();
+            return { switchWidth: sw.width, switchHeight: sw.height, inputWidth: input.width, inputHeight: input.height };
+          });
+          if (switchHitArea.inputWidth < switchHitArea.switchWidth - 1 || switchHitArea.inputHeight < switchHitArea.switchHeight - 1) {
+            throw new Error('Automatic update input must cover the entire visible switch track: ' + JSON.stringify(switchHitArea));
+          }
+          await updateSwitch.click({ position: { x: 24, y: 14 } });
+          if (await updateCheckbox.isChecked()) throw new Error('Clicking the visible Automatic Updates track did not switch it OFF.');
+          if (await page.evaluate(() => localStorage.getItem('imagemate-auto-update')) !== '0') throw new Error('Automatic updates OFF state did not persist after a track click.');
+          await updateSwitch.click({ position: { x: 24, y: 14 } });
+          if (!(await updateCheckbox.isChecked())) throw new Error('Clicking the visible Automatic Updates track did not switch it ON.');
+          if (await page.evaluate(() => localStorage.getItem('imagemate-auto-update')) !== '1') throw new Error('Automatic updates ON state did not persist after a track click.');
+          await updateCheckbox.focus();
+          await page.keyboard.press('Space');
+          if (await updateCheckbox.isChecked()) throw new Error('Automatic Updates switch is not keyboard-operable.');
+          await page.keyboard.press('Space');
+          if (!(await updateCheckbox.isChecked())) throw new Error('Automatic Updates switch did not return ON with the keyboard.');
+          await page.reload({ waitUntil: 'networkidle' });
+          await page.locator('[data-mobile-tab="settings"]').click();
+          await page.getByRole('heading', { name: /^settings$/i }).waitFor();
+          if (!(await page.locator('#update-setting').isChecked()) ||
+              await page.evaluate(() => localStorage.getItem('imagemate-auto-update')) !== '1') {
+            throw new Error('Automatic Updates ON state did not survive a full page reload.');
+          }
           let updateDialogText = '';
           page.once('dialog', async dialog => { updateDialogText = dialog.message(); await dialog.accept(); });
           await page.locator('#settings-check-updates').click();
