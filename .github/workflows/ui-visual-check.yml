@@ -70,6 +70,7 @@ jobs:
                 text: slot?.textContent?.trim(),
                 slot: box(slot),
                 navDisplay: nav ? getComputedStyle(nav).display : 'missing',
+                navPosition: nav ? getComputedStyle(nav).position : 'missing',
                 nav: box(nav),
                 main: box(shell?.querySelector(':scope > main')),
                 flowScreen: !!shell,
@@ -84,6 +85,10 @@ jobs:
             }
             if (geometry.display === 'none' || !geometry.slot || !geometry.nav || geometry.navDisplay === 'none') {
               throw new Error(route + ': mobile ad slot or primary navigation is missing: ' + JSON.stringify(geometry));
+            }
+            if (geometry.navPosition !== 'relative' || geometry.nav.left > 1 ||
+                geometry.nav.right < geometry.width - 1 || Math.abs(geometry.nav.bottom - geometry.height) > 2) {
+              throw new Error(route + ': the shared primary navigation must occupy the full viewport width and reach its bottom edge: ' + JSON.stringify(geometry));
             }
             const gap = geometry.nav.top - geometry.slot.bottom;
             if (Math.abs(geometry.slot.height - 50) > 1 || geometry.slot.top < -1 ||
@@ -432,6 +437,7 @@ jobs:
                 text: slot?.textContent?.trim(),
                 slot: box(slot),
                 navDisplay: nav ? getComputedStyle(nav).display : 'missing',
+                navPosition: nav ? getComputedStyle(nav).position : 'missing',
                 nav: box(nav),
                 main: box(shell?.querySelector(':scope > main')),
                 flowScreen: !!shell,
@@ -446,6 +452,10 @@ jobs:
             }
             if (geometry.display === 'none' || !geometry.slot || !geometry.nav || geometry.navDisplay === 'none') {
               throw new Error(route + ': mobile ad slot or primary navigation is missing: ' + JSON.stringify(geometry));
+            }
+            if (geometry.navPosition !== 'relative' || geometry.nav.left > 1 ||
+                geometry.nav.right < geometry.width - 1 || Math.abs(geometry.nav.bottom - geometry.height) > 2) {
+              throw new Error(route + ': the shared primary navigation must occupy the full viewport width and reach its bottom edge: ' + JSON.stringify(geometry));
             }
             const gap = geometry.nav.top - geometry.slot.bottom;
             if (Math.abs(geometry.slot.height - 50) > 1 || geometry.slot.top < -1 ||
