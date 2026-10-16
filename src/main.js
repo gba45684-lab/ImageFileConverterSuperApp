@@ -23,11 +23,18 @@ function positionSharedAdSlot(){
     window.addEventListener('resize',()=>window.requestAnimationFrame(positionSharedAdSlot),{passive:true});
   }
   if(window.innerWidth>760)return;
+  const shell=slot.closest('.shell');
+  if(shell?.classList.contains('tools-catalog-shell')||shell?.classList.contains('settings-view-shell')){
+    // Catalog and Settings already use a flex scroll viewport with an in-flow
+    // nav. Let the slot reserve real layout height between main and nav.
+    slot.style.removeProperty('bottom');
+    return;
+  }
   const navRect=nav.getBoundingClientRect();
   if(!navRect.height)return;
   const bottomOffset=Math.max(0,Math.ceil(window.innerHeight-navRect.top+6));
-  // Match the slot to the actual nav rectangle: Home/workspaces use a fixed
-  // nav, while catalog/Settings lay it out in-flow at the bottom of the shell.
+  // Home/workspaces use a fixed nav, so align the shared slot to the live
+  // menu rectangle instead of covering the final content row.
   slot.style.setProperty('bottom',bottomOffset+'px','important');
 }
 if(isNativeAndroid()) document.documentElement.classList.add('native-android');
