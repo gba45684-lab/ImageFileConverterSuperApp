@@ -1993,7 +1993,7 @@ button[hidden],.nav-btn[hidden]{display:none!important}
     position:fixed!important;
     z-index:44!important;
     left:50%!important;
-    bottom:calc(68px + env(safe-area-inset-bottom,0px))!important;
+    bottom:calc(78px + env(safe-area-inset-bottom,0px))!important;
     transform:translateX(-50%)!important;
     display:grid!important;
     place-items:center!important;
