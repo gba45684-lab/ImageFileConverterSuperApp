@@ -70,6 +70,8 @@ jobs:
                 slot: box(slot),
                 navDisplay: nav ? getComputedStyle(nav).display : 'missing',
                 nav: box(nav),
+                main: box(shell?.querySelector(':scope > main')),
+                flowScreen: !!shell?.matches('.tools-catalog-shell, .settings-view-shell'),
                 width: document.documentElement.clientWidth,
                 height: window.innerHeight
               };
@@ -87,6 +89,9 @@ jobs:
                 geometry.slot.left < -1 || geometry.slot.right > geometry.width + 1 ||
                 gap < -1 || gap > 12 || geometry.nav.bottom > geometry.height + 2) {
               throw new Error(route + ': ad slot must stay inside the viewport directly above the primary navigation: ' + JSON.stringify({ ...geometry, gap }));
+            }
+            if (geometry.flowScreen && (!geometry.main || geometry.main.bottom > geometry.slot.top + 1)) {
+              throw new Error(route + ': Tools/Settings main scroll viewport must end before the in-flow ad slot, not underneath it: ' + JSON.stringify(geometry));
             }
             if (!/ADVERTISEMENT/i.test(geometry.text || '')) throw new Error(route + ': the web preview ad placeholder needs its label.');
           }
