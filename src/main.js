@@ -77,7 +77,7 @@ function render(){
 
   const mobileActive=settingsScreen?'settings':downloads?'files':(task||toolsScreen)?'tools':(S.mobileTab==='tools'?'tools':'home');
   const mobileNav='<nav class="mobile-bottom-nav" aria-label="Primary navigation"><button type="button" data-mobile-tab="home" class="'+(mobileActive==='home'?'active':'')+'" '+(mobileActive==='home'?'aria-current="page"':'')+'><i data-lucide="house"></i><span>Home</span></button><button type="button" data-mobile-tab="tools" class="'+(mobileActive==='tools'?'active':'')+'" '+(mobileActive==='tools'?'aria-current="page"':'')+'><i data-lucide="grid-2x2"></i><span>Tools</span></button><button type="button" data-mobile-tab="files" class="'+(mobileActive==='files'?'active':'')+'" '+(mobileActive==='files'?'aria-current="page"':'')+'><i data-lucide="folder"></i><span>Files</span></button><button type="button" data-mobile-tab="settings" class="'+(mobileActive==='settings'?'active':'')+'" '+(mobileActive==='settings'?'aria-current="page"':'')+'><i data-lucide="settings-2"></i><span>Settings</span></button></nav>';
-  app.innerHTML='<div class="shell '+(S.dark?'dark':'')+'">'+header+'<main>'+content+'<footer>© 2026 ImageMate <span>•</span> Private file tools for everyone</footer></main>'+mobileNav+'</div>';
+  app.innerHTML='<div class="shell '+(S.dark?'dark':'')+(toolsScreen?' tools-catalog-shell':'')+'">'+header+'<main>'+content+'<footer>© 2026 ImageMate <span>•</span> Private file tools for everyone</footer></main>'+mobileNav+'</div>';
   createIcons({ icons, attrs: { 'stroke-width': 1.8 } });
   bind(); settings(); queue();
 

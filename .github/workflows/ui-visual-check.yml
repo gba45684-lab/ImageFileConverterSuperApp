@@ -69,6 +69,13 @@ jobs:
           await page.locator('#see-all-tools').click();
           await page.getByRole('heading', { name: /all tools/i }).waitFor();
           await page.waitForTimeout(650);
+          const catalogAccessibility = await new AxeBuilder({ page }).analyze();
+          if (catalogAccessibility.violations.length) {
+            const details = catalogAccessibility.violations.map(v => v.id + ' (' + v.impact + '): ' + v.help + ' — ' + v.nodes.map(n => n.target.join(', ')).join('; ')).join(' | ');
+            throw new Error('Tools catalog accessibility violations: ' + details);
+          }
+          const searchDirection = await page.locator('.catalog-search').evaluate(el => getComputedStyle(el).flexDirection);
+          if (searchDirection !== 'row') throw new Error('Catalog search icon and input must stay in one horizontal row.');
           await page.screenshot({ path: 'ui-evidence/tools-desktop.png', fullPage: true });
           if (await page.locator('.catalog-tool-row').count() !== 14) throw new Error('Expected all 14 catalog tools.');
           await page.locator('[data-tool-category="Image"]').click();
@@ -82,13 +89,101 @@ jobs:
           if (await page.locator('#catalog-empty').isHidden()) throw new Error('Empty-state message should appear for no matches.');
           await page.locator('#catalog-search').fill('');
           await page.locator('[data-tool-category="All"]').click();
+          const catalogEntries = await page.locator('.catalog-tool-row').evaluateAll(rows => rows.map(row => ({
+            id: row.dataset.tool,
+            title: row.querySelector('.catalog-tool-copy b')?.textContent?.trim()
+          })));
+          if (catalogEntries.length !== 14) throw new Error('Expected 14 catalog entries before selection tests.');
+          for (const entry of catalogEntries) {
+            await page.locator('.catalog-tool-row[data-tool="' + entry.id + '"]').click();
+            await page.getByRole('heading', { name: entry.title, exact: true }).waitFor();
+            await page.locator('#back-home').click();
+            await page.getByRole('heading', { name: /all tools/i }).waitFor();
+          }
           await page.locator('#back-home').click();
           await page.locator('.editorial-home').waitFor();
+          await page.evaluate(() => localStorage.setItem('imagemate-dark', '1'));
+          await page.reload({ waitUntil: 'networkidle' });
+          await page.locator('#see-all-tools').click();
+          await page.getByRole('heading', { name: /all tools/i }).waitFor();
+          await page.waitForTimeout(650);
+          await page.screenshot({ path: 'ui-evidence/tools-desktop-dark.png', fullPage: true });
+          const darkCatalogAccessibility = await new AxeBuilder({ page }).analyze();
+          if (darkCatalogAccessibility.violations.length) {
+            const details = darkCatalogAccessibility.violations.map(v => v.id + ' (' + v.impact + '): ' + v.help + ' — ' + v.nodes.map(n => n.target.join(', ')).join('; ')).join(' | ');
+            throw new Error('Dark Tools catalog accessibility violations: ' + details);
+          }
+          await page.locator('#back-home').click();
+          await page.locator('.editorial-home').waitFor();
+          await page.evaluate(() => localStorage.setItem('imagemate-dark', '0'));
+          await page.reload({ waitUntil: 'networkidle' });
           await page.setViewportSize({ width: 390, height: 844 });
           await page.locator('#see-all-tools').click();
           await page.getByRole('heading', { name: /all tools/i }).waitFor();
           await page.waitForTimeout(650);
           await page.screenshot({ path: 'ui-evidence/tools-mobile.png', fullPage: true });
+          await page.screenshot({ path: 'ui-evidence/tools-mobile-initial-viewport.png' });
+          const catalogMobileLayout = await page.evaluate(() => {
+            const shell = document.querySelector('.tools-catalog-shell');
+            const main = shell?.querySelector(':scope > main');
+            const nav = shell?.querySelector('.mobile-bottom-nav');
+            const search = shell?.querySelector('.catalog-search');
+            const icon = search?.querySelector('svg');
+            const input = search?.querySelector('input');
+            const box = element => { const r = element?.getBoundingClientRect(); return r ? {top:r.top,bottom:r.bottom,left:r.left,right:r.right,height:r.height} : null; };
+            const iconBox = box(icon), inputBox = box(input);
+            return {
+              overflowY: main ? getComputedStyle(main).overflowY : '',
+              shellHeight: shell?.clientHeight, shellScrollHeight: shell?.scrollHeight,
+              mainScrollHeight: main?.scrollHeight, mainClientHeight: main?.clientHeight,
+              mainBox: box(main), navBox: box(nav),
+              searchDirection: search ? getComputedStyle(search).flexDirection : '',
+              iconBox, inputBox,
+              documentWidth: document.documentElement.scrollWidth,
+              viewportWidth: document.documentElement.clientWidth
+            };
+          });
+          if (catalogMobileLayout.overflowY !== 'auto' || !(catalogMobileLayout.mainScrollHeight > catalogMobileLayout.mainClientHeight)) {
+            throw new Error('Mobile catalog must scroll in its own content viewport: ' + JSON.stringify(catalogMobileLayout));
+          }
+          if (!catalogMobileLayout.mainBox || !catalogMobileLayout.navBox || catalogMobileLayout.mainBox.bottom > catalogMobileLayout.navBox.top + 1) {
+            throw new Error('Mobile navigation overlaps the catalog scroll viewport: ' + JSON.stringify(catalogMobileLayout));
+          }
+          if (catalogMobileLayout.searchDirection !== 'row' || !catalogMobileLayout.iconBox || !catalogMobileLayout.inputBox ||
+              Math.abs((catalogMobileLayout.iconBox.top + catalogMobileLayout.iconBox.bottom)/2 - (catalogMobileLayout.inputBox.top + catalogMobileLayout.inputBox.bottom)/2) > 7) {
+            throw new Error('Mobile search icon and input are not vertically aligned in one row: ' + JSON.stringify(catalogMobileLayout));
+          }
+          if (catalogMobileLayout.documentWidth > catalogMobileLayout.viewportWidth) throw new Error('Horizontal overflow at 390px.');
+          await page.locator('.tools-catalog-shell > main').evaluate(el => { el.scrollTop = el.scrollHeight; });
+          await page.waitForTimeout(250);
+          await page.screenshot({ path: 'ui-evidence/tools-mobile-list-bottom.png' });
+          await page.locator('.tools-catalog-shell > main').evaluate(el => { el.scrollTop = 0; });
+          for (const width of [320, 360, 390, 768, 1440]) {
+            await page.setViewportSize({ width, height: 844 });
+            const viewportCheck = await page.evaluate(() => ({ width: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth }));
+            if (viewportCheck.scrollWidth > viewportCheck.width) throw new Error('Catalog horizontal overflow at ' + width + 'px: ' + JSON.stringify(viewportCheck));
+          }
+          await page.setViewportSize({ width: 390, height: 844 });
+          await page.locator('#back-home').click();
+          await page.locator('.editorial-home').waitFor();
+          await page.evaluate(() => localStorage.setItem('imagemate-dark', '1'));
+          await page.reload({ waitUntil: 'networkidle' });
+          await page.locator('#see-all-tools').click();
+          await page.getByRole('heading', { name: /all tools/i }).waitFor();
+          await page.waitForTimeout(500);
+          await page.screenshot({ path: 'ui-evidence/tools-mobile-dark.png', fullPage: true });
+          await page.screenshot({ path: 'ui-evidence/tools-mobile-dark-viewport.png' });
+          const mobileDarkAccessibility = await new AxeBuilder({ page }).analyze();
+          if (mobileDarkAccessibility.violations.length) {
+            const details = mobileDarkAccessibility.violations.map(v => v.id + ' (' + v.impact + '): ' + v.help + ' — ' + v.nodes.map(n => n.target.join(', ')).join('; ')).join(' | ');
+            throw new Error('Dark mobile Tools catalog accessibility violations: ' + details);
+          }
+          await page.locator('#back-home').click();
+          await page.locator('.editorial-home').waitFor();
+          await page.evaluate(() => localStorage.setItem('imagemate-dark', '0'));
+          await page.reload({ waitUntil: 'networkidle' });
+          await page.locator('#see-all-tools').click();
+          await page.getByRole('heading', { name: /all tools/i }).waitFor();
           await page.locator('[data-tool="pdf"]').first().click();
           await page.getByRole('heading', { name: /image to pdf/i }).waitFor();
           await page.waitForTimeout(650);
