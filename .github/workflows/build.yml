@@ -1,18 +1,21 @@
-name: ImageMate Build
+name: ImageMate Build and Quality Gates
 
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
+  schedule:
+    - cron: "17 6 * * 1"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  build:
+  quality:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -20,14 +23,21 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Install dependencies
-        run: npm install
-      - name: Test
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Lint JavaScript safety rules
+        run: npm run lint
+      - name: Run regression tests
         run: npm test
-      - name: Build
+      - name: Build production app
         run: npm run build
-      - name: Upload build artifact
+      - name: Audit dependency vulnerabilities
+        run: npm audit --audit-level=high
+      - name: Upload production build
         uses: actions/upload-artifact@v4
         with:
           name: imagemate-dist
           path: dist
+          if-no-files-found: error
+          retention-days: 14
