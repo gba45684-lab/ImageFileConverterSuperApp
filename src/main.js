@@ -734,6 +734,11 @@ function showResult(title,body){
   if(!workspace)return;
   workspace.insertAdjacentHTML('beforeend','<div class="result-card"><div class="result-head"><b>'+esc(title)+'</b><span class="success"><i data-lucide="circle-check"></i> Done</span></div><div class="result-body">'+body+'</div></div>');
   createIcons({icons,attrs:{'stroke-width':1.8}});
+  const card=workspace.querySelector('.result-card');
+  if(card){
+    const behavior=window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth';
+    requestAnimationFrame(()=>card.scrollIntoView({behavior,block:'start'}));
+  }
 }
 async function convertSpecial(file,kind){
   if(!file)return;
