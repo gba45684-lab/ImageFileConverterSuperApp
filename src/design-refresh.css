@@ -2013,6 +2013,32 @@ button[hidden],.nav-btn[hidden]{display:none!important}
     pointer-events:none!important;
   }
   .dark .app-ad-slot{background:rgba(11,18,32,.88)!important;border-color:var(--im-line)!important;color:#94a3b8!important}
-  /* Android displays the actual native AdMob view in this reserved position. */
+  /* Catalog and Settings keep the ad strip in document flow so it reserves
+     genuine scroll-viewport height between main content and the bottom nav. */
+  .tools-catalog-shell .app-ad-slot,
+  .settings-view-shell .app-ad-slot{
+    position:relative!important;
+    left:auto!important;
+    bottom:auto!important;
+    transform:none!important;
+    align-self:center!important;
+    flex:0 0 50px!important;
+    margin:0 auto 4px!important;
+  }
+  /* Home and tool workspaces use the fixed-nav overlay placement. */
   .native-android .app-ad-slot{display:none!important}
+  /* Keep an invisible native-layout spacer on the in-flow screens so the
+     real AdMob banner can occupy the same reserved space without covering UI. */
+  .native-android .tools-catalog-shell .app-ad-slot,
+  .native-android .settings-view-shell .app-ad-slot{
+    display:grid!important;
+    position:relative!important;
+    left:auto!important;
+    bottom:auto!important;
+    transform:none!important;
+    visibility:hidden!important;
+    flex:0 0 50px!important;
+    height:50px!important;
+    margin:0 auto 4px!important;
+  }
 }
