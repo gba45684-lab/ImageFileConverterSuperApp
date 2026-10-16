@@ -505,7 +505,7 @@ jobs:
           const pdfDownloadPromise = page.waitForEvent('download', { timeout: 45000 });
           await page.locator('#process').click();
           const pdfDownload = await pdfDownloadPromise;
-          if (!/\\.pdf$/i.test(pdfDownload.suggestedFilename())) {
+          if (!/\.pdf$/i.test(pdfDownload.suggestedFilename())) {
             throw new Error('Image-to-PDF workflow did not download a PDF: ' + pdfDownload.suggestedFilename());
           }
           await page.getByText('PDF created', { exact: true }).waitFor({ timeout: 45000 });
@@ -541,7 +541,7 @@ jobs:
           const txtDownloadPromise = page.waitForEvent('download', { timeout: 30000 });
           await page.locator('#download-ocr').click();
           const txtDownload = await txtDownloadPromise;
-          if (!/-ocr\\.txt$/i.test(txtDownload.suggestedFilename())) {
+          if (!/-ocr\.txt$/i.test(txtDownload.suggestedFilename())) {
             throw new Error('OCR export did not download a TXT file: ' + txtDownload.suggestedFilename());
           }
           await assertAdSlotPlacement('OCR result mobile');
