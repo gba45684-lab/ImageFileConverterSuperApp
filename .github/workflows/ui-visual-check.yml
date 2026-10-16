@@ -414,6 +414,8 @@ jobs:
           node --input-type=module <<'NODE'
           import { chromium } from 'playwright';
           import AxeBuilder from '@axe-core/playwright';
+          import { readFile } from 'node:fs/promises';
+          import JSZip from 'jszip';
           const browser = await chromium.launch({ headless: true });
           const errors = [];
           const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, acceptDownloads: true });
@@ -486,11 +488,60 @@ jobs:
           await page.locator('.file-row').waitFor();
           await page.waitForTimeout(650);
           await page.screenshot({ path: 'ui-evidence/workspace-queued-mobile.png', fullPage: true });
+          await page.locator('#format').selectOption('image/png');
+          const conversionDownloadPromise = page.waitForEvent('download', { timeout: 45000 });
           await page.locator('#process').click();
+          const conversionDownload = await conversionDownloadPromise;
+          if (!/\\.png$/i.test(conversionDownload.suggestedFilename())) {
+            throw new Error('PNG conversion returned an unexpected filename: ' + conversionDownload.suggestedFilename());
+          }
+          const conversionPath = await conversionDownload.path();
+          if (!conversionPath) throw new Error('PNG conversion did not produce a readable download file.');
+          const conversionBytes = await readFile(conversionPath);
+          if (conversionBytes.length < 8 || !Buffer.from([137,80,78,71,13,10,26,10]).equals(conversionBytes.subarray(0,8))) {
+            throw new Error('Conversion output did not contain a valid PNG signature.');
+          }
           await page.locator('.result-card').waitFor({ timeout: 45000 });
           await assertAdSlotPlacement('Conversion result mobile');
           await page.waitForTimeout(650);
           await page.screenshot({ path: 'ui-evidence/workspace-result-mobile.png', fullPage: true });
+
+          // Verify batch conversion creates a readable ZIP with two valid PNG files.
+          await page.locator('[data-mobile-tab="home"]').click();
+          await page.locator('#see-all-tools').click();
+          await page.locator('[data-tool="convert"]').click();
+          await page.getByRole('heading', { name: /convert images/i }).waitFor();
+          await page.locator('#format').selectOption('image/png');
+          await page.locator('#file').setInputFiles([
+            { name: 'pixel-batch-a.png', mimeType: 'image/png', buffer: pixel },
+            { name: 'pixel-batch-b.png', mimeType: 'image/png', buffer: pixel }
+          ]);
+          await page.locator('.file-row').nth(1).waitFor();
+          if (await page.locator('.file-row').count() !== 2) throw new Error('Batch conversion did not queue both image files.');
+          await page.locator('#zip').waitFor();
+          const zipDownloadPromise = page.waitForEvent('download', { timeout: 45000 });
+          await page.locator('#zip').click();
+          const zipDownload = await zipDownloadPromise;
+          if (!/imagemate-convert-batch\\.zip$/i.test(zipDownload.suggestedFilename())) {
+            throw new Error('Batch conversion returned an unexpected ZIP filename: ' + zipDownload.suggestedFilename());
+          }
+          const zipPath = await zipDownload.path();
+          if (!zipPath) throw new Error('Batch conversion did not produce a readable ZIP download.');
+          const zipBytes = await readFile(zipPath);
+          if (zipBytes.length < 22 || zipBytes[0] !== 0x50 || zipBytes[1] !== 0x4b) {
+            throw new Error('Batch conversion download is not a ZIP archive.');
+          }
+          const batchZip = await JSZip.loadAsync(zipBytes);
+          const batchFiles = Object.values(batchZip.files).filter(file => !file.dir);
+          if (batchFiles.length !== 2) throw new Error('Batch ZIP must contain two output files, got ' + batchFiles.length);
+          for (const file of batchFiles) {
+            const bytes = await file.async('uint8array');
+            if (!Buffer.from([137,80,78,71,13,10,26,10]).equals(Buffer.from(bytes).subarray(0,8))) {
+              throw new Error('Batch ZIP entry is not a valid PNG: ' + file.name);
+            }
+          }
+          await page.locator('#clear').click();
+          if (await page.locator('.file-row').count() !== 0) throw new Error('Clear did not empty the batch conversion queue.');
 
           // Verify image-to-PDF processing and that the generated PDF is downloaded.
           await page.locator('[data-mobile-tab="home"]').click();
@@ -506,6 +557,12 @@ jobs:
           const pdfDownload = await pdfDownloadPromise;
           if (!/\.pdf$/i.test(pdfDownload.suggestedFilename())) {
             throw new Error('Image-to-PDF workflow did not download a PDF: ' + pdfDownload.suggestedFilename());
+          }
+          const pdfPath = await pdfDownload.path();
+          if (!pdfPath) throw new Error('Image-to-PDF did not produce a readable download file.');
+          const pdfBytes = await readFile(pdfPath);
+          if (pdfBytes.length < 100 || pdfBytes.subarray(0,5).toString('ascii') !== '%PDF-') {
+            throw new Error('Image-to-PDF download does not contain a valid PDF header.');
           }
           await page.getByText('PDF created', { exact: true }).waitFor({ timeout: 45000 });
           await page.screenshot({ path: 'ui-evidence/workspace-pdf-result-mobile.png', fullPage: true });
@@ -543,6 +600,12 @@ jobs:
           const txtDownload = await txtDownloadPromise;
           if (!/-ocr\.txt$/i.test(txtDownload.suggestedFilename())) {
             throw new Error('OCR export did not download a TXT file: ' + txtDownload.suggestedFilename());
+          }
+          const txtPath = await txtDownload.path();
+          if (!txtPath) throw new Error('OCR export did not produce a readable TXT download.');
+          const exportedText = await readFile(txtPath, 'utf8');
+          if (!exportedText.toUpperCase().replace(/[^A-Z0-9]/g, '').includes('IMAGEMATETEST123')) {
+            throw new Error('OCR TXT export does not contain the complete expected text.');
           }
           await assertAdSlotPlacement('OCR result mobile');
           await page.screenshot({ path: 'ui-evidence/workspace-ocr-result-mobile.png', fullPage: true });
