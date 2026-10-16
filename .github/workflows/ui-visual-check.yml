@@ -26,12 +26,11 @@ jobs:
         with:
           node-version: 22
       - name: Install app dependencies
-        run: npm install
+        run: npm ci --no-audit --no-fund
       - name: Build production app
         run: npm run build
       - name: Install Playwright
         run: |
-          npm install --no-save playwright
           npx playwright install --with-deps chromium
       - name: Start production preview
         run: |
@@ -48,16 +47,91 @@ jobs:
           mkdir -p ui-evidence
           node --input-type=module <<'NODE'
           import { chromium } from 'playwright';
+          import AxeBuilder from '@axe-core/playwright';
           const browser = await chromium.launch({ headless: true });
           const errors = [];
-          const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
+          const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
+          const page = await context.newPage();
           page.on('pageerror', error => errors.push(error.message));
+          async function assertAdSlotPlacement(route) {
+            const geometry = await page.evaluate(() => {
+              const slots = [...document.querySelectorAll('#app-ad-slot')];
+              const slot = slots[0];
+              const nav = document.querySelector('.mobile-bottom-nav');
+              const shell = document.querySelector('.shell');
+              const box = element => {
+                const rect = element?.getBoundingClientRect();
+                return rect ? { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right, width: rect.width, height: rect.height } : null;
+              };
+              return {
+                count: slots.length,
+                display: slot ? getComputedStyle(slot).display : 'missing',
+                text: slot?.textContent?.trim(),
+                slot: box(slot),
+                navDisplay: nav ? getComputedStyle(nav).display : 'missing',
+                navPosition: nav ? getComputedStyle(nav).position : 'missing',
+                nav: box(nav),
+                main: box(shell?.querySelector(':scope > main')),
+                flowScreen: !!shell,
+                width: document.documentElement.clientWidth,
+                height: window.innerHeight
+              };
+            });
+            if (geometry.count !== 1) throw new Error(route + ': expected one shared ad slot, got ' + geometry.count);
+            if (geometry.width > 760) {
+              if (geometry.display !== 'none') throw new Error(route + ': bottom-nav ad slot should be hidden when the mobile menu is not shown: ' + JSON.stringify(geometry));
+              return;
+            }
+            if (geometry.display === 'none' || !geometry.slot || !geometry.nav || geometry.navDisplay === 'none') {
+              throw new Error(route + ': mobile ad slot or primary navigation is missing: ' + JSON.stringify(geometry));
+            }
+            if (geometry.navPosition !== 'relative' || geometry.nav.left > 1 ||
+                geometry.nav.right < geometry.width - 1 || Math.abs(geometry.nav.bottom - geometry.height) > 2) {
+              throw new Error(route + ': the shared primary navigation must occupy the full viewport width and reach its bottom edge: ' + JSON.stringify(geometry));
+            }
+            const gap = geometry.nav.top - geometry.slot.bottom;
+            if (Math.abs(geometry.slot.height - 50) > 1 || geometry.slot.top < -1 ||
+                geometry.slot.left < -1 || geometry.slot.right > geometry.width + 1 ||
+                gap < -1 || gap > 12 || geometry.nav.bottom > geometry.height + 2) {
+              throw new Error(route + ': ad slot must stay inside the viewport directly above the primary navigation: ' + JSON.stringify({ ...geometry, gap }));
+            }
+            if (geometry.flowScreen && (!geometry.main || geometry.main.bottom > geometry.slot.top + 1)) {
+              throw new Error(route + ': Tools/Settings main scroll viewport must end before the in-flow ad slot, not underneath it: ' + JSON.stringify(geometry));
+            }
+            if (!/ADVERTISEMENT/i.test(geometry.text || '')) throw new Error(route + ': the web preview ad placeholder needs its label.');
+          }
+
           await page.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
+          await page.evaluate(() => {
+            localStorage.removeItem('imagemate-quality');
+            localStorage.removeItem('imagemate-format');
+            localStorage.removeItem('imagemate-auto-update');
+            localStorage.setItem('imagemate-dark', '0');
+          });
+          await page.reload({ waitUntil: 'networkidle' });
+          await page.waitForTimeout(650);
+          const homeAccessibility = await new AxeBuilder({ page }).analyze();
+          if (homeAccessibility.violations.length) {
+            const details = homeAccessibility.violations.map(v => v.id + ' (' + v.impact + '): ' + v.help + ' — ' + v.nodes.map(n => n.target.join(', ')).join('; ')).join(' | ');
+            throw new Error('Home accessibility violations: ' + details);
+          }
+          const seeAllLabel = (await page.locator('#see-all-tools').innerText()).trim();
+          if (seeAllLabel !== 'See All') throw new Error('Home See All control must match the approved title-case copy; received: ' + seeAllLabel);
+          await assertAdSlotPlacement('Home desktop');
           await page.screenshot({ path: 'ui-evidence/home-desktop.png', fullPage: true });
           await page.locator('[data-hero-slide="2"]').click();
           if (await page.locator('[data-hero-slide="2"]').getAttribute('aria-pressed') !== 'true') throw new Error('Home highlight control did not update aria-pressed.');
           await page.locator('#see-all-tools').click();
           await page.getByRole('heading', { name: /all tools/i }).waitFor();
+          await assertAdSlotPlacement('Tools catalog desktop');
+          await page.waitForTimeout(650);
+          const catalogAccessibility = await new AxeBuilder({ page }).analyze();
+          if (catalogAccessibility.violations.length) {
+            const details = catalogAccessibility.violations.map(v => v.id + ' (' + v.impact + '): ' + v.help + ' — ' + v.nodes.map(n => n.target.join(', ')).join('; ')).join(' | ');
+            throw new Error('Tools catalog accessibility violations: ' + details);
+          }
+          const searchDirection = await page.locator('.catalog-search').evaluate(el => getComputedStyle(el).flexDirection);
+          if (searchDirection !== 'row') throw new Error('Catalog search icon and input must stay in one horizontal row.');
           await page.screenshot({ path: 'ui-evidence/tools-desktop.png', fullPage: true });
           if (await page.locator('.catalog-tool-row').count() !== 14) throw new Error('Expected all 14 catalog tools.');
           await page.locator('[data-tool-category="Image"]').click();
@@ -71,36 +145,512 @@ jobs:
           if (await page.locator('#catalog-empty').isHidden()) throw new Error('Empty-state message should appear for no matches.');
           await page.locator('#catalog-search').fill('');
           await page.locator('[data-tool-category="All"]').click();
+          const catalogEntries = await page.locator('.catalog-tool-row').evaluateAll(rows => rows.map(row => ({
+            id: row.dataset.tool,
+            title: row.querySelector('.catalog-tool-copy b')?.textContent?.trim()
+          })));
+          if (catalogEntries.length !== 14) throw new Error('Expected 14 catalog entries before selection tests.');
+          for (const entry of catalogEntries) {
+            await page.locator('.catalog-tool-row[data-tool="' + entry.id + '"]').click();
+            await page.getByRole('heading', { name: entry.title, exact: true }).waitFor();
+            await page.locator('#back-home').click();
+            await page.getByRole('heading', { name: /all tools/i }).waitFor();
+          }
           await page.locator('#back-home').click();
           await page.locator('.editorial-home').waitFor();
-          await page.setViewportSize({ width: 390, height: 844 });
+          await page.evaluate(() => localStorage.setItem('imagemate-dark', '1'));
+          await page.reload({ waitUntil: 'networkidle' });
           await page.locator('#see-all-tools').click();
           await page.getByRole('heading', { name: /all tools/i }).waitFor();
-          await page.waitForTimeout(250);
+          await page.waitForTimeout(650);
+          await page.screenshot({ path: 'ui-evidence/tools-desktop-dark.png', fullPage: true });
+          const darkCatalogAccessibility = await new AxeBuilder({ page }).analyze();
+          if (darkCatalogAccessibility.violations.length) {
+            const details = darkCatalogAccessibility.violations.map(v => v.id + ' (' + v.impact + '): ' + v.help + ' — ' + v.nodes.map(n => n.target.join(', ')).join('; ')).join(' | ');
+            throw new Error('Dark Tools catalog accessibility violations: ' + details);
+          }
+          await page.locator('#back-home').click();
+          await page.locator('.editorial-home').waitFor();
+          await page.evaluate(() => localStorage.setItem('imagemate-dark', '0'));
+          await page.reload({ waitUntil: 'networkidle' });
+          await page.setViewportSize({ width: 390, height: 844 });
+          await assertAdSlotPlacement('Home mobile');
+          await page.locator('#see-all-tools').click();
+          await page.getByRole('heading', { name: /all tools/i }).waitFor();
+          await assertAdSlotPlacement('Tools catalog mobile');
+          await page.waitForTimeout(650);
           await page.screenshot({ path: 'ui-evidence/tools-mobile.png', fullPage: true });
+          await page.screenshot({ path: 'ui-evidence/tools-mobile-initial-viewport.png' });
+          const catalogMobileLayout = await page.evaluate(() => {
+            const shell = document.querySelector('.tools-catalog-shell');
+            const main = shell?.querySelector(':scope > main');
+            const nav = shell?.querySelector('.mobile-bottom-nav');
+            const search = shell?.querySelector('.catalog-search');
+            const icon = search?.querySelector('svg');
+            const input = search?.querySelector('input');
+            const box = element => { const r = element?.getBoundingClientRect(); return r ? {top:r.top,bottom:r.bottom,left:r.left,right:r.right,height:r.height} : null; };
+            const iconBox = box(icon), inputBox = box(input);
+            return {
+              overflowY: main ? getComputedStyle(main).overflowY : '',
+              shellHeight: shell?.clientHeight, shellScrollHeight: shell?.scrollHeight,
+              mainScrollHeight: main?.scrollHeight, mainClientHeight: main?.clientHeight,
+              mainBox: box(main), navBox: box(nav),
+              searchDirection: search ? getComputedStyle(search).flexDirection : '',
+              iconBox, inputBox,
+              documentWidth: document.documentElement.scrollWidth,
+              viewportWidth: document.documentElement.clientWidth,
+              viewportHeight: window.innerHeight
+            };
+          });
+          if (catalogMobileLayout.overflowY !== 'auto' || !(catalogMobileLayout.mainScrollHeight > catalogMobileLayout.mainClientHeight)) {
+            throw new Error('Mobile catalog must scroll in its own content viewport: ' + JSON.stringify(catalogMobileLayout));
+          }
+          if (!catalogMobileLayout.mainBox || !catalogMobileLayout.navBox || catalogMobileLayout.mainBox.bottom > catalogMobileLayout.navBox.top + 1) {
+            throw new Error('Mobile navigation overlaps the catalog scroll viewport: ' + JSON.stringify(catalogMobileLayout));
+          }
+          if (catalogMobileLayout.navBox.bottom < catalogMobileLayout.viewportHeight - 2) {
+            throw new Error('Mobile catalog navigation is not anchored to the bottom safe area: ' + JSON.stringify(catalogMobileLayout));
+          }
+          if (catalogMobileLayout.searchDirection !== 'row' || !catalogMobileLayout.iconBox || !catalogMobileLayout.inputBox ||
+              Math.abs((catalogMobileLayout.iconBox.top + catalogMobileLayout.iconBox.bottom)/2 - (catalogMobileLayout.inputBox.top + catalogMobileLayout.inputBox.bottom)/2) > 7) {
+            throw new Error('Mobile search icon and input are not vertically aligned in one row: ' + JSON.stringify(catalogMobileLayout));
+          }
+          if (catalogMobileLayout.documentWidth > catalogMobileLayout.viewportWidth) throw new Error('Horizontal overflow at 390px.');
+          await page.locator('.tools-catalog-shell > main').evaluate(el => { el.scrollTop = el.scrollHeight; });
+          await page.waitForTimeout(250);
+          await page.screenshot({ path: 'ui-evidence/tools-mobile-list-bottom.png' });
+          await page.locator('.tools-catalog-shell > main').evaluate(el => { el.scrollTop = 0; });
+          for (const width of [320, 360, 390, 768, 1440]) {
+            await page.setViewportSize({ width, height: 844 });
+            await assertAdSlotPlacement('Tools catalog ' + width + 'px');
+            const viewportCheck = await page.evaluate(() => ({ width: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth }));
+            if (viewportCheck.scrollWidth > viewportCheck.width) throw new Error('Catalog horizontal overflow at ' + width + 'px: ' + JSON.stringify(viewportCheck));
+          }
+          await page.setViewportSize({ width: 390, height: 844 });
+          await page.locator('#back-home').click();
+          await page.locator('.editorial-home').waitFor();
+          await page.evaluate(() => localStorage.setItem('imagemate-dark', '1'));
+          await page.reload({ waitUntil: 'networkidle' });
+          await page.locator('#see-all-tools').click();
+          await page.getByRole('heading', { name: /all tools/i }).waitFor();
+          await page.waitForTimeout(500);
+          await page.screenshot({ path: 'ui-evidence/tools-mobile-dark.png', fullPage: true });
+          await page.screenshot({ path: 'ui-evidence/tools-mobile-dark-viewport.png' });
+          const mobileDarkAccessibility = await new AxeBuilder({ page }).analyze();
+          if (mobileDarkAccessibility.violations.length) {
+            const details = mobileDarkAccessibility.violations.map(v => v.id + ' (' + v.impact + '): ' + v.help + ' — ' + v.nodes.map(n => n.target.join(', ')).join('; ')).join(' | ');
+            throw new Error('Dark mobile Tools catalog accessibility violations: ' + details);
+          }
+          await page.locator('#back-home').click();
+          await page.locator('.editorial-home').waitFor();
+          await page.evaluate(() => localStorage.setItem('imagemate-dark', '0'));
+          await page.reload({ waitUntil: 'networkidle' });
+          await page.locator('#see-all-tools').click();
+          await page.getByRole('heading', { name: /all tools/i }).waitFor();
           await page.locator('[data-tool="pdf"]').first().click();
           await page.getByRole('heading', { name: /image to pdf/i }).waitFor();
+          await assertAdSlotPlacement('Dedicated tool workspace mobile');
+          if (await page.locator('.workspace .ad-slot').count() !== 0) throw new Error('Old workspace-only ad placeholder must not duplicate the shared slot.');
+          await page.waitForTimeout(650);
           await page.locator('[data-mobile-tab="home"]').click();
           await page.locator('.editorial-home').waitFor();
+          await page.setViewportSize({ width: 390, height: 844 });
           await page.locator('[data-mobile-tab="settings"]').click();
           await page.getByRole('heading', { name: /^settings$/i }).waitFor();
-          await page.screenshot({ path: 'ui-evidence/settings-mobile.png', fullPage: true });
-          await page.locator('#settings-theme-toggle').click();
+          await assertAdSlotPlacement('Settings mobile');
+          if (await page.locator('.settings-brand-card').count() !== 0) throw new Error('Settings must not repeat the ImageMate brand card beneath its heading.');
+          await page.waitForTimeout(650);
+          await page.screenshot({ path: 'ui-evidence/settings-mobile-light.png', fullPage: true });
+          await page.screenshot({ path: 'ui-evidence/settings-mobile-light-viewport.png' });
+          if (await page.locator('#default-quality-value').textContent() !== '88%' ||
+              await page.locator('#default-quality').inputValue() !== '88') {
+            throw new Error('Missing quality preference must default to 88%, not ' + await page.locator('#default-quality-value').textContent());
+          }
+          await page.evaluate(() => localStorage.setItem('imagemate-quality', 'invalid'));
+          await page.reload({ waitUntil: 'networkidle' });
+          await page.locator('[data-mobile-tab="settings"]').click();
           await page.getByRole('heading', { name: /^settings$/i }).waitFor();
+          if (await page.locator('#default-quality-value').textContent() !== '88%' ||
+              await page.locator('#default-quality').inputValue() !== '88') {
+            throw new Error('Invalid quality preference must safely default to 88%.');
+          }
+          const settingsA11yLight = await new AxeBuilder({ page }).analyze();
+          if (settingsA11yLight.violations.length) {
+            const details = settingsA11yLight.violations.map(v => v.id + ' (' + v.impact + '): ' + v.help + ' — ' + v.nodes.map(n => n.target.join(', ')).join('; ')).join(' | ');
+            throw new Error('Settings light accessibility violations: ' + details);
+          }
+          await page.locator('#default-format').selectOption('image/jpeg');
           await page.locator('#default-quality').fill('75');
           if (await page.locator('#default-quality-value').textContent() !== '75%') throw new Error('Settings quality slider did not update its displayed value.');
+          const storedProcessing = await page.evaluate(() => ({
+            format: localStorage.getItem('imagemate-format'),
+            quality: localStorage.getItem('imagemate-quality')
+          }));
+          if (storedProcessing.format !== 'image/jpeg' || storedProcessing.quality !== '0.75') {
+            throw new Error('Format/quality were not persisted: ' + JSON.stringify(storedProcessing));
+          }
+
+          await page.locator('#settings-theme-toggle').click();
+          await page.locator('.settings-view-shell.dark').waitFor();
+          await page.waitForTimeout(650); // Capture the settled wordmark, not its entrance animation frame.
+          await page.screenshot({ path: 'ui-evidence/settings-mobile-dark.png', fullPage: true });
+          await page.screenshot({ path: 'ui-evidence/settings-mobile-dark-viewport.png' });
+          const darkWordmarkFill = await page.locator('.editorial-topbar .brand-wordmark').evaluate(el => ({
+            image: getComputedStyle(el.querySelector('.brand-word-image')).webkitTextFillColor,
+            mate: getComputedStyle(el.querySelector('.brand-word-mate')).webkitTextFillColor
+          }));
+          if (darkWordmarkFill.image !== 'rgb(243, 246, 255)' || darkWordmarkFill.mate !== 'rgb(196, 181, 253)') {
+            throw new Error('Dark Settings wordmark text fill must remain high-contrast: ' + JSON.stringify(darkWordmarkFill));
+          }
+          const settingsA11yDark = await new AxeBuilder({ page }).analyze();
+          if (settingsA11yDark.violations.length) {
+            const details = settingsA11yDark.violations.map(v => v.id + ' (' + v.impact + '): ' + v.help + ' — ' + v.nodes.map(n => n.target.join(', ')).join('; ')).join(' | ');
+            throw new Error('Settings dark accessibility violations: ' + details);
+          }
+          await page.reload({ waitUntil: 'networkidle' });
+          await page.locator('[data-mobile-tab="settings"]').click();
+          await page.getByRole('heading', { name: /^settings$/i }).waitFor();
+          if (await page.locator('#default-format').inputValue() !== 'image/jpeg' ||
+              await page.locator('#default-quality').inputValue() !== '75' ||
+              await page.evaluate(() => localStorage.getItem('imagemate-dark')) !== '1') {
+            throw new Error('Settings preferences did not survive reload.');
+          }
+          const settingsMobileLayout = await page.evaluate(() => {
+            const shell = document.querySelector('.settings-view-shell');
+            const main = shell?.querySelector(':scope > main');
+            const nav = shell?.querySelector('.mobile-bottom-nav');
+            const box = el => { const r = el?.getBoundingClientRect(); return r ? {top:r.top,bottom:r.bottom,height:r.height} : null; };
+            return {
+              mainOverflowY: main ? getComputedStyle(main).overflowY : '',
+              mainBox: box(main), navBox: box(nav),
+              mainScrollHeight: main?.scrollHeight, mainClientHeight: main?.clientHeight,
+              width: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth,
+              height: window.innerHeight
+            };
+          });
+          if (settingsMobileLayout.mainOverflowY !== 'auto' || !settingsMobileLayout.mainBox || !settingsMobileLayout.navBox ||
+              settingsMobileLayout.mainBox.bottom > settingsMobileLayout.navBox.top + 1 ||
+              settingsMobileLayout.navBox.bottom < settingsMobileLayout.height - 2) {
+            throw new Error('Settings mobile nav/scroll viewport layout is invalid: ' + JSON.stringify(settingsMobileLayout));
+          }
+          if (settingsMobileLayout.scrollWidth > settingsMobileLayout.width) throw new Error('Settings horizontal overflow at 390px.');
+          const updateSwitch = page.locator('.settings-card-updates .switch');
+          const updateCheckbox = page.locator('#update-setting');
+          const switchHitArea = await updateSwitch.evaluate(el => {
+            const sw = el.getBoundingClientRect();
+            const input = el.querySelector('input').getBoundingClientRect();
+            const track = el.querySelector('span').getBoundingClientRect();
+            return { switchWidth: sw.width, switchHeight: sw.height, inputWidth: input.width, inputHeight: input.height, trackWidth: track.width, trackHeight: track.height };
+          });
+          if (Math.abs(switchHitArea.switchWidth - 48) > 1 || Math.abs(switchHitArea.switchHeight - 28) > 1 ||
+              switchHitArea.inputWidth < switchHitArea.switchWidth - 1 || switchHitArea.inputHeight < switchHitArea.switchHeight - 1 ||
+              Math.abs(switchHitArea.trackWidth - switchHitArea.switchWidth) > 1 || Math.abs(switchHitArea.trackHeight - switchHitArea.switchHeight) > 1) {
+            throw new Error('Automatic Updates must render as a compact 48×28px track with a full-size hit target: ' + JSON.stringify(switchHitArea));
+          }
+          await updateSwitch.click({ position: { x: 24, y: 14 } });
+          if (await updateCheckbox.isChecked()) throw new Error('Clicking the visible Automatic Updates track did not switch it OFF.');
+          if (await page.evaluate(() => localStorage.getItem('imagemate-auto-update')) !== '0') throw new Error('Automatic updates OFF state did not persist after a track click.');
+          await updateSwitch.click({ position: { x: 24, y: 14 } });
+          if (!(await updateCheckbox.isChecked())) throw new Error('Clicking the visible Automatic Updates track did not switch it ON.');
+          if (await page.evaluate(() => localStorage.getItem('imagemate-auto-update')) !== '1') throw new Error('Automatic updates ON state did not persist after a track click.');
+          await updateCheckbox.focus();
+          await page.keyboard.press('Space');
+          if (await updateCheckbox.isChecked()) throw new Error('Automatic Updates switch is not keyboard-operable.');
+          await page.keyboard.press('Space');
+          if (!(await updateCheckbox.isChecked())) throw new Error('Automatic Updates switch did not return ON with the keyboard.');
+          await page.reload({ waitUntil: 'networkidle' });
+          await page.locator('[data-mobile-tab="settings"]').click();
+          await page.getByRole('heading', { name: /^settings$/i }).waitFor();
+          if (!(await page.locator('#update-setting').isChecked()) ||
+              await page.evaluate(() => localStorage.getItem('imagemate-auto-update')) !== '1') {
+            throw new Error('Automatic Updates ON state did not survive a full page reload.');
+          }
+          let updateDialogText = '';
+          page.once('dialog', async dialog => { updateDialogText = dialog.message(); await dialog.accept(); });
+          await page.locator('#settings-check-updates').click();
+          if (!updateDialogText.includes('Android app')) throw new Error('Web Check now must explain that manual refresh is available in Android.');
+          await page.locator('#open-downloads').click();
+          await page.getByRole('heading', { name: /downloaded files/i }).waitFor();
+          await page.locator('#back-home').click();
+          await page.getByRole('heading', { name: /^settings$/i }).waitFor();
           await page.locator('#back-settings').click();
           await page.locator('.editorial-home').waitFor();
+          await page.evaluate(() => localStorage.setItem('imagemate-dark', '0'));
+          await page.reload({ waitUntil: 'networkidle' });
           await page.waitForTimeout(650);
           await page.screenshot({ path: 'ui-evidence/home-mobile.png', fullPage: true });
           await page.evaluate(() => localStorage.setItem('imagemate-dark', '1'));
           await page.reload({ waitUntil: 'networkidle' });
+          await page.waitForTimeout(650);
+          await page.screenshot({ path: 'ui-evidence/home-mobile-dark.png', fullPage: true });
+          await page.locator('#settings-btn').click();
+          await page.getByRole('heading', { name: /^settings$/i }).waitFor();
+          for (const width of [320, 360, 390, 768, 1440]) {
+            await page.setViewportSize({ width, height: 844 });
+            await assertAdSlotPlacement('Settings ' + width + 'px');
+            const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+            if (overflow) throw new Error('Horizontal overflow at viewport width ' + width + 'px while on Settings.');
+          }
+          await page.locator('#back-settings').click();
+          await page.locator('.editorial-home').waitFor();
+          await page.evaluate(() => localStorage.setItem('imagemate-dark', '0'));
+          await page.reload({ waitUntil: 'networkidle' });
+          await page.waitForTimeout(650);
+          await page.screenshot({ path: 'ui-evidence/home-mobile.png', fullPage: true });
+          await page.evaluate(() => localStorage.setItem('imagemate-dark', '1'));
+          await page.reload({ waitUntil: 'networkidle' });
+          await page.waitForTimeout(650);
           await page.screenshot({ path: 'ui-evidence/home-mobile-dark.png', fullPage: true });
           for (const width of [320, 360, 390, 768, 1440]) {
             await page.setViewportSize({ width, height: 844 });
             const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
             if (overflow) throw new Error('Horizontal overflow at viewport width ' + width + 'px.');
           }
+          if (errors.length) throw new Error('Browser errors: ' + errors.join(' | '));
+          await browser.close();
+          NODE
+      - name: Capture workspace, library, and desktop settings flows
+        run: |
+          node --input-type=module <<'NODE'
+          import { chromium } from 'playwright';
+          import AxeBuilder from '@axe-core/playwright';
+          import { readFile } from 'node:fs/promises';
+          import JSZip from 'jszip';
+          const browser = await chromium.launch({ headless: true });
+          const errors = [];
+          const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, acceptDownloads: true });
+          const page = await context.newPage();
+          page.on('pageerror', error => errors.push(error.message));
+          page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+          async function assertAdSlotPlacement(route) {
+            const geometry = await page.evaluate(() => {
+              const slots = [...document.querySelectorAll('#app-ad-slot')];
+              const slot = slots[0];
+              const nav = document.querySelector('.mobile-bottom-nav');
+              const shell = document.querySelector('.shell');
+              const box = element => {
+                const rect = element?.getBoundingClientRect();
+                return rect ? { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right, width: rect.width, height: rect.height } : null;
+              };
+              return {
+                count: slots.length,
+                display: slot ? getComputedStyle(slot).display : 'missing',
+                text: slot?.textContent?.trim(),
+                slot: box(slot),
+                navDisplay: nav ? getComputedStyle(nav).display : 'missing',
+                navPosition: nav ? getComputedStyle(nav).position : 'missing',
+                nav: box(nav),
+                main: box(shell?.querySelector(':scope > main')),
+                flowScreen: !!shell,
+                width: document.documentElement.clientWidth,
+                height: window.innerHeight
+              };
+            });
+            if (geometry.count !== 1) throw new Error(route + ': expected one shared ad slot, got ' + geometry.count);
+            if (geometry.width > 760) {
+              if (geometry.display !== 'none') throw new Error(route + ': mobile banner placeholder should be hidden on desktop: ' + JSON.stringify(geometry));
+              return;
+            }
+            if (geometry.display === 'none' || !geometry.slot || !geometry.nav || geometry.navDisplay === 'none') {
+              throw new Error(route + ': mobile ad slot or primary navigation is missing: ' + JSON.stringify(geometry));
+            }
+            if (geometry.navPosition !== 'relative' || geometry.nav.left > 1 ||
+                geometry.nav.right < geometry.width - 1 || Math.abs(geometry.nav.bottom - geometry.height) > 2) {
+              throw new Error(route + ': the shared primary navigation must occupy the full viewport width and reach its bottom edge: ' + JSON.stringify(geometry));
+            }
+            const gap = geometry.nav.top - geometry.slot.bottom;
+            if (Math.abs(geometry.slot.height - 50) > 1 || geometry.slot.top < -1 ||
+                geometry.slot.left < -1 || geometry.slot.right > geometry.width + 1 ||
+                gap < -1 || gap > 12 || geometry.nav.bottom > geometry.height + 2) {
+              throw new Error(route + ': ad slot must stay inside the viewport directly above the primary navigation: ' + JSON.stringify({ ...geometry, gap }));
+            }
+            if (!/ADVERTISEMENT/i.test(geometry.text || '')) throw new Error(route + ': the web preview ad placeholder needs its label.');
+          }
+          await page.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
+
+          // Capture File Library through the actual mobile navigation.
+          await page.locator('[data-mobile-tab="files"]').click();
+          await page.getByRole('heading', { name: /downloaded files/i }).waitFor();
+          await assertAdSlotPlacement('File Library mobile');
+          await page.waitForTimeout(650);
+          await page.screenshot({ path: 'ui-evidence/downloads-mobile.png', fullPage: true });
+
+          // Validate and capture a complete image-conversion happy path with a tiny local fixture.
+          await page.locator('[data-mobile-tab="home"]').click();
+          await page.locator('#see-all-tools').click();
+          await page.locator('[data-tool="convert"]').click();
+          await page.getByRole('heading', { name: /convert images/i }).waitFor();
+          await assertAdSlotPlacement('Image conversion workspace mobile');
+          await page.waitForTimeout(650);
+          await page.screenshot({ path: 'ui-evidence/workspace-empty-mobile.png', fullPage: true });
+          const pixel = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=', 'base64');
+          await page.locator('#file').setInputFiles({ name: 'pixel.png', mimeType: 'image/png', buffer: pixel });
+          await page.locator('.file-row').waitFor();
+          await page.waitForTimeout(650);
+          await page.screenshot({ path: 'ui-evidence/workspace-queued-mobile.png', fullPage: true });
+          await page.locator('#format').selectOption('image/png');
+          const conversionDownloadPromise = page.waitForEvent('download', { timeout: 45000 });
+          await page.locator('#process').click();
+          const conversionDownload = await conversionDownloadPromise;
+          if (!/\.png$/i.test(conversionDownload.suggestedFilename())) {
+            throw new Error('PNG conversion returned an unexpected filename: ' + conversionDownload.suggestedFilename());
+          }
+          const conversionPath = await conversionDownload.path();
+          if (!conversionPath) throw new Error('PNG conversion did not produce a readable download file.');
+          const conversionBytes = await readFile(conversionPath);
+          if (conversionBytes.length < 8 || !Buffer.from([137,80,78,71,13,10,26,10]).equals(conversionBytes.subarray(0,8))) {
+            throw new Error('Conversion output did not contain a valid PNG signature.');
+          }
+          await page.locator('.result-card').waitFor({ timeout: 45000 });
+          await page.waitForFunction(() => {
+            const header = document.querySelector('.result-card .result-head');
+            const main = document.querySelector('.shell > main');
+            if (!header || !main) return false;
+            const headerRect = header.getBoundingClientRect();
+            const mainRect = main.getBoundingClientRect();
+            return headerRect.top >= mainRect.top - 1 && headerRect.bottom <= mainRect.bottom + 1;
+          }, null, { timeout: 5000 });
+          await assertAdSlotPlacement('Conversion result mobile');
+          await page.waitForTimeout(650);
+          await page.screenshot({ path: 'ui-evidence/workspace-result-mobile.png', fullPage: true });
+
+          // Verify batch conversion creates a readable ZIP with two valid PNG files.
+          await page.locator('[data-mobile-tab="home"]').click();
+          await page.locator('#see-all-tools').click();
+          await page.locator('[data-tool="convert"]').click();
+          await page.getByRole('heading', { name: /convert images/i }).waitFor();
+          await page.locator('#format').selectOption('image/png');
+          await page.locator('#file').setInputFiles([
+            { name: 'pixel-batch-a.png', mimeType: 'image/png', buffer: pixel },
+            { name: 'pixel-batch-b.png', mimeType: 'image/png', buffer: pixel }
+          ]);
+          await page.locator('.file-row').nth(1).waitFor();
+          if (await page.locator('.file-row').count() !== 2) throw new Error('Batch conversion did not queue both image files.');
+          await page.locator('#zip').waitFor();
+          const zipDownloadPromise = page.waitForEvent('download', { timeout: 45000 });
+          await page.locator('#zip').click();
+          const zipDownload = await zipDownloadPromise;
+          if (!/imagemate-convert-batch\.zip$/i.test(zipDownload.suggestedFilename())) {
+            throw new Error('Batch conversion returned an unexpected ZIP filename: ' + zipDownload.suggestedFilename());
+          }
+          const zipPath = await zipDownload.path();
+          if (!zipPath) throw new Error('Batch conversion did not produce a readable ZIP download.');
+          const zipBytes = await readFile(zipPath);
+          if (zipBytes.length < 22 || zipBytes[0] !== 0x50 || zipBytes[1] !== 0x4b) {
+            throw new Error('Batch conversion download is not a ZIP archive.');
+          }
+          const batchZip = await JSZip.loadAsync(zipBytes);
+          const batchFiles = Object.values(batchZip.files).filter(file => !file.dir);
+          if (batchFiles.length !== 2) throw new Error('Batch ZIP must contain two output files, got ' + batchFiles.length);
+          for (const file of batchFiles) {
+            const bytes = await file.async('uint8array');
+            if (!Buffer.from([137,80,78,71,13,10,26,10]).equals(Buffer.from(bytes).subarray(0,8))) {
+              throw new Error('Batch ZIP entry is not a valid PNG: ' + file.name);
+            }
+          }
+          await page.locator('#clear').click();
+          if (await page.locator('.file-row').count() !== 0) throw new Error('Clear did not empty the batch conversion queue.');
+
+          // Verify image-to-PDF processing and that the generated PDF is downloaded.
+          await page.locator('[data-mobile-tab="home"]').click();
+          await page.locator('#see-all-tools').click();
+          await page.locator('[data-tool="pdf"]').click();
+          await page.getByRole('heading', { name: /image to pdf/i }).waitFor();
+          await assertAdSlotPlacement('Image-to-PDF workspace mobile');
+          await page.locator('#file').setInputFiles({ name: 'pixel.png', mimeType: 'image/png', buffer: pixel });
+          await page.locator('.file-row').waitFor();
+          await page.locator('#process').waitFor();
+          const pdfDownloadPromise = page.waitForEvent('download', { timeout: 45000 });
+          await page.locator('#process').click();
+          const pdfDownload = await pdfDownloadPromise;
+          if (!/\.pdf$/i.test(pdfDownload.suggestedFilename())) {
+            throw new Error('Image-to-PDF workflow did not download a PDF: ' + pdfDownload.suggestedFilename());
+          }
+          const pdfPath = await pdfDownload.path();
+          if (!pdfPath) throw new Error('Image-to-PDF did not produce a readable download file.');
+          const pdfBytes = await readFile(pdfPath);
+          if (pdfBytes.length < 100 || pdfBytes.subarray(0,5).toString('ascii') !== '%PDF-') {
+            throw new Error('Image-to-PDF download does not contain a valid PDF header.');
+          }
+          await page.getByText('PDF created', { exact: true }).waitFor({ timeout: 45000 });
+          await page.waitForFunction(() => {
+            const header = document.querySelector('.result-card .result-head');
+            const main = document.querySelector('.shell > main');
+            if (!header || !main) return false;
+            const headerRect = header.getBoundingClientRect();
+            const mainRect = main.getBoundingClientRect();
+            return headerRect.top >= mainRect.top - 1 && headerRect.bottom <= mainRect.bottom + 1;
+          }, null, { timeout: 5000 });
+          await page.screenshot({ path: 'ui-evidence/workspace-pdf-result-mobile.png', fullPage: true });
+
+          // Exercise OCR with a high-contrast local fixture and verify the TXT export.
+          await page.locator('[data-mobile-tab="home"]').click();
+          await page.locator('#see-all-tools').click();
+          await page.locator('[data-tool="ocr"]').click();
+          await page.getByRole('heading', { name: /ocr text/i }).waitFor();
+          await assertAdSlotPlacement('OCR workspace mobile');
+          const ocrBase64 = await page.evaluate(() => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1400; canvas.height = 320;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#000000'; ctx.font = 'bold 100px Arial';
+            ctx.textBaseline = 'middle'; ctx.fillText('IMAGEMATE TEST 123', 35, 160);
+            return canvas.toDataURL('image/png').split(',')[1];
+          });
+          await page.locator('#file').setInputFiles({
+            name: 'imagemate-ocr-test.png',
+            mimeType: 'image/png',
+            buffer: Buffer.from(ocrBase64, 'base64')
+          });
+          await page.locator('.file-row').waitFor();
+          await page.locator('#process').click();
+          await page.locator('#ocr-output').waitFor({ timeout: 120000 });
+          const ocrText = (await page.locator('#ocr-output').inputValue()).trim();
+          const normalizedOcr = ocrText.toUpperCase().replace(/[^A-Z0-9]/g, '');
+          if (!ocrText || /No text detected/i.test(ocrText) || !normalizedOcr.includes('IMAGEMATETEST123')) {
+            throw new Error('OCR did not extract the complete expected text "IMAGEMATE TEST 123". Actual output: ' + JSON.stringify(ocrText));
+          }
+          const txtDownloadPromise = page.waitForEvent('download', { timeout: 30000 });
+          await page.locator('#download-ocr').click();
+          const txtDownload = await txtDownloadPromise;
+          if (!/-ocr\.txt$/i.test(txtDownload.suggestedFilename())) {
+            throw new Error('OCR export did not download a TXT file: ' + txtDownload.suggestedFilename());
+          }
+          const txtPath = await txtDownload.path();
+          if (!txtPath) throw new Error('OCR export did not produce a readable TXT download.');
+          const exportedText = await readFile(txtPath, 'utf8');
+          if (!exportedText.toUpperCase().replace(/[^A-Z0-9]/g, '').includes('IMAGEMATETEST123')) {
+            throw new Error('OCR TXT export does not contain the complete expected text.');
+          }
+          await page.waitForFunction(() => {
+            const header = document.querySelector('.result-card .result-head');
+            const main = document.querySelector('.shell > main');
+            if (!header || !main) return false;
+            const headerRect = header.getBoundingClientRect();
+            const mainRect = main.getBoundingClientRect();
+            return headerRect.top >= mainRect.top - 1 && headerRect.bottom <= mainRect.bottom + 1;
+          }, null, { timeout: 5000 });
+          await assertAdSlotPlacement('OCR result mobile');
+          await page.screenshot({ path: 'ui-evidence/workspace-ocr-result-mobile.png', fullPage: true });
+
+          // Capture Settings and the File Library on desktop at the same checked commit.
+          await page.setViewportSize({ width: 1440, height: 1000 });
+          await page.locator('#settings-btn').click();
+          await page.getByRole('heading', { name: /^settings$/i }).waitFor();
+          await assertAdSlotPlacement('Settings desktop');
+          await page.waitForTimeout(650);
+          await page.screenshot({ path: 'ui-evidence/settings-desktop.png', fullPage: true });
+          const settingsDesktopA11y = await new AxeBuilder({ page }).analyze();
+          if (settingsDesktopA11y.violations.length) {
+            const details = settingsDesktopA11y.violations.map(v => v.id + ' (' + v.impact + '): ' + v.help + ' — ' + v.nodes.map(n => n.target.join(', ')).join('; ')).join(' | ');
+            throw new Error('Settings desktop accessibility violations: ' + details);
+          }
+          await page.locator('#open-downloads').click();
+          await page.getByRole('heading', { name: /downloaded files/i }).waitFor();
+          await page.waitForTimeout(650);
+          await page.screenshot({ path: 'ui-evidence/downloads-desktop.png', fullPage: true });
+
           if (errors.length) throw new Error('Browser errors: ' + errors.join(' | '));
           await browser.close();
           NODE

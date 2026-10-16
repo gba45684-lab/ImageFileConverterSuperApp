@@ -41,3 +41,69 @@
 }
 @media(max-width:360px){.editorial-home{width:calc(100% - 22px)!important}.editorial-hero{padding:18px 12px!important;grid-template-columns:minmax(0,1fr) 108px!important}.editorial-hero h1{font-size:27px!important}.hero-art{transform:scale(.82)!important}.editorial-tool-grid{gap:6px!important}.editorial-tool{padding:8px!important;min-height:90px!important}.editorial-tool b{font-size:10px!important}.editorial-view-all{font-size:11px!important;padding:6px!important}}
 @media(prefers-reduced-motion:reduce){.editorial-home .editorial-hero,.editorial-home .editorial-tools-head,.editorial-home .editorial-tool{animation:none!important}.editorial-tool,.hero-image,.hero-page-dot,.mobile-bottom-nav button{transition:none!important}}
+
+
+/* Final shared layout override: home-interactions loads this stylesheet after
+   the app shell styles, so keep all routes consistent with the reserved ad row. */
+@media(max-width:760px){
+  .shell{
+    height:100vh!important;
+    height:100dvh!important;
+    min-height:0!important;
+    display:flex!important;
+    flex-direction:column!important;
+    overflow:hidden!important;
+    padding-bottom:0!important;
+  }
+  .shell>.editorial-topbar{
+    position:relative!important;
+    top:auto!important;
+    flex:0 0 auto!important;
+  }
+  .shell>main{
+    flex:1 1 auto!important;
+    min-height:0!important;
+    overflow-x:hidden!important;
+    overflow-y:auto!important;
+    overscroll-behavior-y:contain!important;
+    -webkit-overflow-scrolling:touch!important;
+    padding-bottom:12px!important;
+  }
+  .shell .editorial-home{min-height:0!important}
+  .shell .app-ad-slot{
+    position:relative!important;
+    inset:auto!important;
+    transform:none!important;
+    z-index:auto!important;
+    align-self:center!important;
+    flex:0 0 50px!important;
+    height:50px!important;
+    min-height:50px!important;
+    margin:0 auto 4px!important;
+  }
+  .shell .mobile-bottom-nav{
+    position:relative!important;
+    inset:auto!important;
+    transform:none!important;
+    z-index:auto!important;
+    width:100%!important;
+    max-width:none!important;
+    min-width:0!important;
+    align-self:stretch!important;
+    flex:0 0 auto!important;
+    margin:0!important;
+    border:0!important;
+    border-top:1px solid var(--im-line)!important;
+    border-radius:0!important;
+    padding:7px 12px calc(7px + env(safe-area-inset-bottom,0px))!important;
+    background:rgba(255,255,255,.97)!important;
+    box-shadow:none!important;
+    backdrop-filter:blur(16px)!important;
+    -webkit-backdrop-filter:blur(16px)!important;
+  }
+  .shell.dark .mobile-bottom-nav{
+    background:rgba(11,18,32,.97)!important;
+    border-top-color:rgba(181,197,225,.13)!important;
+  }
+  .native-android .shell>main{padding-bottom:12px!important}
+}

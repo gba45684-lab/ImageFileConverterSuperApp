@@ -35,10 +35,10 @@ jobs:
           echo "Building ImageMate v${VERSION}"
 
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
-      - name: Test update popup behavior
-        run: npm test
+      - name: Run lint, regression tests, and security audit
+        run: npm run lint && npm test && npm audit --audit-level=high
 
       - name: Inject Android version into web updater
         env:

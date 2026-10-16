@@ -1,0 +1,127 @@
+name: ImageMate Android PR Smoke Test
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Lint JavaScript
+        run: npm run lint
+      - name: Run regression tests
+        run: npm test
+      - name: Build production web app
+        run: npm run build
+      - name: Read Android smoke-test version
+        id: version
+        shell: bash
+        run: |
+          BASE_VERSION="$(node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).version")"
+          VERSION="${BASE_VERSION}.pr.${GITHUB_RUN_NUMBER}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Testing ImageMate version ${VERSION}"
+      - name: Generate Capacitor Android project
+        run: |
+          npx cap init ImageMate com.gba45684.imagemate --web-dir dist
+          npx cap add android
+      - name: Apply native launcher, manifest and updater from the release workflow
+        shell: bash
+        env:
+          APP_VERSION: ${{ steps.version.outputs.version }}
+          IMAGEMATE_SIGNING_READY: "false"
+        run: |
+          set -euo pipefail
+          bash .github/scripts/run-android-workflow-step.sh "Apply ImageMate Option 7 native launcher icon"
+          bash .github/scripts/run-android-workflow-step.sh "Configure Android"
+          bash .github/scripts/run-android-workflow-step.sh "Install updater bridge"
+          npx cap sync android
+      - name: Build debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --stacktrace --no-daemon
+        timeout-minutes: 20
+      - name: Validate debug APK archive, package ID and version metadata
+        shell: bash
+        env:
+          APP_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          unzip -t "$APK" >/dev/null
+          SDK_DIR="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/android-sdk}}"
+          APKANALYZER="$(command -v apkanalyzer || true)"
+          if [[ -z "$APKANALYZER" ]]; then
+            APKANALYZER="$(find "$SDK_DIR/cmdline-tools" -type f -name apkanalyzer -print -quit 2>/dev/null || true)"
+          fi
+          if [[ -z "$APKANALYZER" ]]; then
+            echo "::error::Could not locate apkanalyzer in Android SDK command-line tools."
+            exit 1
+          fi
+          APP_ID="$("$APKANALYZER" manifest application-id "$APK")"
+          VERSION_NAME="$("$APKANALYZER" manifest version-name "$APK")"
+          VERSION_CODE="$("$APKANALYZER" manifest version-code "$APK")"
+          if [[ "$APP_ID" != "com.gba45684.imagemate" ]]; then
+            echo "::error::Unexpected Android package ID: $APP_ID"
+            exit 1
+          fi
+          if [[ "$VERSION_NAME" != "$APP_VERSION" ]]; then
+            echo "::error::Unexpected APK versionName: $VERSION_NAME"
+            exit 1
+          fi
+          if [[ "$VERSION_CODE" != "$GITHUB_RUN_NUMBER" ]]; then
+            echo "::error::Unexpected APK versionCode: $VERSION_CODE"
+            exit 1
+          fi
+          echo "PASS: APK archive, package ID, versionName and versionCode are valid."
+      - name: Enable KVM for Android emulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          if [[ -c /dev/kvm ]]; then
+            ls -l /dev/kvm
+            echo "KVM device is present; emulator should use hardware acceleration."
+          else
+            echo "::warning::/dev/kvm is unavailable on this runner. Emulator may boot slowly; timeout has been increased."
+          fi
+      - name: Smoke-test install and launch in Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          emulator-boot-timeout: 1200
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: GITHUB_WORKSPACE="${{ github.workspace }}" APK_RELATIVE_PATH=android/app/build/outputs/apk/debug/app-debug.apk bash "${{ github.workspace }}/.github/scripts/android-emulator-smoke-test.sh"
+      - name: Upload debug APK for inspection
+        uses: actions/upload-artifact@v4
+        with:
+          name: ImageMate-PR-debug-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7

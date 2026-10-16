@@ -7,14 +7,16 @@
     "dev": "vite",
     "build": "vite build",
     "test": "node --test tests/*.test.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "eslint src tests",
+    "check": "npm run lint && npm test && npm run build"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",
     "@capacitor/core": "^8.5.2",
     "@capacitor-community/admob": "^8.2.1",
     "heic2any": "^0.0.4",
-    "jspdf": "^3.0.3",
+    "jspdf": "^4.2.1",
     "jszip": "^3.10.1",
     "pdfjs-dist": "^6.4.299",
     "tesseract.js": "^7.0.0",
@@ -22,7 +24,17 @@
     "@capawesome/capacitor-live-update": "^8.2.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
     "@capacitor/cli": "^8.5.2",
+    "eslint": "^9.35.0",
+    "playwright": "^1.56.1",
     "vite": "^7.1.9"
+  },
+  "overrides": {
+    "@capacitor/cli": {
+      "xcode": {
+        "uuid": "^11.1.1"
+      }
+    }
   }
 }
