@@ -4,6 +4,7 @@
 .settings-page-head .privacy{justify-self:end!important;white-space:nowrap!important}
 .settings-screen{width:min(calc(100% - 40px),980px)!important;margin:0 auto 40px!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px!important;align-items:stretch!important}
 .settings-screen .settings-card{display:grid!important;grid-template-columns:42px minmax(0,1fr) auto!important;align-items:start!important;gap:12px!important;min-width:0!important;margin:0!important;padding:19px!important;border:1px solid var(--im-line)!important;border-radius:18px!important;background:var(--im-surface)!important;box-shadow:0 4px 16px rgba(31,41,80,.035)!important}
+.settings-screen .settings-card-updates{grid-template-columns:42px minmax(0,1fr) 48px!important}
 .settings-screen .settings-card-processing{grid-row:span 2!important;grid-template-columns:42px minmax(0,1fr)!important}
 .settings-screen .settings-icon{width:42px!important;height:42px!important;display:grid!important;place-items:center!important;border-radius:13px!important;background:rgba(99,102,241,.10)!important;color:var(--im-home-indigo,#6366f1)!important}
 .settings-screen .settings-icon svg{width:20px!important;height:20px!important}
@@ -18,7 +19,7 @@
 .settings-screen .settings-action svg{width:14px!important;height:14px!important}
 .settings-screen .settings-card-appearance,.settings-screen .settings-card-updates,.settings-screen .settings-card-check-updates,.settings-screen .settings-card-library,.settings-screen .settings-card-about{align-items:center!important}
 .settings-screen .settings-card-appearance .settings-action,.settings-screen .settings-card-check-updates .settings-action,.settings-screen .settings-card-library .settings-action{grid-column:2/-1!important}
-.settings-screen .settings-card-updates .switch{display:block!important;position:relative!important;grid-column:3!important;grid-row:1!important;align-self:center!important;justify-self:end!important;margin:0!important;width:48px!important;height:28px!important;flex:0 0 48px!important;cursor:pointer!important}
+.settings-screen .settings-card-updates .switch{display:block!important;position:relative!important;grid-column:3!important;grid-row:1!important;align-self:center!important;justify-self:end!important;margin:0!important;width:48px!important;min-width:48px!important;max-width:48px!important;height:28px!important;min-height:28px!important;max-height:28px!important;flex:0 0 48px!important;cursor:pointer!important}
 .settings-screen .settings-card-updates .switch input{position:absolute!important;inset:0!important;z-index:2!important;width:100%!important;height:100%!important;min-width:100%!important;min-height:100%!important;opacity:0!important;margin:0!important;cursor:pointer!important;appearance:none!important}
 .settings-screen .settings-card-updates .switch span{position:absolute!important;inset:0!important;pointer-events:none!important;z-index:1!important}
 .settings-screen .settings-card-updates .switch input:focus-visible+span{outline:3px solid rgba(99,102,241,.62)!important;outline-offset:3px!important}
@@ -32,7 +33,7 @@
  
  .settings-screen .settings-card{padding:16px!important;border-radius:16px!important}.settings-screen .settings-card-processing{grid-row:auto!important}
 }
-@media(max-width:390px){.settings-screen .settings-card{grid-template-columns:36px minmax(0,1fr) auto!important;gap:10px!important;padding:14px!important}.settings-screen .settings-icon{width:36px!important;height:36px!important}.settings-screen .settings-card-processing{grid-template-columns:36px minmax(0,1fr)!important}}
+@media(max-width:390px){.settings-screen .settings-card{grid-template-columns:36px minmax(0,1fr) auto!important;gap:10px!important;padding:14px!important}.settings-screen .settings-icon{width:36px!important;height:36px!important}.settings-screen .settings-card-processing{grid-template-columns:36px minmax(0,1fr)!important}.settings-screen .settings-card-updates{grid-template-columns:36px minmax(0,1fr) 48px!important}}
 @media(prefers-reduced-motion:reduce){.settings-screen *{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 
 
