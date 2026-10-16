@@ -238,6 +238,13 @@ jobs:
           await page.locator('.settings-view-shell.dark').waitFor();
           await page.screenshot({ path: 'ui-evidence/settings-mobile-dark.png', fullPage: true });
           await page.screenshot({ path: 'ui-evidence/settings-mobile-dark-viewport.png' });
+          const darkWordmarkFill = await page.locator('.editorial-topbar .brand-wordmark').evaluate(el => ({
+            image: getComputedStyle(el.querySelector('.brand-word-image')).webkitTextFillColor,
+            mate: getComputedStyle(el.querySelector('.brand-word-mate')).webkitTextFillColor
+          }));
+          if (darkWordmarkFill.image !== 'rgb(243, 246, 255)' || darkWordmarkFill.mate !== 'rgb(196, 181, 253)') {
+            throw new Error('Dark Settings wordmark text fill must remain high-contrast: ' + JSON.stringify(darkWordmarkFill));
+          }
           const settingsA11yDark = await new AxeBuilder({ page }).analyze();
           if (settingsA11yDark.violations.length) {
             const details = settingsA11yDark.violations.map(v => v.id + ' (' + v.impact + '): ' + v.help + ' — ' + v.nodes.map(n => n.target.join(', ')).join('; ')).join(' | ');
