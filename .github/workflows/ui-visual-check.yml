@@ -140,7 +140,8 @@ jobs:
               searchDirection: search ? getComputedStyle(search).flexDirection : '',
               iconBox, inputBox,
               documentWidth: document.documentElement.scrollWidth,
-              viewportWidth: document.documentElement.clientWidth
+              viewportWidth: document.documentElement.clientWidth,
+              viewportHeight: window.innerHeight
             };
           });
           if (catalogMobileLayout.overflowY !== 'auto' || !(catalogMobileLayout.mainScrollHeight > catalogMobileLayout.mainClientHeight)) {
@@ -148,6 +149,9 @@ jobs:
           }
           if (!catalogMobileLayout.mainBox || !catalogMobileLayout.navBox || catalogMobileLayout.mainBox.bottom > catalogMobileLayout.navBox.top + 1) {
             throw new Error('Mobile navigation overlaps the catalog scroll viewport: ' + JSON.stringify(catalogMobileLayout));
+          }
+          if (catalogMobileLayout.navBox.bottom < catalogMobileLayout.viewportHeight - 2) {
+            throw new Error('Mobile catalog navigation is not anchored to the bottom safe area: ' + JSON.stringify(catalogMobileLayout));
           }
           if (catalogMobileLayout.searchDirection !== 'row' || !catalogMobileLayout.iconBox || !catalogMobileLayout.inputBox ||
               Math.abs((catalogMobileLayout.iconBox.top + catalogMobileLayout.iconBox.bottom)/2 - (catalogMobileLayout.inputBox.top + catalogMobileLayout.inputBox.bottom)/2) > 7) {
