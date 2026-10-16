@@ -60,7 +60,7 @@
     overflow-y:auto!important;
     overscroll-behavior-y:contain;
     -webkit-overflow-scrolling:touch;
-    padding-bottom:68px!important;
+    padding-bottom:12px!important;
   }
   .settings-view-shell .settings-page-head{
     margin-top:12px!important;
