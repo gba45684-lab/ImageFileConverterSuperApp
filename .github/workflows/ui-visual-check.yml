@@ -236,6 +236,7 @@ jobs:
 
           await page.locator('#settings-theme-toggle').click();
           await page.locator('.settings-view-shell.dark').waitFor();
+          await page.waitForTimeout(650); // Capture the settled wordmark, not its entrance animation frame.
           await page.screenshot({ path: 'ui-evidence/settings-mobile-dark.png', fullPage: true });
           await page.screenshot({ path: 'ui-evidence/settings-mobile-dark-viewport.png' });
           const darkWordmarkFill = await page.locator('.editorial-topbar .brand-wordmark').evaluate(el => ({
