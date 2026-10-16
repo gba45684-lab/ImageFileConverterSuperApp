@@ -54,6 +54,43 @@ jobs:
           const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
           const page = await context.newPage();
           page.on('pageerror', error => errors.push(error.message));
+          async function assertAdSlotPlacement(route) {
+            const geometry = await page.evaluate(() => {
+              const slots = [...document.querySelectorAll('#app-ad-slot')];
+              const slot = slots[0];
+              const nav = document.querySelector('.mobile-bottom-nav');
+              const box = element => {
+                const rect = element?.getBoundingClientRect();
+                return rect ? { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right, width: rect.width, height: rect.height } : null;
+              };
+              return {
+                count: slots.length,
+                display: slot ? getComputedStyle(slot).display : 'missing',
+                text: slot?.textContent?.trim(),
+                slot: box(slot),
+                navDisplay: nav ? getComputedStyle(nav).display : 'missing',
+                nav: box(nav),
+                width: document.documentElement.clientWidth,
+                height: window.innerHeight
+              };
+            });
+            if (geometry.count !== 1) throw new Error(route + ': expected one shared ad slot, got ' + geometry.count);
+            if (geometry.width > 760) {
+              if (geometry.display !== 'none') throw new Error(route + ': bottom-nav ad slot should be hidden when the mobile menu is not shown: ' + JSON.stringify(geometry));
+              return;
+            }
+            if (geometry.display === 'none' || !geometry.slot || !geometry.nav || geometry.navDisplay === 'none') {
+              throw new Error(route + ': mobile ad slot or primary navigation is missing: ' + JSON.stringify(geometry));
+            }
+            const gap = geometry.nav.top - geometry.slot.bottom;
+            if (Math.abs(geometry.slot.height - 50) > 1 || geometry.slot.top < -1 ||
+                geometry.slot.left < -1 || geometry.slot.right > geometry.width + 1 ||
+                gap < -1 || gap > 12 || geometry.nav.bottom > geometry.height + 2) {
+              throw new Error(route + ': ad slot must stay inside the viewport directly above the primary navigation: ' + JSON.stringify({ ...geometry, gap }));
+            }
+            if (!/ADVERTISEMENT/i.test(geometry.text || '')) throw new Error(route + ': the web preview ad placeholder needs its label.');
+          }
+
           await page.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
           await page.evaluate(() => {
             localStorage.removeItem('imagemate-quality');
@@ -70,11 +107,13 @@ jobs:
           }
           const seeAllLabel = (await page.locator('#see-all-tools').innerText()).trim();
           if (seeAllLabel !== 'See All') throw new Error('Home See All control must match the approved title-case copy; received: ' + seeAllLabel);
+          await assertAdSlotPlacement('Home desktop');
           await page.screenshot({ path: 'ui-evidence/home-desktop.png', fullPage: true });
           await page.locator('[data-hero-slide="2"]').click();
           if (await page.locator('[data-hero-slide="2"]').getAttribute('aria-pressed') !== 'true') throw new Error('Home highlight control did not update aria-pressed.');
           await page.locator('#see-all-tools').click();
           await page.getByRole('heading', { name: /all tools/i }).waitFor();
+          await assertAdSlotPlacement('Tools catalog desktop');
           await page.waitForTimeout(650);
           const catalogAccessibility = await new AxeBuilder({ page }).analyze();
           if (catalogAccessibility.violations.length) {
@@ -125,8 +164,10 @@ jobs:
           await page.evaluate(() => localStorage.setItem('imagemate-dark', '0'));
           await page.reload({ waitUntil: 'networkidle' });
           await page.setViewportSize({ width: 390, height: 844 });
+          await assertAdSlotPlacement('Home mobile');
           await page.locator('#see-all-tools').click();
           await page.getByRole('heading', { name: /all tools/i }).waitFor();
+          await assertAdSlotPlacement('Tools catalog mobile');
           await page.waitForTimeout(650);
           await page.screenshot({ path: 'ui-evidence/tools-mobile.png', fullPage: true });
           await page.screenshot({ path: 'ui-evidence/tools-mobile-initial-viewport.png' });
@@ -171,6 +212,7 @@ jobs:
           await page.locator('.tools-catalog-shell > main').evaluate(el => { el.scrollTop = 0; });
           for (const width of [320, 360, 390, 768, 1440]) {
             await page.setViewportSize({ width, height: 844 });
+            await assertAdSlotPlacement('Tools catalog ' + width + 'px');
             const viewportCheck = await page.evaluate(() => ({ width: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth }));
             if (viewportCheck.scrollWidth > viewportCheck.width) throw new Error('Catalog horizontal overflow at ' + width + 'px: ' + JSON.stringify(viewportCheck));
           }
@@ -197,12 +239,15 @@ jobs:
           await page.getByRole('heading', { name: /all tools/i }).waitFor();
           await page.locator('[data-tool="pdf"]').first().click();
           await page.getByRole('heading', { name: /image to pdf/i }).waitFor();
+          await assertAdSlotPlacement('Dedicated tool workspace mobile');
+          if (await page.locator('.workspace .ad-slot').count() !== 0) throw new Error('Old workspace-only ad placeholder must not duplicate the shared slot.');
           await page.waitForTimeout(650);
           await page.locator('[data-mobile-tab="home"]').click();
           await page.locator('.editorial-home').waitFor();
           await page.setViewportSize({ width: 390, height: 844 });
           await page.locator('[data-mobile-tab="settings"]').click();
           await page.getByRole('heading', { name: /^settings$/i }).waitFor();
+          await assertAdSlotPlacement('Settings mobile');
           if (await page.locator('.settings-brand-card').count() !== 0) throw new Error('Settings must not repeat the ImageMate brand card beneath its heading.');
           await page.waitForTimeout(650);
           await page.screenshot({ path: 'ui-evidence/settings-mobile-light.png', fullPage: true });
@@ -332,6 +377,7 @@ jobs:
           await page.getByRole('heading', { name: /^settings$/i }).waitFor();
           for (const width of [320, 360, 390, 768, 1440]) {
             await page.setViewportSize({ width, height: 844 });
+            await assertAdSlotPlacement('Settings ' + width + 'px');
             const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
             if (overflow) throw new Error('Horizontal overflow at viewport width ' + width + 'px while on Settings.');
           }
@@ -369,6 +415,7 @@ jobs:
           // Capture File Library through the actual mobile navigation.
           await page.locator('[data-mobile-tab="files"]').click();
           await page.getByRole('heading', { name: /downloaded files/i }).waitFor();
+          await assertAdSlotPlacement('File Library mobile');
           await page.waitForTimeout(650);
           await page.screenshot({ path: 'ui-evidence/downloads-mobile.png', fullPage: true });
 
@@ -377,6 +424,7 @@ jobs:
           await page.locator('#see-all-tools').click();
           await page.locator('[data-tool="convert"]').click();
           await page.getByRole('heading', { name: /convert images/i }).waitFor();
+          await assertAdSlotPlacement('Image conversion workspace mobile');
           await page.waitForTimeout(650);
           await page.screenshot({ path: 'ui-evidence/workspace-empty-mobile.png', fullPage: true });
           const pixel = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=', 'base64');
@@ -386,6 +434,7 @@ jobs:
           await page.screenshot({ path: 'ui-evidence/workspace-queued-mobile.png', fullPage: true });
           await page.locator('#process').click();
           await page.locator('.result-card').waitFor({ timeout: 45000 });
+          await assertAdSlotPlacement('Conversion result mobile');
           await page.waitForTimeout(650);
           await page.screenshot({ path: 'ui-evidence/workspace-result-mobile.png', fullPage: true });
 
@@ -393,6 +442,7 @@ jobs:
           await page.setViewportSize({ width: 1440, height: 1000 });
           await page.locator('#settings-btn').click();
           await page.getByRole('heading', { name: /^settings$/i }).waitFor();
+          await assertAdSlotPlacement('Settings desktop');
           await page.waitForTimeout(650);
           await page.screenshot({ path: 'ui-evidence/settings-desktop.png', fullPage: true });
           const settingsDesktopA11y = await new AxeBuilder({ page }).analyze();
