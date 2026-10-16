@@ -502,6 +502,14 @@ jobs:
             throw new Error('Conversion output did not contain a valid PNG signature.');
           }
           await page.locator('.result-card').waitFor({ timeout: 45000 });
+          await page.waitForFunction(() => {
+            const header = document.querySelector('.result-card .result-head');
+            const main = document.querySelector('.shell > main');
+            if (!header || !main) return false;
+            const headerRect = header.getBoundingClientRect();
+            const mainRect = main.getBoundingClientRect();
+            return headerRect.top >= mainRect.top - 1 && headerRect.bottom <= mainRect.bottom + 1;
+          }, null, { timeout: 5000 });
           await assertAdSlotPlacement('Conversion result mobile');
           await page.waitForTimeout(650);
           await page.screenshot({ path: 'ui-evidence/workspace-result-mobile.png', fullPage: true });
@@ -565,6 +573,14 @@ jobs:
             throw new Error('Image-to-PDF download does not contain a valid PDF header.');
           }
           await page.getByText('PDF created', { exact: true }).waitFor({ timeout: 45000 });
+          await page.waitForFunction(() => {
+            const header = document.querySelector('.result-card .result-head');
+            const main = document.querySelector('.shell > main');
+            if (!header || !main) return false;
+            const headerRect = header.getBoundingClientRect();
+            const mainRect = main.getBoundingClientRect();
+            return headerRect.top >= mainRect.top - 1 && headerRect.bottom <= mainRect.bottom + 1;
+          }, null, { timeout: 5000 });
           await page.screenshot({ path: 'ui-evidence/workspace-pdf-result-mobile.png', fullPage: true });
 
           // Exercise OCR with a high-contrast local fixture and verify the TXT export.
@@ -607,6 +623,14 @@ jobs:
           if (!exportedText.toUpperCase().replace(/[^A-Z0-9]/g, '').includes('IMAGEMATETEST123')) {
             throw new Error('OCR TXT export does not contain the complete expected text.');
           }
+          await page.waitForFunction(() => {
+            const header = document.querySelector('.result-card .result-head');
+            const main = document.querySelector('.shell > main');
+            if (!header || !main) return false;
+            const headerRect = header.getBoundingClientRect();
+            const mainRect = main.getBoundingClientRect();
+            return headerRect.top >= mainRect.top - 1 && headerRect.bottom <= mainRect.bottom + 1;
+          }, null, { timeout: 5000 });
           await assertAdSlotPlacement('OCR result mobile');
           await page.screenshot({ path: 'ui-evidence/workspace-ocr-result-mobile.png', fullPage: true });
 
