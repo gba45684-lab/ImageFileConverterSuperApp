@@ -26,12 +26,11 @@ jobs:
         with:
           node-version: 22
       - name: Install app dependencies
-        run: npm install
+        run: npm ci --no-audit --no-fund
       - name: Build production app
         run: npm run build
       - name: Install Playwright
         run: |
-          npm install --no-save playwright @axe-core/playwright
           npx playwright install --with-deps chromium
       - name: Start production preview
         run: |
@@ -519,11 +518,11 @@ jobs:
           await assertAdSlotPlacement('OCR workspace mobile');
           const ocrBase64 = await page.evaluate(() => {
             const canvas = document.createElement('canvas');
-            canvas.width = 1000; canvas.height = 260;
+            canvas.width = 1400; canvas.height = 320;
             const ctx = canvas.getContext('2d');
             ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = '#000000'; ctx.font = 'bold 100px Arial';
-            ctx.textBaseline = 'middle'; ctx.fillText('IMAGEMATE TEST 123', 35, 130);
+            ctx.textBaseline = 'middle'; ctx.fillText('IMAGEMATE TEST 123', 35, 160);
             return canvas.toDataURL('image/png').split(',')[1];
           });
           await page.locator('#file').setInputFiles({
@@ -535,8 +534,9 @@ jobs:
           await page.locator('#process').click();
           await page.locator('#ocr-output').waitFor({ timeout: 120000 });
           const ocrText = (await page.locator('#ocr-output').inputValue()).trim();
-          if (!ocrText || /No text detected/i.test(ocrText)) {
-            throw new Error('OCR did not extract text from the generated high-contrast fixture.');
+          const normalizedOcr = ocrText.toUpperCase().replace(/[^A-Z0-9]/g, '');
+          if (!ocrText || /No text detected/i.test(ocrText) || !normalizedOcr.includes('IMAGEMATETEST123')) {
+            throw new Error('OCR did not extract the complete expected text "IMAGEMATE TEST 123". Actual output: ' + JSON.stringify(ocrText));
           }
           const txtDownloadPromise = page.waitForEvent('download', { timeout: 30000 });
           await page.locator('#download-ocr').click();
