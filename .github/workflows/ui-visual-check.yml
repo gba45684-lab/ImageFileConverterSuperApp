@@ -104,6 +104,48 @@ jobs:
           if (errors.length) throw new Error('Browser errors: ' + errors.join(' | '));
           await browser.close();
           NODE
+      - name: Capture workspace, library, and desktop settings flows
+        run: |
+          node --input-type=module <<'NODE'
+          import { chromium } from 'playwright';
+          const browser = await chromium.launch({ headless: true });
+          const errors = [];
+          const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, acceptDownloads: true });
+          page.on('pageerror', error => errors.push(error.message));
+          page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+          await page.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
+
+          // Capture File Library through the actual mobile navigation.
+          await page.locator('[data-mobile-tab="files"]').click();
+          await page.getByRole('heading', { name: /downloaded files/i }).waitFor();
+          await page.screenshot({ path: 'ui-evidence/downloads-mobile.png', fullPage: true });
+
+          // Validate and capture a complete image-conversion happy path with a tiny local fixture.
+          await page.locator('[data-mobile-tab="home"]').click();
+          await page.locator('#see-all-tools').click();
+          await page.locator('[data-tool="convert"]').click();
+          await page.getByRole('heading', { name: /convert images/i }).waitFor();
+          await page.screenshot({ path: 'ui-evidence/workspace-empty-mobile.png', fullPage: true });
+          const pixel = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=', 'base64');
+          await page.locator('#file').setInputFiles({ name: 'pixel.png', mimeType: 'image/png', buffer: pixel });
+          await page.locator('.file-row').waitFor();
+          await page.screenshot({ path: 'ui-evidence/workspace-queued-mobile.png', fullPage: true });
+          await page.locator('#process').click();
+          await page.locator('.result-card').waitFor({ timeout: 45000 });
+          await page.screenshot({ path: 'ui-evidence/workspace-result-mobile.png', fullPage: true });
+
+          // Capture Settings and the File Library on desktop at the same checked commit.
+          await page.setViewportSize({ width: 1440, height: 1000 });
+          await page.locator('#settings-btn').click();
+          await page.getByRole('heading', { name: /^settings$/i }).waitFor();
+          await page.screenshot({ path: 'ui-evidence/settings-desktop.png', fullPage: true });
+          await page.locator('#open-downloads').click();
+          await page.getByRole('heading', { name: /downloaded files/i }).waitFor();
+          await page.screenshot({ path: 'ui-evidence/downloads-desktop.png', fullPage: true });
+
+          if (errors.length) throw new Error('Browser errors: ' + errors.join(' | '));
+          await browser.close();
+          NODE
       - name: Upload visual evidence
         if: always()
         uses: actions/upload-artifact@v4
