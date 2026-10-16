@@ -492,7 +492,7 @@ jobs:
           const conversionDownloadPromise = page.waitForEvent('download', { timeout: 45000 });
           await page.locator('#process').click();
           const conversionDownload = await conversionDownloadPromise;
-          if (!/\\.png$/i.test(conversionDownload.suggestedFilename())) {
+          if (!/\.png$/i.test(conversionDownload.suggestedFilename())) {
             throw new Error('PNG conversion returned an unexpected filename: ' + conversionDownload.suggestedFilename());
           }
           const conversionPath = await conversionDownload.path();
@@ -522,7 +522,7 @@ jobs:
           const zipDownloadPromise = page.waitForEvent('download', { timeout: 45000 });
           await page.locator('#zip').click();
           const zipDownload = await zipDownloadPromise;
-          if (!/imagemate-convert-batch\\.zip$/i.test(zipDownload.suggestedFilename())) {
+          if (!/imagemate-convert-batch\.zip$/i.test(zipDownload.suggestedFilename())) {
             throw new Error('Batch conversion returned an unexpected ZIP filename: ' + zipDownload.suggestedFilename());
           }
           const zipPath = await zipDownload.path();
