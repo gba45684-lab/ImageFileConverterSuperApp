@@ -33,42 +33,37 @@ jobs:
         run: npm test
       - name: Build production web app
         run: npm run build
+      - name: Read Android smoke-test version
+        id: version
+        shell: bash
+        run: |
+          BASE_VERSION="$(node -p "JSON.parse(require('fs').readFileSync('package.json','utf8')).version")"
+          VERSION="${BASE_VERSION}.pr.${GITHUB_RUN_NUMBER}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Testing ImageMate version ${VERSION}"
       - name: Generate Capacitor Android project
         run: |
           npx cap init ImageMate com.gba45684.imagemate --web-dir dist
           npx cap add android
-          npx cap sync android
-      - name: Configure Google Mobile Ads test app ID
+      - name: Apply native launcher, manifest and updater from the release workflow
         shell: bash
+        env:
+          APP_VERSION: ${{ steps.version.outputs.version }}
+          IMAGEMATE_SIGNING_READY: "false"
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-
-          manifest = Path("android/app/src/main/AndroidManifest.xml")
-          xml = manifest.read_text()
-          if "com.google.android.gms.ads.APPLICATION_ID" not in xml:
-              xml = xml.replace(
-                  "</application>",
-                  '    <meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="@string/admob_app_id" />\n  </application>'
-              )
-              manifest.write_text(xml)
-
-          values = Path("android/app/src/main/res/values/strings.xml")
-          text = values.read_text()
-          if 'name="admob_app_id"' not in text:
-              text = text.replace(
-                  "</resources>",
-                  '    <string name="admob_app_id">ca-app-pub-3940256099942544~3347511713</string>\n</resources>'
-              )
-              values.write_text(text)
-          PY
+          set -euo pipefail
+          bash .github/scripts/run-android-workflow-step.sh "Apply ImageMate Option 7 native launcher icon"
+          bash .github/scripts/run-android-workflow-step.sh "Configure Android"
+          bash .github/scripts/run-android-workflow-step.sh "Install updater bridge"
+          npx cap sync android
       - name: Build debug APK
         working-directory: android
         run: ./gradlew assembleDebug --stacktrace --no-daemon
         timeout-minutes: 20
-      - name: Validate debug APK archive and package ID
+      - name: Validate debug APK archive, package ID and version metadata
         shell: bash
+        env:
+          APP_VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
           APK="android/app/build/outputs/apk/debug/app-debug.apk"
@@ -78,11 +73,21 @@ jobs:
           APKANALYZER="$(find "$SDK_DIR" -type f -name apkanalyzer | sort -V | tail -n 1)"
           test -n "$APKANALYZER"
           APP_ID="$("$APKANALYZER" manifest application-id "$APK")"
+          VERSION_NAME="$("$APKANALYZER" manifest version-name "$APK")"
+          VERSION_CODE="$("$APKANALYZER" manifest version-code "$APK")"
           if [[ "$APP_ID" != "com.gba45684.imagemate" ]]; then
             echo "::error::Unexpected Android package ID: $APP_ID"
             exit 1
           fi
-          echo "PASS: debug APK archive is valid and package ID is $APP_ID."
+          if [[ "$VERSION_NAME" != "$APP_VERSION" ]]; then
+            echo "::error::Unexpected APK versionName: $VERSION_NAME"
+            exit 1
+          fi
+          if [[ "$VERSION_CODE" != "$GITHUB_RUN_NUMBER" ]]; then
+            echo "::error::Unexpected APK versionCode: $VERSION_CODE"
+            exit 1
+          fi
+          echo "PASS: APK archive, package ID, versionName and versionCode are valid."
       - name: Smoke-test install and launch in Android emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
