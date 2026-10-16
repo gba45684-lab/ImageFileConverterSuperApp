@@ -284,10 +284,13 @@ jobs:
           const switchHitArea = await updateSwitch.evaluate(el => {
             const sw = el.getBoundingClientRect();
             const input = el.querySelector('input').getBoundingClientRect();
-            return { switchWidth: sw.width, switchHeight: sw.height, inputWidth: input.width, inputHeight: input.height };
+            const track = el.querySelector('span').getBoundingClientRect();
+            return { switchWidth: sw.width, switchHeight: sw.height, inputWidth: input.width, inputHeight: input.height, trackWidth: track.width, trackHeight: track.height };
           });
-          if (switchHitArea.inputWidth < switchHitArea.switchWidth - 1 || switchHitArea.inputHeight < switchHitArea.switchHeight - 1) {
-            throw new Error('Automatic update input must cover the entire visible switch track: ' + JSON.stringify(switchHitArea));
+          if (Math.abs(switchHitArea.switchWidth - 48) > 1 || Math.abs(switchHitArea.switchHeight - 28) > 1 ||
+              switchHitArea.inputWidth < switchHitArea.switchWidth - 1 || switchHitArea.inputHeight < switchHitArea.switchHeight - 1 ||
+              Math.abs(switchHitArea.trackWidth - switchHitArea.switchWidth) > 1 || Math.abs(switchHitArea.trackHeight - switchHitArea.switchHeight) > 1) {
+            throw new Error('Automatic Updates must render as a compact 48×28px track with a full-size hit target: ' + JSON.stringify(switchHitArea));
           }
           await updateSwitch.click({ position: { x: 24, y: 14 } });
           if (await updateCheckbox.isChecked()) throw new Error('Clicking the visible Automatic Updates track did not switch it OFF.');
