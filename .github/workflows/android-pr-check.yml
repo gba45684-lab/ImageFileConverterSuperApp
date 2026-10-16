@@ -117,24 +117,7 @@ jobs:
           emulator-boot-timeout: 1200
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: |
-            set -eu
-            APK="${{ github.workspace }}/android/app/build/outputs/apk/debug/app-debug.apk"
-            adb install "$APK"
-            adb logcat -c
-            adb shell monkey -p com.gba45684.imagemate -c android.intent.category.LAUNCHER 1
-            sleep 8
-            if ! adb shell pm path com.gba45684.imagemate | tr -d '\r' | grep -q 'package:'; then
-              echo "::error::ImageMate is not installed after emulator smoke test."
-              exit 1
-            fi
-            CRASH_LOG="$(adb logcat -d -s AndroidRuntime:E || true)"
-            if printf '%s\n' "$CRASH_LOG" | grep -F "Process: com.gba45684.imagemate" >/dev/null; then
-              printf '%s\n' "$CRASH_LOG"
-              echo "::error::ImageMate crashed on startup in the Android emulator."
-              exit 1
-            fi
-            echo "PASS: debug APK installed and launched without a detected fatal runtime exception."
+          script: GITHUB_WORKSPACE="${{ github.workspace }}" APK_RELATIVE_PATH=android/app/build/outputs/apk/debug/app-debug.apk bash "${{ github.workspace }}/.github/scripts/android-emulator-smoke-test.sh"
       - name: Upload debug APK for inspection
         uses: actions/upload-artifact@v4
         with:
