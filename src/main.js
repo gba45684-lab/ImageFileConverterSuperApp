@@ -41,9 +41,10 @@ const tools=[
 ];
 const savedFormat=localStorage.getItem('imagemate-format');
 const allowedFormats=['image/webp','image/jpeg','image/png','image/avif'];
-const storedQuality=Number(localStorage.getItem('imagemate-quality'));
-const safeQuality=Number.isFinite(storedQuality)?Math.min(1,Math.max(.1,storedQuality)):.88;
-const S={tool:'convert',files:[],format:allowedFormats.includes(savedFormat)?savedFormat:'image/webp',quality:safeQuality,width:'',height:'',target:100,pdfFormat:'image/png',pdfScale:1.5,rotation:0,brightness:0,contrast:0,dark:localStorage.getItem('imagemate-dark')==='1',catalogCategory:'All',mobileTab:'home',view:'tools'};
+const storedQualityValue=localStorage.getItem('imagemate-quality');
+const parsedStoredQuality=storedQualityValue===null?0.88:Number(storedQualityValue);
+const safeQuality=Number.isFinite(parsedStoredQuality)?Math.min(1,Math.max(.1,parsedStoredQuality)):.88;
+const S={tool:'convert',files:[],format:allowedFormats.includes(savedFormat)?savedFormat:'image/webp',quality:safeQuality,width:'',height:'',target:100,pdfFormat:'image/png',pdfScale:1.5,rotation:0,brightness:0,contrast:0,dark:localStorage.getItem('imagemate-dark')==='1',catalogCategory:'All',mobileTab:'home',view:'tools',downloadsReturnView:'tools'};
 
 const esc=s=>String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const label=t=>t==='application/pdf'?'PDF':t==='image/jpeg'?'JPG':t==='image/png'?'PNG':t==='image/webp'?'WebP':t==='image/avif'?'AVIF':t==='image/heic'?'HEIC':t==='image/heif'?'HEIF':t==='text/plain'||String(t).startsWith('text/')?'TXT':t==='application/zip'?'ZIP':'Image';
@@ -77,7 +78,7 @@ function render(){
 
   const mobileActive=settingsScreen?'settings':downloads?'files':(task||toolsScreen)?'tools':(S.mobileTab==='tools'?'tools':'home');
   const mobileNav='<nav class="mobile-bottom-nav" aria-label="Primary navigation"><button type="button" data-mobile-tab="home" class="'+(mobileActive==='home'?'active':'')+'" '+(mobileActive==='home'?'aria-current="page"':'')+'><i data-lucide="house"></i><span>Home</span></button><button type="button" data-mobile-tab="tools" class="'+(mobileActive==='tools'?'active':'')+'" '+(mobileActive==='tools'?'aria-current="page"':'')+'><i data-lucide="grid-2x2"></i><span>Tools</span></button><button type="button" data-mobile-tab="files" class="'+(mobileActive==='files'?'active':'')+'" '+(mobileActive==='files'?'aria-current="page"':'')+'><i data-lucide="folder"></i><span>Files</span></button><button type="button" data-mobile-tab="settings" class="'+(mobileActive==='settings'?'active':'')+'" '+(mobileActive==='settings'?'aria-current="page"':'')+'><i data-lucide="settings-2"></i><span>Settings</span></button></nav>';
-  app.innerHTML='<div class="shell '+(S.dark?'dark':'')+(toolsScreen?' tools-catalog-shell':'')+'">'+header+'<main>'+content+'<footer>© 2026 ImageMate <span>•</span> Private file tools for everyone</footer></main>'+mobileNav+'</div>';
+  app.innerHTML='<div class="shell '+(S.dark?'dark':'')+(toolsScreen?' tools-catalog-shell':'')+(settingsScreen?' settings-view-shell':'')+'">'+header+'<main>'+content+'<footer>© 2026 ImageMate <span>•</span> Private file tools for everyone</footer></main>'+mobileNav+'</div>';
   createIcons({ icons, attrs: { 'stroke-width': 1.8 } });
   bind(); settings(); queue();
 
@@ -128,11 +129,11 @@ function render(){
     S.files=[];
     if(tab==='home'){S.view='tools';S.mobileTab='home';render();window.scrollTo({top:0,behavior});return}
     if(tab==='tools'){S.view='catalog';S.mobileTab='tools';S.catalogCategory='All';render();window.scrollTo({top:0,behavior});return}
-    if(tab==='files'){S.view='downloads';S.mobileTab='files';render();return}
+    if(tab==='files'){S.downloadsReturnView='tools';S.view='downloads';S.mobileTab='files';render();return}
     if(tab==='settings'){S.view='settings';S.mobileTab='settings';render()}
   });
   const openDownloads=document.querySelector('#open-downloads');
-  if(openDownloads) openDownloads.onclick=()=>{S.view='downloads';S.mobileTab='files';S.files=[];render()};
+  if(openDownloads) openDownloads.onclick=()=>{S.downloadsReturnView='settings';S.view='downloads';S.mobileTab='files';S.files=[];render()};
   const defaultFormat=document.querySelector('#default-format');
   if(defaultFormat) defaultFormat.onchange=e=>{S.format=e.target.value;localStorage.setItem('imagemate-format',S.format)};
   const defaultQuality=document.querySelector('#default-quality');
@@ -140,7 +141,7 @@ function render(){
   const settingsThemeToggle=document.querySelector('#settings-theme-toggle');
   if(settingsThemeToggle) settingsThemeToggle.onclick=()=>{S.dark=!S.dark;localStorage.setItem('imagemate-dark',S.dark?'1':'0');render()};
   const settingsCheckUpdates=document.querySelector('#settings-check-updates');
-  if(settingsCheckUpdates) settingsCheckUpdates.onclick=()=>{const refreshButton=document.querySelector('#refresh-update-btn');if(refreshButton)refreshButton.click();else alert('Update refresh is available in the Android app.')};
+  if(settingsCheckUpdates) settingsCheckUpdates.onclick=()=>{const refreshButton=document.querySelector('#refresh-update-btn');if(refreshButton&&!refreshButton.hidden)refreshButton.click();else alert('Update refresh is available in the Android app.')};
   const updateSetting=document.querySelector('#update-setting');
   if(updateSetting) updateSetting.onchange=async e=>{
     const enabled=e.target.checked;
@@ -154,7 +155,7 @@ function render(){
     }
   };
   const back=document.querySelector('#back-home');
-  if(back) back.onclick=()=>{S.files=[];if(toolsScreen||downloads){S.view='tools';S.mobileTab='home'}else if(task&&S.returnView==='catalog'){S.view='catalog';S.mobileTab='tools'}else{S.view='tools';S.mobileTab='home'}render()};
+  if(back) back.onclick=()=>{S.files=[];if(toolsScreen){S.view='tools';S.mobileTab='home'}else if(downloads&&S.downloadsReturnView==='settings'){S.view='settings';S.mobileTab='settings'}else if(downloads){S.view='tools';S.mobileTab='home'}else if(task&&S.returnView==='catalog'){S.view='catalog';S.mobileTab='tools'}else{S.view='tools';S.mobileTab='home'}render()};
   const backSettings=document.querySelector('#back-settings');
   if(backSettings) backSettings.onclick=()=>{S.view='tools';S.mobileTab='home';S.files=[];render()};
   const pro=document.querySelector('.pro');

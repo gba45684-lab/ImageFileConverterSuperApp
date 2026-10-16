@@ -55,6 +55,13 @@ jobs:
           const page = await context.newPage();
           page.on('pageerror', error => errors.push(error.message));
           await page.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
+          await page.evaluate(() => {
+            localStorage.removeItem('imagemate-quality');
+            localStorage.removeItem('imagemate-format');
+            localStorage.removeItem('imagemate-auto-update');
+            localStorage.setItem('imagemate-dark', '0');
+          });
+          await page.reload({ waitUntil: 'networkidle' });
           await page.waitForTimeout(650);
           const homeAccessibility = await new AxeBuilder({ page }).analyze();
           if (homeAccessibility.violations.length) {
@@ -193,14 +200,97 @@ jobs:
           await page.waitForTimeout(650);
           await page.locator('[data-mobile-tab="home"]').click();
           await page.locator('.editorial-home').waitFor();
+          await page.setViewportSize({ width: 390, height: 844 });
           await page.locator('[data-mobile-tab="settings"]').click();
           await page.getByRole('heading', { name: /^settings$/i }).waitFor();
           await page.waitForTimeout(650);
-          await page.screenshot({ path: 'ui-evidence/settings-mobile.png', fullPage: true });
-          await page.locator('#settings-theme-toggle').click();
-          await page.getByRole('heading', { name: /^settings$/i }).waitFor();
+          await page.screenshot({ path: 'ui-evidence/settings-mobile-light.png', fullPage: true });
+          await page.screenshot({ path: 'ui-evidence/settings-mobile-light-viewport.png' });
+          if (await page.locator('#default-quality-value').textContent() !== '88%' ||
+              await page.locator('#default-quality').inputValue() !== '88') {
+            throw new Error('Missing quality preference must default to 88%, not ' + await page.locator('#default-quality-value').textContent());
+          }
+          const settingsA11yLight = await new AxeBuilder({ page }).analyze();
+          if (settingsA11yLight.violations.length) {
+            const details = settingsA11yLight.violations.map(v => v.id + ' (' + v.impact + '): ' + v.help + ' — ' + v.nodes.map(n => n.target.join(', ')).join('; ')).join(' | ');
+            throw new Error('Settings light accessibility violations: ' + details);
+          }
+          await page.locator('#default-format').selectOption('image/jpeg');
           await page.locator('#default-quality').fill('75');
           if (await page.locator('#default-quality-value').textContent() !== '75%') throw new Error('Settings quality slider did not update its displayed value.');
+          const storedProcessing = await page.evaluate(() => ({
+            format: localStorage.getItem('imagemate-format'),
+            quality: localStorage.getItem('imagemate-quality')
+          }));
+          if (storedProcessing.format !== 'image/jpeg' || storedProcessing.quality !== '0.75') {
+            throw new Error('Format/quality were not persisted: ' + JSON.stringify(storedProcessing));
+          }
+
+          await page.locator('#settings-theme-toggle').click();
+          await page.locator('.settings-view-shell.dark').waitFor();
+          await page.screenshot({ path: 'ui-evidence/settings-mobile-dark.png', fullPage: true });
+          await page.screenshot({ path: 'ui-evidence/settings-mobile-dark-viewport.png' });
+          const settingsA11yDark = await new AxeBuilder({ page }).analyze();
+          if (settingsA11yDark.violations.length) {
+            const details = settingsA11yDark.violations.map(v => v.id + ' (' + v.impact + '): ' + v.help + ' — ' + v.nodes.map(n => n.target.join(', ')).join('; ')).join(' | ');
+            throw new Error('Settings dark accessibility violations: ' + details);
+          }
+          await page.reload({ waitUntil: 'networkidle' });
+          await page.locator('[data-mobile-tab="settings"]').click();
+          await page.getByRole('heading', { name: /^settings$/i }).waitFor();
+          if (await page.locator('#default-format').inputValue() !== 'image/jpeg' ||
+              await page.locator('#default-quality').inputValue() !== '75' ||
+              await page.evaluate(() => localStorage.getItem('imagemate-dark')) !== '1') {
+            throw new Error('Settings preferences did not survive reload.');
+          }
+          const settingsMobileLayout = await page.evaluate(() => {
+            const shell = document.querySelector('.settings-view-shell');
+            const main = shell?.querySelector(':scope > main');
+            const nav = shell?.querySelector('.mobile-bottom-nav');
+            const box = el => { const r = el?.getBoundingClientRect(); return r ? {top:r.top,bottom:r.bottom,height:r.height} : null; };
+            return {
+              mainOverflowY: main ? getComputedStyle(main).overflowY : '',
+              mainBox: box(main), navBox: box(nav),
+              mainScrollHeight: main?.scrollHeight, mainClientHeight: main?.clientHeight,
+              width: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth,
+              height: window.innerHeight
+            };
+          });
+          if (settingsMobileLayout.mainOverflowY !== 'auto' || !settingsMobileLayout.mainBox || !settingsMobileLayout.navBox ||
+              settingsMobileLayout.mainBox.bottom > settingsMobileLayout.navBox.top + 1 ||
+              settingsMobileLayout.navBox.bottom < settingsMobileLayout.height - 2) {
+            throw new Error('Settings mobile nav/scroll viewport layout is invalid: ' + JSON.stringify(settingsMobileLayout));
+          }
+          if (settingsMobileLayout.scrollWidth > settingsMobileLayout.width) throw new Error('Settings horizontal overflow at 390px.');
+          await page.locator('#update-setting').uncheck();
+          if (await page.evaluate(() => localStorage.getItem('imagemate-auto-update')) !== '0') throw new Error('Automatic updates OFF state did not persist.');
+          await page.locator('#update-setting').check();
+          if (await page.evaluate(() => localStorage.getItem('imagemate-auto-update')) !== '1') throw new Error('Automatic updates ON state did not persist.');
+          let updateDialogText = '';
+          page.once('dialog', async dialog => { updateDialogText = dialog.message(); await dialog.accept(); });
+          await page.locator('#settings-check-updates').click();
+          if (!updateDialogText.includes('Android app')) throw new Error('Web Check now must explain that manual refresh is available in Android.');
+          await page.locator('#open-downloads').click();
+          await page.getByRole('heading', { name: /downloaded files/i }).waitFor();
+          await page.locator('#back-home').click();
+          await page.getByRole('heading', { name: /^settings$/i }).waitFor();
+          await page.locator('#back-settings').click();
+          await page.locator('.editorial-home').waitFor();
+          await page.evaluate(() => localStorage.setItem('imagemate-dark', '0'));
+          await page.reload({ waitUntil: 'networkidle' });
+          await page.waitForTimeout(650);
+          await page.screenshot({ path: 'ui-evidence/home-mobile.png', fullPage: true });
+          await page.evaluate(() => localStorage.setItem('imagemate-dark', '1'));
+          await page.reload({ waitUntil: 'networkidle' });
+          await page.waitForTimeout(650);
+          await page.screenshot({ path: 'ui-evidence/home-mobile-dark.png', fullPage: true });
+          await page.locator('#settings-btn').click();
+          await page.getByRole('heading', { name: /^settings$/i }).waitFor();
+          for (const width of [320, 360, 390, 768, 1440]) {
+            await page.setViewportSize({ width, height: 844 });
+            const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+            if (overflow) throw new Error('Horizontal overflow at viewport width ' + width + 'px while on Settings.');
+          }
           await page.locator('#back-settings').click();
           await page.locator('.editorial-home').waitFor();
           await page.evaluate(() => localStorage.setItem('imagemate-dark', '0'));
@@ -259,6 +349,11 @@ jobs:
           await page.getByRole('heading', { name: /^settings$/i }).waitFor();
           await page.waitForTimeout(650);
           await page.screenshot({ path: 'ui-evidence/settings-desktop.png', fullPage: true });
+          const settingsDesktopA11y = await new AxeBuilder({ page }).analyze();
+          if (settingsDesktopA11y.violations.length) {
+            const details = settingsDesktopA11y.violations.map(v => v.id + ' (' + v.impact + '): ' + v.help + ' — ' + v.nodes.map(n => n.target.join(', ')).join('; ')).join(' | ');
+            throw new Error('Settings desktop accessibility violations: ' + details);
+          }
           await page.locator('#open-downloads').click();
           await page.getByRole('heading', { name: /downloaded files/i }).waitFor();
           await page.waitForTimeout(650);

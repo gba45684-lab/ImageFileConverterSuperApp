@@ -37,3 +37,65 @@
 }
 @media(max-width:390px){.settings-screen .settings-card{grid-template-columns:36px minmax(0,1fr) auto!important;gap:10px!important;padding:14px!important}.settings-screen .settings-icon{width:36px!important;height:36px!important}.settings-screen .settings-brand-tag{display:none!important}.settings-screen .settings-card-processing{grid-template-columns:36px minmax(0,1fr)!important}}
 @media(prefers-reduced-motion:reduce){.settings-screen *{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+
+/* Stage 3 — Settings mobile viewport: keep content scrollable above the primary nav. */
+@media(max-width:760px){
+  .shell.settings-view-shell{
+    height:100vh!important;
+    height:100dvh!important;
+    min-height:0!important;
+    display:flex!important;
+    flex-direction:column!important;
+    overflow:hidden!important;
+    padding-bottom:0!important;
+  }
+  .settings-view-shell>.editorial-topbar{
+    position:relative!important;
+    top:auto!important;
+    flex:0 0 auto!important;
+  }
+  .settings-view-shell>main{
+    flex:1 1 auto!important;
+    min-height:0!important;
+    overflow-x:hidden!important;
+    overflow-y:auto!important;
+    overscroll-behavior-y:contain;
+    -webkit-overflow-scrolling:touch;
+    padding-bottom:12px!important;
+  }
+  .settings-view-shell .settings-page-head{
+    margin-top:12px!important;
+    margin-bottom:10px!important;
+  }
+  .settings-view-shell .settings-screen{
+    padding-bottom:12px!important;
+    margin-bottom:12px!important;
+  }
+  .settings-view-shell .mobile-bottom-nav{
+    position:relative!important;
+    left:auto!important;
+    right:auto!important;
+    bottom:auto!important;
+    transform:none!important;
+    width:100%!important;
+    max-width:none!important;
+    min-width:0!important;
+    align-self:stretch!important;
+    flex:0 0 auto!important;
+    margin:0!important;
+    border:0!important;
+    border-top:1px solid var(--im-line)!important;
+    border-radius:0!important;
+    padding:7px 12px calc(7px + env(safe-area-inset-bottom,0px))!important;
+    background:rgba(255,255,255,.97)!important;
+    box-shadow:none!important;
+    backdrop-filter:blur(16px)!important;
+    -webkit-backdrop-filter:blur(16px)!important;
+  }
+  .settings-view-shell .mobile-bottom-nav button{min-height:44px!important}
+  .settings-view-shell.dark .mobile-bottom-nav{
+    background:rgba(11,18,32,.97)!important;
+    border-top-color:rgba(181,197,225,.13)!important;
+  }
+}
