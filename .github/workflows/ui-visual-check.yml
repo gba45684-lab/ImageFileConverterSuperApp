@@ -72,7 +72,7 @@ jobs:
                 navDisplay: nav ? getComputedStyle(nav).display : 'missing',
                 nav: box(nav),
                 main: box(shell?.querySelector(':scope > main')),
-                flowScreen: !!shell?.matches('.tools-catalog-shell, .settings-view-shell'),
+                flowScreen: !!shell,
                 width: document.documentElement.clientWidth,
                 height: window.innerHeight
               };
@@ -434,7 +434,7 @@ jobs:
                 navDisplay: nav ? getComputedStyle(nav).display : 'missing',
                 nav: box(nav),
                 main: box(shell?.querySelector(':scope > main')),
-                flowScreen: !!shell?.matches('.tools-catalog-shell, .settings-view-shell'),
+                flowScreen: !!shell,
                 width: document.documentElement.clientWidth,
                 height: window.innerHeight
               };
