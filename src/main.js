@@ -18,6 +18,10 @@ function positionSharedAdSlot(){
   const slot=document.querySelector('#app-ad-slot');
   const nav=document.querySelector('.mobile-bottom-nav');
   if(!slot||!nav)return;
+  if(!adSlotResizeBound){
+    adSlotResizeBound=true;
+    window.addEventListener('resize',()=>window.requestAnimationFrame(positionSharedAdSlot),{passive:true});
+  }
   if(window.innerWidth>760)return;
   const navRect=nav.getBoundingClientRect();
   if(!navRect.height)return;
@@ -25,10 +29,6 @@ function positionSharedAdSlot(){
   // Match the slot to the actual nav rectangle: Home/workspaces use a fixed
   // nav, while catalog/Settings lay it out in-flow at the bottom of the shell.
   slot.style.setProperty('bottom',bottomOffset+'px','important');
-  if(!adSlotResizeBound){
-    adSlotResizeBound=true;
-    window.addEventListener('resize',()=>window.requestAnimationFrame(positionSharedAdSlot),{passive:true});
-  }
 }
 if(isNativeAndroid()) document.documentElement.classList.add('native-android');
 const UPDATE_API='https://api.github.com/repos/gba45684-lab/ImageFileConverterSuperApp/releases/latest';
