@@ -102,12 +102,12 @@
 
 
 /* Stage 3 — keep the shared wordmark legible on the dark Settings surface. */
-.dark .settings-view-shell .editorial-topbar .brand-copy .brand-wordmark .brand-word-image{
+.shell.settings-view-shell.dark .editorial-topbar .brand-copy .brand-wordmark .brand-word-image{
   color:#f3f6ff!important;
   -webkit-text-fill-color:#f3f6ff!important;
   background:none!important;
 }
-.dark .settings-view-shell .editorial-topbar .brand-copy .brand-wordmark .brand-word-mate{
+.shell.settings-view-shell.dark .editorial-topbar .brand-copy .brand-wordmark .brand-word-mate{
   color:#c4b5fd!important;
   -webkit-text-fill-color:#c4b5fd!important;
   background:none!important;
