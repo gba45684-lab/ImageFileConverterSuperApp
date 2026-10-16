@@ -1986,22 +1986,27 @@ button[hidden],.nav-btn[hidden]{display:none!important}
 .dark .editorial-topbar .brand-mark .im-mark-dot{fill:#FFBD45!important}
 
 
-/* Shared mobile banner space above the primary navigation, used on every route. */
+/* Shared mobile advertisement placement. The responsive shell positions this
+   slot in normal flow between the scroll viewport and primary navigation. */
 .app-ad-slot{display:none}
 @media(max-width:760px){
   .app-ad-slot{
-    position:fixed!important;
-    z-index:44!important;
-    left:50%!important;
-    bottom:calc(78px + env(safe-area-inset-bottom,0px))!important;
-    transform:translateX(-50%)!important;
+    position:relative!important;
+    left:auto!important;
+    right:auto!important;
+    bottom:auto!important;
+    transform:none!important;
+    z-index:auto!important;
     display:grid!important;
     place-items:center!important;
+    align-self:center!important;
+    flex:0 0 50px!important;
     width:min(calc(100% - 24px),340px)!important;
     height:50px!important;
     min-height:50px!important;
     box-sizing:border-box!important;
     overflow:hidden!important;
+    margin:0 auto 4px!important;
     border:1px dashed var(--im-line-strong)!important;
     border-radius:12px!important;
     background:rgba(248,250,252,.84)!important;
@@ -2013,32 +2018,6 @@ button[hidden],.nav-btn[hidden]{display:none!important}
     pointer-events:none!important;
   }
   .dark .app-ad-slot{background:rgba(11,18,32,.88)!important;border-color:var(--im-line)!important;color:#94a3b8!important}
-  /* Catalog and Settings keep the ad strip in document flow so it reserves
-     genuine scroll-viewport height between main content and the bottom nav. */
-  .tools-catalog-shell .app-ad-slot,
-  .settings-view-shell .app-ad-slot{
-    position:relative!important;
-    left:auto!important;
-    bottom:auto!important;
-    transform:none!important;
-    align-self:center!important;
-    flex:0 0 50px!important;
-    margin:0 auto 4px!important;
-  }
-  /* Home and tool workspaces use the fixed-nav overlay placement. */
-  .native-android .app-ad-slot{display:none!important}
-  /* Keep an invisible native-layout spacer on the in-flow screens so the
-     real AdMob banner can occupy the same reserved space without covering UI. */
-  .native-android .tools-catalog-shell .app-ad-slot,
-  .native-android .settings-view-shell .app-ad-slot{
-    display:grid!important;
-    position:relative!important;
-    left:auto!important;
-    bottom:auto!important;
-    transform:none!important;
-    visibility:hidden!important;
-    flex:0 0 50px!important;
-    height:50px!important;
-    margin:0 auto 4px!important;
-  }
+  /* Android fills the reserved row with the existing native AdMob overlay. */
+  .native-android .app-ad-slot{display:grid!important;visibility:hidden!important}
 }
