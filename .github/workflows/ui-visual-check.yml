@@ -421,6 +421,7 @@ jobs:
               const slots = [...document.querySelectorAll('#app-ad-slot')];
               const slot = slots[0];
               const nav = document.querySelector('.mobile-bottom-nav');
+              const shell = document.querySelector('.shell');
               const box = element => {
                 const rect = element?.getBoundingClientRect();
                 return rect ? { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right, width: rect.width, height: rect.height } : null;
