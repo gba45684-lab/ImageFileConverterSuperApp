@@ -119,7 +119,7 @@ jobs:
           disable-animations: true
           script: |
             set -eu
-            APK="$GITHUB_WORKSPACE/android/app/build/outputs/apk/debug/app-debug.apk"
+            APK="${{ github.workspace }}/android/app/build/outputs/apk/debug/app-debug.apk"
             adb install "$APK"
             adb logcat -c
             adb shell monkey -p com.gba45684.imagemate -c android.intent.category.LAUNCHER 1
