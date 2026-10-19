@@ -108,3 +108,7 @@ main,section,.workspace,.settings-screen,.tools-catalog,.catalog-tool-copy,.sett
 
 /* Final spacing pass: keep the content-to-bottom-ad gap minimal on every screen. */
 .shared-ad-slot-bottom{margin-top:2px!important}
+
+/* Ultra-compact final pass: remove extra gap above the bottom ad slot. */
+.shared-ad-slot-bottom{margin-top:0!important}
+@media(max-width:800px){.shared-ad-slot-bottom{margin-top:0!important;margin-bottom:0!important}}
