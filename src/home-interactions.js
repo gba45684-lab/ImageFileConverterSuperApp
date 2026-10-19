@@ -15,6 +15,7 @@ let currentSlide = 0;
 let pointerStart = null;
 let touchStart = null;
 let lastInteractionAt = 0;
+let lastTouchPointerAt = 0;
 
 function syncPreferences() {
   document.documentElement.classList.toggle('im-slider-animations-off', !enabled('imagemate-slider-animations') || reduceMotion());
@@ -86,6 +87,7 @@ document.addEventListener('pointerdown', event => {
 document.addEventListener('pointerup', event => {
   if (!pointerStart || event.pointerId !== pointerStart.id) return;
   const start = pointerStart; pointerStart = null;
+  if (event.pointerType === 'touch') lastTouchPointerAt = Date.now();
   moveBySwipe(event.clientX - start.x, event.clientY - start.y);
 }, { passive: true });
 document.addEventListener('pointercancel', () => { pointerStart = null; }, { passive: true });
@@ -96,6 +98,7 @@ document.addEventListener('touchstart', event => {
   if (hero && touch) touchStart = { x: touch.clientX, y: touch.clientY };
 }, { passive: true });
 document.addEventListener('touchend', event => {
+  if (Date.now() - lastTouchPointerAt < 500) { touchStart = null; return; }
   if (!touchStart) return;
   const start = touchStart; touchStart = null;
   const touch = event.changedTouches?.[0];
