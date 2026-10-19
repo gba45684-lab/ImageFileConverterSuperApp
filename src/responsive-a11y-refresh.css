@@ -89,8 +89,9 @@ main,section,.workspace,.settings-screen,.tools-catalog,.catalog-tool-copy,.sett
   .shell{min-height:0!important}
   .shell main{min-height:0!important;height:auto!important;padding-bottom:82px!important}
   .editorial-home{min-height:0!important;height:auto!important}
-  .shell main>footer{padding-top:12px!important;padding-bottom:8px!important;margin-top:8px!important}
-  .shared-ad-slot-bottom{min-height:48px!important;margin:8px auto 4px!important}
+  .shell main>footer{padding-top:4px!important;padding-bottom:2px!important;margin:4px 0 0!important;line-height:1.35!important}
+  .shell main>footer>*{margin-top:0!important;margin-bottom:0!important}
+  .shared-ad-slot-bottom{min-height:48px!important;margin:6px auto 2px!important}
   .native-android .shell main{padding-bottom:calc(82px + env(safe-area-inset-bottom))!important}
   .native-android main{padding-bottom:calc(70px + env(safe-area-inset-bottom))!important}
 }
