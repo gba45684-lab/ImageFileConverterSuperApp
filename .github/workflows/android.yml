@@ -161,7 +161,7 @@ jobs:
           if not variables.exists():
               raise SystemExit("Capacitor Android variables.gradle is missing; cannot enforce Android 11 minimum.")
           vs=variables.read_text()
-          updated, count = re.subn(r'(minSdkVersion\\s*=\\s*)\\d+', r'\\g<1>30', vs, count=1)
+          updated, count = re.subn(r'minSdkVersion\s*=\s*\d+', 'minSdkVersion = 30', vs, count=1)
           if count != 1:
               raise SystemExit("Could not set minSdkVersion=30 in android/variables.gradle")
           variables.write_text(updated)
