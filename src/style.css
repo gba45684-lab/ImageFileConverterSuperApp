@@ -483,3 +483,35 @@ footer{color:var(--editorial-muted)!important;border-top-color:var(--editorial-l
 
 /* Native AdMob banner safe area */
 .native-android main{padding-bottom:64px}
+
+
+/* Settings toggles: consistent premium-glass track with a comfortable 44px tap area. */
+.settings-card-appearance > .switch,
+.settings-card-updates > .switch{
+  position:relative!important;
+  display:block!important;
+  width:48px!important;
+  height:44px!important;
+  min-width:48px!important;
+  min-height:44px!important;
+  flex:0 0 48px!important;
+  align-self:center!important;
+  margin-left:auto!important;
+}
+.settings-card-appearance > .switch > span,
+.settings-card-updates > .switch > span{
+  inset:8px 0!important;
+  height:28px!important;
+  border-radius:999px!important;
+}
+.settings-card-appearance > .switch > span:before,
+.settings-card-updates > .switch > span:before{
+  width:22px!important;
+  height:22px!important;
+  left:3px!important;
+  top:3px!important;
+}
+.settings-card-appearance > .switch > input:checked + span:before,
+.settings-card-updates > .switch > input:checked + span:before{
+  transform:translateX(20px)!important;
+}
