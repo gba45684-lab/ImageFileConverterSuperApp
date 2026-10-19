@@ -1,3 +1,31 @@
+
+/* Shared top ad reservation: present consistently across home, catalog, tools, files and settings. */
+.shared-ad-slot{
+  width:min(calc(100% - 32px),1180px);
+  min-height:76px;
+  margin:10px auto 4px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-sizing:border-box;
+  border:1px dashed var(--im-line,#e4e4e7);
+  border-radius:12px;
+  background:var(--im-surface-soft,#fafafa);
+  color:var(--im-muted,#a1a1aa);
+  font-size:9px;
+  font-weight:700;
+  letter-spacing:.16em;
+}
+.dark .shared-ad-slot{background:var(--surface-soft,#151518);border-color:var(--border,#27272a);color:var(--muted,#a1a1aa)}
+/* A native AdMob banner sits above the fixed navigation, so keep content clear of both. */
+.native-android main{padding-bottom:calc(132px + env(safe-area-inset-bottom))!important}
+@media(max-width:800px){
+  .shared-ad-slot{width:calc(100% - 24px);min-height:56px;margin:8px auto 2px;border-radius:10px}
+}
+@media(max-width:360px){
+  .shared-ad-slot{min-height:50px;margin-top:6px}
+}
+
 /* Stage 6 — final responsive, focus, safe-area and reduced-motion audit layer. */
 :root{scroll-padding-top:76px}
 button,a,input,select,textarea{touch-action:manipulation}
