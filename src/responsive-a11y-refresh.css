@@ -112,3 +112,63 @@ main,section,.workspace,.settings-screen,.tools-catalog,.catalog-tool-copy,.sett
 /* Ultra-compact final pass: remove extra gap above the bottom ad slot. */
 .shared-ad-slot-bottom{margin-top:0!important}
 @media(max-width:800px){.shared-ad-slot-bottom{margin-top:0!important;margin-bottom:0!important}}
+
+
+/* Stage 2–5 final implementation layer: responsive catalog, settings and workspaces. */
+@media(max-width:760px){
+  /* Every high-frequency control remains comfortable to tap on Android. */
+  .catalog-categories button{min-height:44px!important;padding-top:9px!important;padding-bottom:9px!important}
+  .settings-screen .settings-action{min-height:44px!important;white-space:normal!important;line-height:1.25!important}
+  .settings-screen .switch{min-height:44px!important;align-self:center!important}
+  .mobile-bottom-nav button{min-height:48px!important;min-width:0!important;touch-action:manipulation!important}
+  .workspace button,.downloads-workspace button,.downloads-workspace a{
+    min-height:44px;
+  }
+  .workspace .dropzone #choose{min-height:48px!important;padding:12px 16px!important}
+  .workspace input:not([type=range]):not([type=file]):not([type=checkbox]):not([type=radio]),
+  .workspace select,.workspace textarea,
+  .downloads-workspace input:not([type=range]):not([type=file]),
+  .downloads-workspace select,.downloads-workspace textarea{
+    min-height:44px;max-width:100%;min-width:0;box-sizing:border-box;
+  }
+  .workspace .settings-row,.workspace .control-row,.workspace .setting-control{min-width:0;max-width:100%}
+  .workspace .settings-row label,.workspace .control-row label,.workspace .setting-control label{overflow-wrap:anywhere}
+  .workspace .dropzone{padding:clamp(18px,5vw,28px)!important}
+  .workspace .dropzone h3{font-size:clamp(17px,4.5vw,21px)!important;line-height:1.3!important;overflow-wrap:anywhere}
+  .workspace .dropzone p,.workspace .dropzone small{overflow-wrap:anywhere}
+  .workspace .workspace-head{min-width:0}
+  .workspace #queue,.workspace #settings,.workspace .result-card{min-width:0;max-width:100%}
+  .workspace #queue img,.workspace .result-card img,.workspace canvas{max-width:100%;height:auto}
+  .workspace .result-actions{display:flex;flex-wrap:wrap;gap:8px}
+  .workspace .result-actions>*{flex:1 1 140px;min-width:0}
+  .workspace .progress-top{gap:10px;flex-wrap:wrap}
+}
+@media(max-width:390px){
+  .catalog-categories{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .catalog-categories button{font-size:12px!important}
+  .catalog-tool-row{grid-template-columns:40px minmax(0,1fr) 14px!important;padding:12px!important}
+  .catalog-tool-icon{width:40px!important;height:40px!important}
+  .catalog-tool-copy b{font-size:13px!important;line-height:1.35!important;overflow-wrap:anywhere}
+  .catalog-tool-copy>span{font-size:11px!important;line-height:1.45!important}
+  .settings-screen .settings-card{grid-template-columns:34px minmax(0,1fr) auto!important;gap:9px!important}
+  .settings-screen .settings-card .settings-copy{min-width:0!important}
+  .settings-screen .settings-card .settings-copy span{overflow-wrap:anywhere!important}
+  .settings-screen .settings-action{grid-column:2/-1!important;justify-self:stretch!important;width:100%!important}
+  .settings-screen .settings-card-about .settings-version{grid-column:2/-1!important;justify-self:start!important}
+  .settings-screen .settings-card-processing{grid-template-columns:34px minmax(0,1fr)!important}
+  .settings-screen .settings-card-processing>label{min-height:44px!important}
+  .workspace .dropzone{padding:18px 12px!important}
+}
+@media(max-width:340px){
+  .editorial-home .editorial-tool{padding:7px!important}
+  .editorial-home .editorial-tool b{font-size:11px!important;letter-spacing:-.01em!important}
+  .catalog-heading h1{font-size:27px!important}
+  .catalog-tool-row{column-gap:8px!important}
+  .settings-screen .settings-card{padding:12px!important}
+}
+@media(orientation:landscape) and (max-height:500px) and (max-width:900px){
+  .mobile-bottom-nav{padding-top:4px!important;padding-bottom:max(4px,env(safe-area-inset-bottom))!important}
+  .mobile-bottom-nav button{min-height:44px!important}
+  .editorial-hero{min-height:148px!important}
+  .shell main{padding-bottom:calc(76px + env(safe-area-inset-bottom))!important}
+}
