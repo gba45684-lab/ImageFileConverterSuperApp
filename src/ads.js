@@ -87,6 +87,11 @@ export async function initNativeAds() {
       await plugin.AdMob.resumeBanner();
       return { shown: true, resumed: true, loaded: true, error: lastBannerError };
     }
+    if (bannerShown && !bannerLoaded) {
+      // showBanner() has been requested; wait for the native load/failure event
+      // instead of stacking duplicate banners on each UI render.
+      return { shown: true, pending: true, loaded: false, error: lastBannerError };
+    }
 
     bannerRequestInFlight = true;
     await plugin.AdMob.showBanner({
