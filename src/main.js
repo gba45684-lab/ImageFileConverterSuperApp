@@ -1,4 +1,5 @@
-import { initNativeAds, maybeShowTestInterstitial } from './ads.js';
+import { initNativeAds, isAndroidNative, maybeShowTestInterstitial } from './ads.js';
+import { initWebAds } from './web-ads.js';
 import { downloadLatestAndroidUpdate, installDownloadedAndroidUpdate, hasDownloadedAndroidUpdate, getAndroidUpdateStatus, notifyAndroidUpdate, requestAndroidNotificationPermission, getAndroidAppVersion, isNativeAndroid, saveProcessedFile } from './updater.js';
 import packageJson from '../package.json';
 import './style.css';
@@ -77,8 +78,9 @@ function render(){
 
   const mobileActive=settingsScreen?'settings':downloads?'files':(task||toolsScreen)?'tools':(S.mobileTab==='tools'?'tools':'home');
   const mobileNav='<nav class="mobile-bottom-nav" aria-label="Primary navigation"><button type="button" data-mobile-tab="home" class="'+(mobileActive==='home'?'active':'')+'" '+(mobileActive==='home'?'aria-current="page"':'')+'><i data-lucide="house"></i><span>Home</span></button><button type="button" data-mobile-tab="tools" class="'+(mobileActive==='tools'?'active':'')+'" '+(mobileActive==='tools'?'aria-current="page"':'')+'><i data-lucide="grid-2x2"></i><span>Tools</span></button><button type="button" data-mobile-tab="files" class="'+(mobileActive==='files'?'active':'')+'" '+(mobileActive==='files'?'aria-current="page"':'')+'><i data-lucide="folder"></i><span>Files</span></button><button type="button" data-mobile-tab="settings" class="'+(mobileActive==='settings'?'active':'')+'" '+(mobileActive==='settings'?'aria-current="page"':'')+'><i data-lucide="settings-2"></i><span>Settings</span></button></nav>';
-  // Native Android ads are rendered by Google AdMob; don't imitate them with HTML placeholders.
-  app.innerHTML='<div class="shell '+(S.dark?'dark':'')+'">'+header+'<main>'+content+'<footer>© 2026 ImageMate <span>•</span> Private file tools for everyone</footer></main>'+mobileNav+'</div>';
+  // Android uses native AdMob; web uses a responsive AdSense slot or a clearly labelled setup preview.
+  const webAdSlot=isAndroidNative()?'':'<aside class="web-ad-slot" data-web-ad-slot aria-label="Advertisement"></aside>';
+  app.innerHTML='<div class="shell '+(S.dark?'dark':'')+'">'+header+webAdSlot+'<main>'+content+'<footer>© 2026 ImageMate <span>•</span> Private file tools for everyone</footer></main>'+mobileNav+'</div>';
   createIcons({ icons, attrs: { 'stroke-width': 1.8 } });
   bind(); settings(); queue();
 
@@ -184,7 +186,9 @@ function render(){
   const pro=document.querySelector('.pro');
   if(pro) pro.onclick=()=>alert('ImageMate PRO is coming soon. All core tools are currently available for free.');
   if(downloads) renderDownloads();
-  checkForAndroidUpdate(); startUpdateMonitor(); initNativeAds().catch(()=>{});
+  checkForAndroidUpdate(); startUpdateMonitor();
+  if(isAndroidNative()) initNativeAds().then(result=>{if(!result.shown)console.warn('[ImageMate ads] Banner not visible:',result.reason||'unknown reason')});
+  else initWebAds().catch(error=>console.warn('[ImageMate ads] Website ad setup failed:',error));
 }
 function showInstantUpdatePopup(version, mode='download'){
   const existingPopup=document.querySelector('#update-popup');
