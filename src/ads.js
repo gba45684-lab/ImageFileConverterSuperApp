@@ -2,11 +2,11 @@ import { Capacitor } from '@capacitor/core';
 
 // Google's published Android sample IDs. These serve test creatives only.
 export const TEST_AD_UNITS = Object.freeze({
+  // 6300978111 is Google's fixed 320x50 banner demo; use the matching fixed size below.
   banner: 'ca-app-pub-3940256099942544/6300978111',
   interstitial: 'ca-app-pub-3940256099942544/1033173712',
   rewarded: 'ca-app-pub-3940256099942544/5224354917',
   nativeAdvanced: 'ca-app-pub-3940256099942544/2247696110',
-  // Correct ID has no embedded space: /9257395921
   appOpen: 'ca-app-pub-3940256099942544/9257395921'
 });
 const TEST_APP_ID = 'ca-app-pub-3940256099942544~3347511713';
@@ -14,6 +14,7 @@ const TEST_APP_ID = 'ca-app-pub-3940256099942544~3347511713';
 let admob = null;
 let initialized = false;
 let bannerShown = false;
+let bannerListenersRegistered = false;
 let completedActions = 0;
 let lastBannerError = '';
 let appOpenShownThisLaunch = false;
@@ -27,29 +28,60 @@ async function getAdMob() {
   if (!initialized) {
     await admob.AdMob.initialize({ initializeForTesting: true });
     initialized = true;
+    console.info('[ImageMate ads] AdMob initialized in test mode.', TEST_APP_ID);
   }
   return admob;
 }
 
+async function registerBannerDiagnostics(plugin) {
+  if (bannerListenersRegistered || !plugin.BannerAdPluginEvents) return;
+  bannerListenersRegistered = true;
+  try {
+    await plugin.AdMob.addListener(plugin.BannerAdPluginEvents.Loaded, () => {
+      lastBannerError = '';
+      console.info('[ImageMate ads] Banner creative loaded.');
+    });
+    await plugin.AdMob.addListener(plugin.BannerAdPluginEvents.FailedToLoad, error => {
+      lastBannerError = String(error?.message || error?.code || JSON.stringify(error));
+      console.error('[ImageMate ads] Banner failed to load:', error);
+    });
+    await plugin.AdMob.addListener(plugin.BannerAdPluginEvents.AdImpression, () => {
+      console.info('[ImageMate ads] Banner impression recorded.');
+    });
+  } catch (error) {
+    console.warn('[ImageMate ads] Could not register banner diagnostics:', error);
+  }
+}
+
 export async function initNativeAds() {
   if (!isAndroidNative()) return { shown: false, reason: 'not-android' };
-  if (bannerShown) return { shown: true };
 
   try {
     const plugin = await getAdMob();
+    await registerBannerDiagnostics(plugin);
+    if (bannerShown) {
+      // The native banner survives web-view re-renders; explicitly resume it if
+      // Android or another screen previously hid it.
+      await plugin.AdMob.resumeBanner();
+      return { shown: true, resumed: true, error: lastBannerError };
+    }
+
     await plugin.AdMob.showBanner({
       adId: TEST_AD_UNITS.banner,
-      adSize: plugin.BannerAdSize.ADAPTIVE_BANNER,
+      // The configured Google demo unit is a fixed-size 320x50 banner.
+      // Do not request ADAPTIVE_BANNER with a fixed-size test unit.
+      adSize: plugin.BannerAdSize.BANNER,
       position: plugin.BannerAdPosition.BOTTOM_CENTER,
       // Keep the banner above ImageMate's fixed bottom navigation.
       margin: 66
     });
     bannerShown = true;
     lastBannerError = '';
-    console.info('[ImageMate ads] Google test banner requested successfully.', TEST_APP_ID);
+    console.info('[ImageMate ads] Google fixed-size test banner requested.', TEST_APP_ID);
     return { shown: true };
   } catch (error) {
     lastBannerError = String(error?.message || error);
+    bannerShown = false;
     console.error('[ImageMate ads] Test banner failed:', error);
     return { shown: false, reason: lastBannerError };
   }
@@ -65,8 +97,14 @@ export async function maybeShowTestAppOpen() {
   try {
     const plugin = await getAdMob();
     await plugin.AdMob.loadAppOpen({ adId: TEST_AD_UNITS.appOpen });
-    await plugin.AdMob.showAppOpen();
+    const loaded = await plugin.AdMob.isAppOpenLoaded({ adId: TEST_AD_UNITS.appOpen });
+    if (!loaded?.value) {
+      console.warn('[ImageMate ads] App Open test ad did not finish loading; skipping show.');
+      return;
+    }
+    await plugin.AdMob.showAppOpen({ adId: TEST_AD_UNITS.appOpen });
     appOpenShownThisLaunch = true;
+    console.info('[ImageMate ads] App Open test ad shown.');
   } catch (error) {
     console.warn('[ImageMate ads] Test App Open ad failed:', error);
   }
