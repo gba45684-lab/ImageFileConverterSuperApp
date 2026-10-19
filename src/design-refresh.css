@@ -1980,7 +1980,28 @@ button[hidden],.nav-btn[hidden]{display:none!important}
 }
 
 
-/* Visual-review fix: keep the iM mark legible against the dark navigation surface. */
+/* Final Stage 1 responsive/accessibility fixes, consolidated after legacy overrides. */
 .dark .editorial-topbar .brand-mark .im-mark-stem,
 .dark .editorial-topbar .brand-mark .im-mark-m{stroke:#F5F7FF!important}
 .dark .editorial-topbar .brand-mark .im-mark-dot{fill:#FFBD45!important}
+.hero-pagination{min-height:44px!important;gap:0!important}
+.hero-page-dot,.hero-page-dot.active{
+  width:44px!important;min-width:44px!important;max-width:44px!important;
+  height:44px!important;min-height:44px!important;max-height:44px!important;
+  display:grid!important;place-items:center!important;background:transparent!important;
+}
+.hero-page-dot span,.hero-page-dot.active span{
+  display:block!important;width:8px!important;height:8px!important;min-width:8px!important;
+  border-radius:50%!important;transition:background 180ms ease,transform 180ms ease!important;
+}
+.hero-page-dot.active span{background:#6366f1!important;box-shadow:0 1px 5px rgba(99,102,241,.24)!important}
+.hero-page-dot:focus-visible{outline:3px solid rgba(99,102,241,.42)!important;outline-offset:-3px!important}
+@media(max-width:760px){
+  .editorial-home .editorial-tool{height:auto!important;min-height:96px!important;padding:8px!important}
+  .editorial-home .editorial-tool b{font-size:12px!important;line-height:1.3!important;overflow-wrap:anywhere!important}
+  .hero-pagination{margin:-4px 0 -10px!important}
+}
+@media(max-width:360px){
+  .editorial-home .editorial-tool{height:auto!important;min-height:96px!important;padding:8px!important}
+  .editorial-home .editorial-tool b{font-size:11px!important;line-height:1.3!important;overflow-wrap:anywhere!important}
+}
