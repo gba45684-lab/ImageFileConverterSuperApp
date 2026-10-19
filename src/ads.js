@@ -1,6 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 
-// Google's published Android sample IDs. These display test creatives only.
+// Google's published Android sample IDs. These return test creatives only.
 const TEST_APP_ID = 'ca-app-pub-3940256099942544~3347511713';
 const TEST_BANNER_ID = 'ca-app-pub-3940256099942544/6300978111';
 const TEST_INTERSTITIAL_ID = 'ca-app-pub-3940256099942544/1033173712';
@@ -8,34 +8,22 @@ const TEST_INTERSTITIAL_ID = 'ca-app-pub-3940256099942544/1033173712';
 let admob = null;
 let initialized = false;
 let bannerShown = false;
-let canRequestAds = false;
 let completedActions = 0;
+let lastBannerError = '';
 
 export function isAndroidNative() {
   return Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
 }
 
 export async function initNativeAds() {
-  if (!isAndroidNative() || bannerShown) return bannerShown;
+  if (!isAndroidNative()) return { shown: false, reason: 'not-android' };
+  if (bannerShown) return { shown: true };
 
   try {
-    admob = await import('@capacitor-community/admob');
+    admob = admob || await import('@capacitor-community/admob');
 
-    // Follow Google's consent flow before requesting ads.
-    let consent = await admob.AdMob.requestConsentInfo();
-    if (
-      consent.isConsentFormAvailable &&
-      consent.status === admob.AdmobConsentStatus.REQUIRED
-    ) {
-      consent = await admob.AdMob.showConsentForm();
-    }
-
-    canRequestAds = Boolean(consent.canRequestAds);
-    if (!canRequestAds) {
-      console.info('ImageMate ads not requested: consent is not ready.');
-      return false;
-    }
-
+    // Test ad units must be testable without the production consent gate.
+    // Production IDs must use the appropriate consent flow before requesting ads.
     if (!initialized) {
       await admob.AdMob.initialize();
       initialized = true;
@@ -45,23 +33,33 @@ export async function initNativeAds() {
       adId: TEST_BANNER_ID,
       adSize: admob.BannerAdSize.ADAPTIVE_BANNER,
       position: admob.BannerAdPosition.BOTTOM_CENTER,
-      // Keep the adaptive native banner above ImageMate's bottom navigation.
+      // ImageMate has a fixed bottom navigation; raise the banner above it.
       margin: 66
     });
 
     bannerShown = true;
-    console.info('ImageMate Google AdMob test banner shown', TEST_APP_ID);
-    return true;
+    lastBannerError = '';
+    console.info('[ImageMate ads] Google test banner requested successfully.', TEST_APP_ID);
+    return { shown: true };
   } catch (error) {
-    console.warn('ImageMate AdMob test banner could not be shown', error);
-    return false;
+    lastBannerError = String(error?.message || error);
+    console.error('[ImageMate ads] Test banner failed:', error);
+    return { shown: false, reason: lastBannerError };
   }
 }
 
-// Test interstitials are intentionally infrequent and only shown at a natural
-// completion point. Replace test IDs with your own approved IDs before launch.
+export function getNativeAdStatus() {
+  return {
+    supported: isAndroidNative(),
+    initialized,
+    bannerShown,
+    lastBannerError
+  };
+}
+
+// Test interstitials are infrequent and appear only at a natural completion point.
 export async function maybeShowTestInterstitial() {
-  if (!isAndroidNative() || !canRequestAds || !initialized || !admob) return;
+  if (!isAndroidNative() || !initialized || !admob) return;
 
   completedActions += 1;
   if (completedActions % 5 !== 0) return;
@@ -70,6 +68,6 @@ export async function maybeShowTestInterstitial() {
     await admob.AdMob.prepareInterstitial({ adId: TEST_INTERSTITIAL_ID });
     await admob.AdMob.showInterstitial();
   } catch (error) {
-    console.warn('ImageMate AdMob test interstitial could not be shown', error);
+    console.warn('[ImageMate ads] Test interstitial failed:', error);
   }
 }
