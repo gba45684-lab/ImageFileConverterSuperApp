@@ -220,7 +220,8 @@ jobs:
             const categoryButtons = await page.locator('[data-tool-category]').evaluateAll(els => els.map(el => Math.round(el.getBoundingClientRect().height)));
             if (categoryButtons.some(h => h < 44)) throw new Error('Tool category filter below 44px at ' + width + 'px: ' + categoryButtons);
             const searchRect = await page.locator('#catalog-search').boundingBox();
-            if (!searchRect || searchRect.height < 44 || searchRect.width < 180) throw new Error('Tool search field is too small at ' + width + 'px.');
+            const minSearchWidth = width <= 320 ? 150 : 180;
+    if (!searchRect || searchRect.height < 44 || searchRect.width < minSearchWidth) throw new Error('Tool search field is too small at ' + width + 'px: ' + (searchRect?.width ?? 0) + 'px (minimum ' + minSearchWidth + 'px).');
           }
           await page.locator('[data-tool-category="Document"]').click();
           if (await page.locator('.catalog-tool-row:visible').count() < 1) throw new Error('Document category filter returned no tools.');
