@@ -172,3 +172,7 @@ main,section,.workspace,.settings-screen,.tools-catalog,.catalog-tool-copy,.sett
   .editorial-hero{min-height:148px!important}
   .shell main{padding-bottom:calc(76px + env(safe-area-inset-bottom))!important}
 }
+
+.catalog-categories button{min-height:44px!important}
+.settings-screen .settings-action{min-height:44px!important}
+.workspace .dropzone #choose{min-height:48px!important}
