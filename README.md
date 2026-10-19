@@ -40,3 +40,13 @@ ImageMate ships reusable UI/UX skills for compatible coding agents:
 - `.agents/skills/imagemate-responsive-accessibility/SKILL.md` — viewport, keyboard, touch, contrast, focus and reduced-motion checks.
 - `.agents/skills/imagemate-ui-regression-gate/SKILL.md` — build, interaction and Android release verification before stage completion.
 Matching copies live under `.claude/skills/` for Claude Code. Keep both copies in sync. These are instructions invoked by a compatible coding agent; they do not independently launch an AI agent. The CI skill-pack workflow checks file parity only.
+
+## Advertising setup
+
+- **Android development:** the app uses Google's published AdMob test app/banner/interstitial IDs. These show test creatives only and do not earn revenue. The Android workflow adds the test App ID to the generated manifest.
+- **Website preview:** when no AdSense IDs are configured, ImageMate shows a clearly labelled layout preview, not a live Google ad.
+- **Website live ads:** obtain an approved AdSense publisher ID and create a responsive display ad unit. In the Vercel project, set these Production environment variables, then redeploy:
+  - `VITE_ADSENSE_CLIENT` — your publisher ID, in the format `ca-pub-XXXXXXXXXXXXXXXX`
+  - `VITE_ADSENSE_SLOT` — the numeric ad-unit/slot ID
+- AdSense must approve the website and serve the ad unit before real ads can appear. Never click your own ads. Do not replace these values with invented IDs; they cannot serve real ads or earn revenue.
+- Before an Android production release, create a real AdMob app and ad units, configure the matching App ID/ad-unit IDs, and implement the consent flow required for your audience and regions.
