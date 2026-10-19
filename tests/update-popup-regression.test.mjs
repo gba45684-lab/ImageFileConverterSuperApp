@@ -22,3 +22,15 @@ test('the install click handler reads the current popup mode rather than a captu
   assert.match(source, /let installMode\s*=\s*mode\s*===\s*['"]install['"]/,
     'popup mode must be mutable across download-to-install transition');
 });
+
+test('the web-content updater applies a verified bundle without invoking the APK installer', () => {
+  const ota = readFileSync(new URL('../src/ota.js', import.meta.url), 'utf8');
+  assert.match(ota, /await LiveUpdate\.downloadBundle\(/,
+    'the updater must download the OTA bundle');
+  assert.match(ota, /await LiveUpdate\.setNextBundle\(\{ bundleId \}\)/,
+    'the downloaded bundle must be selected for activation');
+  assert.match(ota, /await LiveUpdate\.reload\(\)/,
+    'the updater must reload the WebView to apply compatible web assets immediately');
+  assert.doesNotMatch(ota, /installDownloadedAndroidUpdate|downloadLatestAndroidUpdate/,
+    'web-content updates must not invoke the APK installer flow');
+});
