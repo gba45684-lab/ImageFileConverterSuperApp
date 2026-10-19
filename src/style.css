@@ -580,3 +580,22 @@ footer{color:var(--editorial-muted)!important;border-top-color:var(--editorial-l
     transform:none!important;
   }
 }
+
+/* Responsive website ad slot. Native Android ads are handled by Google AdMob. */
+.web-ad-slot{width:100%;max-width:1180px;margin:8px auto 0;padding:0 22px;min-height:0}
+.web-ad-slot[data-ad-mode="preview"],.web-ad-slot[data-ad-mode="error"]{min-height:100px}
+.web-ad-preview-art{width:100%;min-height:94px;border:1px solid var(--border,#e6e5ee);border-radius:14px;background:var(--surface,#fff);overflow:hidden;padding:10px 13px;color:var(--text,#222)}
+.web-ad-preview-label{display:block;margin-bottom:7px;color:#858594;font-size:9px;font-weight:800;letter-spacing:.13em}
+.web-ad-preview-body{display:flex;align-items:center;gap:12px;min-height:52px}
+.web-ad-preview-icon{width:38px;height:38px;flex:0 0 38px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(135deg,#7566f5,#5949d7);color:#fff;font-weight:900;font-size:12px}
+.web-ad-preview-body>div{min-width:0;flex:1}
+.web-ad-preview-body b{display:block;font-size:12px;line-height:1.35}
+.web-ad-preview-body p{margin:2px 0;color:#737383;font-size:11px;line-height:1.4}
+.web-ad-preview-body small{display:block;color:#9998a4;font-size:9px;line-height:1.35}
+.web-ad-preview-cta{flex:0 0 auto;border:1px solid #e1defd;border-radius:8px;padding:7px 9px;color:#5949d7;font-size:10px;font-weight:800}
+.web-ad-live{width:100%;min-height:90px}
+.web-ad-status{border:1px solid #f1d7aa;background:#fff9ed;border-radius:10px;padding:12px;color:#805b23;font-size:12px;line-height:1.5}
+.dark .web-ad-preview-art{background:#151620;border-color:#292a38;color:#f4f4fa}
+.dark .web-ad-preview-body p{color:#aaaaba}
+@media(max-width:800px){.web-ad-slot{padding:0 15px;margin-top:6px}.web-ad-preview-art{padding:9px 10px}.web-ad-preview-cta{font-size:9px;padding:6px 7px}}
+@media(max-width:420px){.web-ad-preview-cta{display:none}}
