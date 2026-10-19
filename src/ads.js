@@ -14,6 +14,10 @@ const TEST_APP_ID = 'ca-app-pub-3940256099942544~3347511713';
 let admob = null;
 let initialized = false;
 let bannerShown = false;
+let bannerLoaded = false;
+let bannerRequestInFlight = false;
+let bannerRetryCount = 0;
+let bannerRetryTimer = null;
 let bannerListenersRegistered = false;
 let completedActions = 0;
 let lastBannerError = '';
@@ -39,11 +43,27 @@ async function registerBannerDiagnostics(plugin) {
   try {
     await plugin.AdMob.addListener(plugin.BannerAdPluginEvents.Loaded, () => {
       lastBannerError = '';
+      bannerShown = true;
+      bannerLoaded = true;
+      bannerRetryCount = 0;
+      if (bannerRetryTimer) clearTimeout(bannerRetryTimer);
+      bannerRetryTimer = null;
       console.info('[ImageMate ads] Banner creative loaded.');
     });
     await plugin.AdMob.addListener(plugin.BannerAdPluginEvents.FailedToLoad, error => {
       lastBannerError = String(error?.message || error?.code || JSON.stringify(error));
+      bannerShown = false;
+      bannerLoaded = false;
       console.error('[ImageMate ads] Banner failed to load:', error);
+      // A showBanner() call can resolve even when Google later fails to fill the slot.
+      // Retry a small, bounded number of times rather than treating that as success forever.
+      if (bannerRetryCount < 2 && !bannerRetryTimer) {
+        bannerRetryCount += 1;
+        bannerRetryTimer = setTimeout(() => {
+          bannerRetryTimer = null;
+          if (!bannerShown && !bannerRequestInFlight) initNativeAds();
+        }, 1800);
+      }
     });
     await plugin.AdMob.addListener(plugin.BannerAdPluginEvents.AdImpression, () => {
       console.info('[ImageMate ads] Banner impression recorded.');
@@ -59,13 +79,16 @@ export async function initNativeAds() {
   try {
     const plugin = await getAdMob();
     await registerBannerDiagnostics(plugin);
-    if (bannerShown) {
+    if (bannerRequestInFlight) return { shown: bannerShown, pending: true, error: lastBannerError };
+
+    if (bannerShown && bannerLoaded) {
       // The native banner survives web-view re-renders; explicitly resume it if
       // Android or another screen previously hid it.
       await plugin.AdMob.resumeBanner();
-      return { shown: true, resumed: true, error: lastBannerError };
+      return { shown: true, resumed: true, loaded: true, error: lastBannerError };
     }
 
+    bannerRequestInFlight = true;
     await plugin.AdMob.showBanner({
       adId: TEST_AD_UNITS.banner,
       // The configured Google demo unit is a fixed-size 320x50 banner.
@@ -78,17 +101,20 @@ export async function initNativeAds() {
     bannerShown = true;
     lastBannerError = '';
     console.info('[ImageMate ads] Google fixed-size test banner requested.', TEST_APP_ID);
-    return { shown: true };
+    return { shown: true, loaded: bannerLoaded };
   } catch (error) {
     lastBannerError = String(error?.message || error);
     bannerShown = false;
+    bannerLoaded = false;
     console.error('[ImageMate ads] Test banner failed:', error);
     return { shown: false, reason: lastBannerError };
+  } finally {
+    bannerRequestInFlight = false;
   }
 }
 
 export function getNativeAdStatus() {
-  return { supported: isAndroidNative(), initialized, bannerShown, lastBannerError };
+  return { supported: isAndroidNative(), initialized, bannerShown, bannerLoaded, bannerRequestInFlight, bannerRetryCount, lastBannerError };
 }
 
 // Show test App Open once on launch. Call after the first screen has rendered.
