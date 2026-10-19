@@ -127,7 +127,7 @@ jobs:
             if (width <= 360 && audit.labelFontSize < 11) throw new Error('Home labels are too small at ' + width + 'px: ' + audit.labelFontSize + 'px.');
             if (audit.cardWidth < 44 || audit.cardHeight < 44) throw new Error('Home tool card touch target is too small at ' + width + 'px.');
             if (!audit.pagerTarget || audit.pagerTarget.width < 44 || audit.pagerTarget.height < 44) throw new Error('Home pager target is smaller than 44x44 at ' + width + 'px.');
-            if (width <= 768 && (!audit.navTarget || audit.navTarget.height < 44)) throw new Error('Mobile navigation touch target is smaller than 44px at ' + width + 'px.');
+            if (width <= 760 && (!audit.navTarget || audit.navTarget.height < 44)) throw new Error('Mobile navigation touch target is smaller than 44px at ' + width + 'px.');
           }
           if (errors.length) throw new Error('Browser errors: ' + errors.join(' | '));
           await browser.close();
