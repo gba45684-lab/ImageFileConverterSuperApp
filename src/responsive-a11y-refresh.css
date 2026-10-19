@@ -77,13 +77,20 @@ main,section,.workspace,.settings-screen,.tools-catalog,.catalog-tool-copy,.sett
 .native-android .shared-ad-slot-bottom{scroll-margin-bottom:calc(90px + env(safe-area-inset-bottom))}
 
 
-/* Remove the oversized empty viewport gap visible on short-content screens. */
+/* Compact short screens: content determines page height; no viewport-sized spacer. */
 .shell{min-height:100dvh;height:auto}
 .shell main{min-height:0!important;height:auto!important;flex:0 0 auto!important}
-.shell main>footer{margin-top:12px!important}
-.shared-ad-slot-bottom{margin-bottom:8px!important}
-@media(min-width:801px){.shell main{padding-bottom:24px!important}}
+.shell main>footer{margin-top:10px!important}
+.shared-ad-slot-bottom{margin-top:10px!important;margin-bottom:6px!important}
+@media(min-width:801px){
+  .shell main{padding-bottom:24px!important}
+}
 @media(max-width:800px){
+  .shell{min-height:0!important}
+  .shell main{min-height:0!important;height:auto!important;padding-bottom:82px!important}
+  .editorial-home{min-height:0!important;height:auto!important}
+  .shell main>footer{padding-top:12px!important;padding-bottom:8px!important;margin-top:8px!important}
+  .shared-ad-slot-bottom{min-height:48px!important;margin:8px auto 4px!important}
   .native-android .shell main{padding-bottom:calc(82px + env(safe-area-inset-bottom))!important}
   .native-android main{padding-bottom:calc(70px + env(safe-area-inset-bottom))!important}
 }
