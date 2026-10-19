@@ -185,7 +185,64 @@ jobs:
           await page.locator('[data-mobile-tab="settings"]').click();
           await page.getByRole('heading', { name: /^settings$/i }).waitFor();
           await audit('Settings');
+
+          // Exercise responsive geometry on the catalog, settings and a real tool workspace.
+          const widths = [320, 360, 390, 412, 768];
+          async function assertNoOverflow(screen) {
+            const result = await page.evaluate(() => ({
+              overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+              width: innerWidth,
+              height: innerHeight
+            }));
+            if (result.overflow) throw new Error(screen + ': horizontal overflow at ' + result.width + 'px');
+          }
+          for (const width of widths) {
+            await page.setViewportSize({ width, height: 844 });
+            await assertNoOverflow('Settings');
+            const controls = await page.evaluate(() => ({
+              actionHeights: [...document.querySelectorAll('.settings-screen .settings-action')].map(el => Math.round(el.getBoundingClientRect().height)),
+              switchRects: [...document.querySelectorAll('.settings-screen .switch')].map(el => {
+                const r = el.getBoundingClientRect(); return { width: Math.round(r.width), height: Math.round(r.height) };
+              }),
+              formatWidth: Math.round(document.querySelector('#default-format')?.getBoundingClientRect().width || 0)
+            }));
+            if (controls.actionHeights.some(h => h < 44)) throw new Error('Settings action below 44px at ' + width + 'px: ' + controls.actionHeights);
+            if (controls.formatWidth && controls.formatWidth > width) throw new Error('Settings format control exceeds viewport at ' + width + 'px.');
+          }
+
+          await page.locator('[data-mobile-tab="tools"]').click();
+          await page.getByRole('heading', { name: /all tools/i }).waitFor();
+          for (const width of widths) {
+            await page.setViewportSize({ width, height: 844 });
+            await assertNoOverflow('Tools catalog');
+            const categoryButtons = await page.locator('[data-tool-category]').evaluateAll(els => els.map(el => Math.round(el.getBoundingClientRect().height)));
+            if (categoryButtons.some(h => h < 44)) throw new Error('Tool category filter below 44px at ' + width + 'px: ' + categoryButtons);
+            const searchRect = await page.locator('#catalog-search').boundingBox();
+            if (!searchRect || searchRect.height < 44 || searchRect.width < 180) throw new Error('Tool search field is too small at ' + width + 'px.');
+          }
+          await page.locator('[data-tool-category="Document"]').click();
+          if (await page.locator('.catalog-tool-row:visible').count() < 1) throw new Error('Document category filter returned no tools.');
+          await page.locator('[data-tool-category="All"]').click();
+          await page.locator('#catalog-search').fill('convert');
+          if (await page.locator('.catalog-tool-row:visible').count() < 1) throw new Error('Tool search returned no matching tools.');
+          await page.locator('#catalog-search').fill('');
+          await page.locator('.catalog-tool-row[data-tool="convert"]').click();
+          await page.getByRole('heading', { name: /convert images/i }).waitFor();
+          for (const width of widths) {
+            await page.setViewportSize({ width, height: 844 });
+            await assertNoOverflow('Convert Images workspace');
+            const workspace = await page.evaluate(() => ({
+              choose: (() => { const r = document.querySelector('#choose')?.getBoundingClientRect(); return r ? {width: Math.round(r.width),height: Math.round(r.height)} : null })(),
+              dropzone: (() => { const r = document.querySelector('#drop')?.getBoundingClientRect(); return r ? {width: Math.round(r.width),right: Math.round(r.right)} : null })(),
+              settingsControls: [...document.querySelectorAll('#settings input:not([type=range]),#settings select,#settings textarea')].map(el => Math.round(el.getBoundingClientRect().height))
+            }));
+            if (!workspace.choose || workspace.choose.height < 44) throw new Error('Workspace choose-files target below 44px at ' + width + 'px.');
+            if (workspace.dropzone && workspace.dropzone.right > width + 1) throw new Error('Workspace dropzone exceeds viewport at ' + width + 'px.');
+            if (workspace.settingsControls.some(h => h < 40)) throw new Error('Workspace setting control is too short at ' + width + 'px.');
+          }
           fs.mkdirSync('ui-evidence', { recursive: true });
+          await page.screenshot({ path: 'ui-evidence/convert-workspace-mobile.png', fullPage: true });
+
           fs.writeFileSync('ui-evidence/layout-audit.json', JSON.stringify(report, null, 2));
           await browser.close();
           NODE
