@@ -1,4 +1,4 @@
-/* Home hero carousel: dots, swipe gestures and keyboard navigation all change the actual slide. */
+/* Home hero carousel: continuous autoplay, dots, touch/pointer swipes and keyboard navigation. */
 import './home-refresh.css';
 
 const slides = [
@@ -7,8 +7,12 @@ const slides = [
   { title: 'Make every image lighter.', copy: 'Compress and resize without the complicated workflow.' },
   { title: 'Your files stay yours.', copy: 'Private, simple image tools designed for everyday tasks.' }
 ];
+const AUTOPLAY_MS = 4500;
+const SWIPE_THRESHOLD = 38;
 let currentSlide = 0;
-let pointerStartX = null;
+let pointerStart = null;
+let touchStart = null;
+let lastInteractionAt = 0;
 
 function showSlide(index) {
   const home = document.querySelector('.editorial-home');
@@ -34,11 +38,20 @@ function showSlide(index) {
   }
 }
 
+function moveBySwipe(deltaX, deltaY) {
+  if (Math.abs(deltaX) < SWIPE_THRESHOLD || Math.abs(deltaX) <= Math.abs(deltaY) * 1.15) return;
+  lastInteractionAt = Date.now();
+  showSlide(currentSlide + (deltaX < 0 ? 1 : -1));
+}
+
 document.addEventListener('click', event => {
   const dot = event.target.closest('[data-hero-slide]');
   if (!dot || !document.querySelector('.editorial-home')) return;
   const index = Number(dot.dataset.heroSlide);
-  if (Number.isInteger(index) && index >= 0 && index < slides.length) showSlide(index);
+  if (Number.isInteger(index) && index >= 0 && index < slides.length) {
+    lastInteractionAt = Date.now();
+    showSlide(index);
+  }
 });
 
 document.addEventListener('keydown', event => {
@@ -46,21 +59,58 @@ document.addEventListener('keydown', event => {
   if (!pagination) return;
   if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
     event.preventDefault();
+    lastInteractionAt = Date.now();
     showSlide(currentSlide + (event.key === 'ArrowRight' ? 1 : -1));
-    const buttons = [...pagination.querySelectorAll('[data-hero-slide]')];
-    buttons[currentSlide]?.focus();
+    pagination.querySelectorAll('[data-hero-slide]')[currentSlide]?.focus();
   }
 });
 
+/* Pointer support for mouse, stylus and compatible touch browsers. */
 document.addEventListener('pointerdown', event => {
-  if (event.target.closest('.editorial-hero')) pointerStartX = event.clientX;
+  const hero = event.target.closest('.editorial-hero');
+  if (!hero || event.pointerType === 'mouse' && event.button !== 0) return;
+  pointerStart = { x: event.clientX, y: event.clientY, id: event.pointerId };
 }, { passive: true });
 
 document.addEventListener('pointerup', event => {
-  if (pointerStartX === null) return;
-  const start = pointerStartX;
-  pointerStartX = null;
-  const distance = event.clientX - start;
-  if (Math.abs(distance) < 45 || !event.target.closest('.editorial-hero')) return;
-  showSlide(currentSlide + (distance < 0 ? 1 : -1));
+  if (!pointerStart || event.pointerId !== pointerStart.id) return;
+  const start = pointerStart;
+  pointerStart = null;
+  moveBySwipe(event.clientX - start.x, event.clientY - start.y);
 }, { passive: true });
+
+document.addEventListener('pointercancel', () => { pointerStart = null; }, { passive: true });
+
+/* Explicit touch handlers make swipe work reliably in mobile WebViews too. */
+document.addEventListener('touchstart', event => {
+  const hero = event.target.closest('.editorial-hero');
+  const touch = event.changedTouches && event.changedTouches[0];
+  if (!hero || !touch) return;
+  touchStart = { x: touch.clientX, y: touch.clientY };
+}, { passive: true });
+
+document.addEventListener('touchend', event => {
+  if (!touchStart) return;
+  const start = touchStart;
+  touchStart = null;
+  const touch = event.changedTouches && event.changedTouches[0];
+  if (touch) moveBySwipe(touch.clientX - start.x, touch.clientY - start.y);
+}, { passive: true });
+
+document.addEventListener('touchcancel', () => { touchStart = null; }, { passive: true });
+
+/* Keep horizontal gestures available while allowing normal vertical page scrolling. */
+function prepareHero() {
+  document.querySelectorAll('.editorial-hero').forEach(hero => {
+    hero.style.touchAction = 'pan-y';
+  });
+}
+new MutationObserver(prepareHero).observe(document.documentElement, { childList: true, subtree: true });
+prepareHero();
+
+/* Autoplay keeps cycling while Home is visible; interaction delays the next automatic move. */
+window.setInterval(() => {
+  if (!document.querySelector('.editorial-home') || document.hidden) return;
+  if (Date.now() - lastInteractionAt < 1800) return;
+  showSlide(currentSlide + 1);
+}, AUTOPLAY_MS);
