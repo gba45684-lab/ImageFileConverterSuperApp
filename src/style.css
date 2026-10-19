@@ -535,3 +535,48 @@ footer{color:var(--editorial-muted)!important;border-top-color:var(--editorial-l
   min-width:48px!important;
   max-width:48px!important;
 }
+
+
+/* Smooth, restrained entrance for primary page and section headings. */
+@keyframes imagemate-heading-enter{
+  from{opacity:0;transform:translate3d(0,10px,0);filter:blur(2px)}
+  to{opacity:1;transform:translate3d(0,0,0);filter:blur(0)}
+}
+.home-intro h1,
+.home-copy h1,
+.screen-head h1,
+.tool-screen-head h1,
+.tool-section-head h2,
+.downloads-head h2,
+.workspace-head h2,
+.editorial-hero h1{
+  animation:imagemate-heading-enter .72s cubic-bezier(.2,.75,.25,1) both;
+}
+@keyframes imagemate-hero-slide{
+  0%{opacity:.25;transform:translate3d(0,12px,0);filter:blur(3px)}
+  55%{opacity:1;transform:translate3d(0,-2px,0);filter:blur(0)}
+  100%{opacity:1;transform:translate3d(0,0,0);filter:blur(0)}
+}
+#home-hero-title.hero-slide-animate{
+  animation:imagemate-hero-slide 2s cubic-bezier(.2,.75,.25,1) both;
+}
+#home-hero-copy.hero-slide-animate{
+  animation:imagemate-hero-slide 2s cubic-bezier(.2,.75,.25,1) both;
+  animation-delay:80ms;
+}
+@media(prefers-reduced-motion:reduce){
+  .home-intro h1,
+  .home-copy h1,
+  .screen-head h1,
+  .tool-screen-head h1,
+  .tool-section-head h2,
+  .downloads-head h2,
+  .workspace-head h2,
+  .editorial-hero h1,
+  #home-hero-title.hero-slide-animate,
+  #home-hero-copy.hero-slide-animate{
+    animation:none!important;
+    filter:none!important;
+    transform:none!important;
+  }
+}
