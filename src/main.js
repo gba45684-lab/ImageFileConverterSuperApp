@@ -108,10 +108,15 @@ function render(){
     createIcons({icons,attrs:{'stroke-width':1.8}});
     try{
       if(isNativeAndroid()){
-        await Promise.all([
+        const [apkResult] = await Promise.all([
           checkForAndroidUpdate(true),
           initGitHubOta({ force: true })
         ]);
+        if(apkResult==='current') alert('ImageMate is up to date. The web-update check has also completed.');
+        else if(apkResult==='failed'||apkResult==='unavailable') alert('Could not verify the latest update. Check your internet connection and try again.');
+        else if(apkResult==='disabled') alert('Automatic updates are disabled. Manual update check was not run.');
+        else if(apkResult==='checking') alert('An update check is already running. Please wait a moment.');
+        else if(apkResult==='recently-checked') alert('You just checked for updates. Please try again in a few seconds.');
       }else{
         alert('Update refresh is available in the Android app.');
       }
@@ -258,10 +263,12 @@ function showInstantUpdatePopup(version, mode='download'){
   if(navigator.vibrate)navigator.vibrate([250,120,250]);
 }
 async function checkForAndroidUpdate(force=false){
-  if(!isNativeAndroid()||updateCheckInFlight||(!force&&localStorage.getItem('imagemate-auto-update')==='0'))return;
+  if(!isNativeAndroid())return 'unsupported';
+  if(updateCheckInFlight)return 'checking';
+  if(!force&&localStorage.getItem('imagemate-auto-update')==='0')return 'disabled';
   const now=Date.now();
   const minGap=force?UPDATE_MANUAL_CHECK_MS:UPDATE_AUTO_CHECK_MS;
-  if(now-lastUpdateCheckAt<minGap)return;
+  if(!force&&now-lastUpdateCheckAt<minGap)return 'recently-checked';
   lastUpdateCheckAt=now;
   localStorage.setItem('imagemate-last-update-check',String(lastUpdateCheckAt));
   updateCheckInFlight=true;
@@ -270,13 +277,13 @@ async function checkForAndroidUpdate(force=false){
     runtimeAppVersion=String(nativeVersion?.version||APP_VERSION);
     const b=document.querySelector('#update-btn');
     const r=await fetch(UPDATE_API+'?imagemate='+Date.now(),{cache:'no-store',headers:{Accept:'application/vnd.github+json'}});
-    if(!r.ok)return;
+    if(!r.ok)return 'failed';
     const release=await r.json();
     const latest=String(release.tag_name||'').replace(/^v/i,'');
     const asset=Array.isArray(release.assets)?release.assets.find(a=>a&&a.name==='ImageMate.apk'&&a.browser_download_url):null;
     if(!latest||!asset){
       if(b){b.hidden=true;b.disabled=false}
-      return;
+      return 'unavailable';
     }
     latestUpdateUrl=asset.browser_download_url;
 
@@ -288,7 +295,7 @@ async function checkForAndroidUpdate(force=false){
         localStorage.removeItem('imagemate-update-install-started-at');
       }else{
         if(b){b.hidden=true;b.disabled=true}
-        return;
+        return 'installing';
       }
     }
 
@@ -296,7 +303,7 @@ async function checkForAndroidUpdate(force=false){
       localStorage.removeItem('imagemate-update-installing');
       localStorage.removeItem('imagemate-update-install-started-at');
       if(b){b.hidden=true;b.disabled=false}
-      return;
+      return 'current';
     }
 
     const ready=await hasDownloadedAndroidUpdate(latest).catch(()=>({ready:false}));
@@ -326,7 +333,7 @@ async function checkForAndroidUpdate(force=false){
         }
       };
       showInstantUpdatePopup(latest,'install');
-      return;
+      return 'available';
     }
 
     const status=await getAndroidUpdateStatus().catch(()=>({status:'none',downloaded:0,total:0}));
@@ -336,7 +343,7 @@ async function checkForAndroidUpdate(force=false){
         const pct=status.total>0?Math.min(100,Math.round((status.downloaded/status.total)*100)):0;
         b.textContent=status.status==='downloading'&&status.total>0?'Downloading '+pct+'%':'Update downloading…';
       }
-      return;
+      return 'downloading';
     }
 
     if(b){
@@ -367,7 +374,8 @@ async function checkForAndroidUpdate(force=false){
         }
       }catch(e){console.debug('Update notification skipped',e)}
     }
-  }catch(e){console.debug('ImageMate update check skipped',e)}
+    return 'available';
+  }catch(e){console.debug('ImageMate update check skipped',e);return 'failed'}
   finally{updateCheckInFlight=false}
 }
 function startUpdateMonitor(){
