@@ -1,4 +1,4 @@
-import { initNativeAds, isAndroidNative, maybeShowTestInterstitial } from './ads.js';
+import { initNativeAds, isAndroidNative, maybeShowTestInterstitial, maybeShowTestAppOpen } from './ads.js';
 import { initWebAds } from './web-ads.js';
 import { downloadLatestAndroidUpdate, installDownloadedAndroidUpdate, hasDownloadedAndroidUpdate, getAndroidUpdateStatus, notifyAndroidUpdate, requestAndroidNotificationPermission, getAndroidAppVersion, isNativeAndroid, saveProcessedFile } from './updater.js';
 import packageJson from '../package.json';
@@ -187,7 +187,7 @@ function render(){
   if(pro) pro.onclick=()=>alert('ImageMate PRO is coming soon. All core tools are currently available for free.');
   if(downloads) renderDownloads();
   checkForAndroidUpdate(); startUpdateMonitor();
-  if(isAndroidNative()) initNativeAds().then(result=>{if(!result.shown)console.warn('[ImageMate ads] Banner not visible:',result.reason||'unknown reason')});
+  if(isAndroidNative()) initNativeAds().then(async result=>{if(!result.shown)console.warn('[ImageMate ads] Banner not visible:',result.reason||'unknown reason'); else { await new Promise(resolve=>setTimeout(resolve, 1200)); await maybeShowTestAppOpen(); }});
   else initWebAds().catch(error=>console.warn('[ImageMate ads] Website ad setup failed:',error));
 }
 function showInstantUpdatePopup(version, mode='download'){
