@@ -61,3 +61,17 @@ main,section,.workspace,.settings-screen,.tools-catalog,.catalog-tool-copy,.sett
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
+
+
+/* Bottom ad reservation on every screen; keep it in normal flow above the footer. */
+.shared-ad-slot-bottom{
+  min-height:64px;
+  margin:14px auto 10px;
+  padding:8px 12px;
+}
+.shared-ad-slot-bottom span{display:block;text-align:center;line-height:1.4}
+@media(max-width:800px){
+  .shared-ad-slot-bottom{min-height:56px;margin:10px auto 8px;padding:6px 10px}
+}
+/* The ad slot must not sit underneath the fixed mobile navigation. */
+.native-android .shared-ad-slot-bottom{scroll-margin-bottom:calc(90px + env(safe-area-inset-bottom))}
