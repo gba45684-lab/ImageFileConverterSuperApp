@@ -135,10 +135,5 @@
 }
 
 
-/* Slider preferences use the selected premium-glass switch (Option 3). */
-.settings-screen .settings-card.slider-preference-card{grid-column:1/-1!important;grid-template-columns:42px minmax(0,1fr) auto!important;align-items:center!important;background:linear-gradient(135deg,rgba(255,255,255,.78),rgba(238,242,255,.65))!important;border-color:rgba(148,163,184,.25)!important;box-shadow:0 10px 26px rgba(31,41,80,.055),inset 0 1px rgba(255,255,255,.85)!important;backdrop-filter:blur(16px) saturate(145%)!important;-webkit-backdrop-filter:blur(16px) saturate(145%)!important}
-.dark .settings-screen .settings-card.slider-preference-card{background:linear-gradient(135deg,rgba(30,41,59,.88),rgba(49,46,129,.22))!important;border-color:rgba(165,180,252,.2)!important;box-shadow:0 10px 26px rgba(0,0,0,.16),inset 0 1px rgba(255,255,255,.07)!important}
-.settings-screen .settings-card.slider-preference-card .settings-copy{grid-column:2!important;grid-row:1!important}
-.settings-screen .settings-card.slider-preference-card .slider-glass-switch{grid-column:3!important;grid-row:1!important;justify-self:end!important;align-self:center!important}
-.settings-screen .settings-card.slider-preference-card .settings-icon{grid-column:1!important;grid-row:1!important;background:rgba(129,140,248,.16)!important;color:#6d5ce7!important;border:1px solid rgba(129,140,248,.16)!important}
-@media(max-width:760px){.settings-screen .settings-card.slider-preference-card{grid-column:1/-1!important;grid-template-columns:36px minmax(0,1fr) auto!important;padding:14px!important;gap:10px!important}.settings-screen .settings-card.slider-preference-card .settings-icon{width:36px!important;height:36px!important}}
+/* Unified appearance switch uses the same accessible switch style as Automatic Updates. */
+.settings-screen .settings-theme-switch{grid-column:3!important;grid-row:1!important;align-self:center!important;margin:0!important}
