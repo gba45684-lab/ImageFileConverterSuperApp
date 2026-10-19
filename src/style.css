@@ -515,3 +515,23 @@ footer{color:var(--editorial-muted)!important;border-top-color:var(--editorial-l
 .settings-card-updates > .switch > input:checked + span:before{
   transform:translateX(20px)!important;
 }
+
+
+/* Keep the switch hit area and visible track at exact dimensions despite label styles. */
+.settings-card-appearance > .switch,
+.settings-card-updates > .switch{
+  box-sizing:border-box!important;
+  width:48px!important;
+  min-width:48px!important;
+  max-width:48px!important;
+  padding:0!important;
+  border:0!important;
+  flex:0 0 48px!important;
+}
+.settings-card-appearance > .switch > span,
+.settings-card-updates > .switch > span{
+  box-sizing:border-box!important;
+  width:48px!important;
+  min-width:48px!important;
+  max-width:48px!important;
+}
