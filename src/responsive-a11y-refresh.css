@@ -100,9 +100,7 @@ main,section,.workspace,.settings-screen,.tools-catalog,.catalog-tool-copy,.sett
 @media(max-width:800px){
   .shell main .tools-catalog,
   .shell main .settings-screen{
-    padding-bottom:12px!important;
-    margin-bottom:12px!important;
+    padding-bottom:0!important;
+    margin-bottom:0!important;
   }
-  .shell main .tools-catalog{padding-bottom:12px!important}
-  .shell main .settings-screen{padding-bottom:12px!important}
 }
