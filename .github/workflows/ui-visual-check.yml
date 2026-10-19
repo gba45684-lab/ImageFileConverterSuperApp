@@ -210,6 +210,8 @@ jobs:
             if (controls.formatWidth && controls.formatWidth > width) throw new Error('Settings format control exceeds viewport at ' + width + 'px.');
           }
 
+          // The mobile tab bar is intentionally hidden at desktop/tablet breakpoints.
+          await page.setViewportSize({ width: 390, height: 844 });
           await page.locator('[data-mobile-tab="tools"]').click();
           await page.getByRole('heading', { name: /all tools/i }).waitFor();
           for (const width of widths) {
