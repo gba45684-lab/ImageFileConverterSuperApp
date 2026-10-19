@@ -170,3 +170,19 @@
   .catalog-search input{font-size:14px!important}
 }
 
+
+
+/* Keep the catalog search icon and input on one row; global label styles are column-oriented. */
+.tools-catalog .catalog-toolbar .catalog-search{
+  flex-direction:row!important;
+  align-items:center!important;
+}
+.tools-catalog .catalog-toolbar .catalog-search input{
+  flex:1 1 0!important;
+  width:0!important;
+  min-width:0!important;
+  height:100%!important;
+  display:block!important;
+  visibility:visible!important;
+  opacity:1!important;
+}
