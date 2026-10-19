@@ -10,17 +10,12 @@ const slides = [
 const AUTOPLAY_MS = 4500;
 const SWIPE_THRESHOLD = 36;
 const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-const enabled = key => localStorage.getItem(key) !== '0';
 let currentSlide = 0;
 let pointerStart = null;
 let touchStart = null;
 let lastInteractionAt = 0;
 let lastTouchPointerAt = 0;
 
-function syncPreferences() {
-  document.documentElement.classList.toggle('im-slider-animations-off', !enabled('imagemate-slider-animations') || reduceMotion());
-  document.documentElement.classList.toggle('im-slider-autoplay-off', !enabled('imagemate-slider-autoplay'));
-}
 
 function showSlide(index, source = 'manual') {
   const home = document.querySelector('.editorial-home');
@@ -32,7 +27,7 @@ function showSlide(index, source = 'manual') {
   const title = home.querySelector('#home-hero-title');
   const copy = home.querySelector('#home-hero-copy');
   const art = home.querySelector('.hero-art');
-  const animate = enabled('imagemate-slider-animations') && !reduceMotion() && changed;
+  const animate = !reduceMotion() && changed;
 
   if (animate) {
     [title, copy, art].filter(Boolean).forEach(el => {
@@ -111,12 +106,8 @@ function prepareHero() {
 }
 new MutationObserver(prepareHero).observe(document.documentElement, { childList: true, subtree: true });
 prepareHero();
-syncPreferences();
-window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener?.('change', syncPreferences);
-
 window.setInterval(() => {
-  syncPreferences();
-  if (!enabled('imagemate-slider-autoplay') || !document.querySelector('.editorial-home') || document.hidden) return;
+  if (!document.querySelector('.editorial-home') || document.hidden) return;
   if (Date.now() - lastInteractionAt < 1200) return;
   showSlide(currentSlide + 1, 'auto');
 }, AUTOPLAY_MS);
