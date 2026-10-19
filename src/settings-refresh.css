@@ -3,12 +3,8 @@
 .settings-heading{min-width:0!important}.settings-heading .eyebrow{margin:0 0 8px!important}.settings-heading h1{margin:0!important;font-size:clamp(30px,4vw,42px)!important;line-height:1.08!important;letter-spacing:-.045em!important}.settings-heading>p:last-child{margin:9px 0 0!important;max-width:560px!important;color:var(--im-muted)!important;font-size:13px!important;line-height:1.6!important}
 .settings-page-head .privacy{justify-self:end!important;white-space:nowrap!important}
 .settings-screen{width:min(calc(100% - 40px),980px)!important;margin:0 auto 40px!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px!important;align-items:stretch!important}
-.settings-brand-card{grid-column:1/-1!important;display:flex!important;align-items:center!important;gap:16px!important;min-width:0!important;padding:22px 24px!important;border:1px solid var(--im-line)!important;border-radius:22px!important;background:linear-gradient(115deg,rgba(99,102,241,.10),rgba(136,92,255,.06) 55%,rgba(20,184,166,.08))!important}
-.settings-brand-mark{display:grid!important;place-items:center!important;width:54px!important;height:54px!important;flex:0 0 54px!important;border-radius:16px!important;background:var(--im-surface)!important;border:1px solid var(--im-line)!important}
-.settings-brand-mark .imagemate-mark{width:42px!important;height:36px!important}
-.settings-brand-copy{display:flex!important;flex-direction:column!important;gap:4px!important;min-width:0!important}.settings-brand-copy b{font-size:19px!important;font-weight:850!important;letter-spacing:-.035em!important;color:var(--im-ink)!important}.settings-brand-copy span{font-size:12px!important;color:var(--im-muted)!important}
-.settings-brand-tag{margin-left:auto!important;align-self:center!important;padding:7px 10px!important;border:1px solid var(--im-line)!important;border-radius:999px!important;background:var(--im-surface)!important;color:var(--im-muted)!important;font-size:9px!important;font-weight:750!important;letter-spacing:.09em!important;white-space:nowrap!important}
 .settings-screen .settings-card{display:grid!important;grid-template-columns:42px minmax(0,1fr) auto!important;align-items:start!important;gap:12px!important;min-width:0!important;margin:0!important;padding:19px!important;border:1px solid var(--im-line)!important;border-radius:18px!important;background:var(--im-surface)!important;box-shadow:0 4px 16px rgba(31,41,80,.035)!important}
+.settings-screen .settings-card-updates{grid-template-columns:42px minmax(0,1fr) 48px!important}
 .settings-screen .settings-card-processing{grid-row:span 2!important;grid-template-columns:42px minmax(0,1fr)!important}
 .settings-screen .settings-icon{width:42px!important;height:42px!important;display:grid!important;place-items:center!important;border-radius:13px!important;background:rgba(99,102,241,.10)!important;color:var(--im-home-indigo,#6366f1)!important}
 .settings-screen .settings-icon svg{width:20px!important;height:20px!important}
@@ -23,17 +19,94 @@
 .settings-screen .settings-action svg{width:14px!important;height:14px!important}
 .settings-screen .settings-card-appearance,.settings-screen .settings-card-updates,.settings-screen .settings-card-check-updates,.settings-screen .settings-card-library,.settings-screen .settings-card-about{align-items:center!important}
 .settings-screen .settings-card-appearance .settings-action,.settings-screen .settings-card-check-updates .settings-action,.settings-screen .settings-card-library .settings-action{grid-column:2/-1!important}
-.settings-screen .settings-card-updates .switch{grid-column:3!important;grid-row:1!important;align-self:center!important;margin:0!important}
+.settings-screen .settings-card-updates .switch{display:block!important;position:relative!important;grid-column:3!important;grid-row:1!important;align-self:center!important;justify-self:end!important;margin:0!important;width:48px!important;min-width:48px!important;max-width:48px!important;height:28px!important;min-height:28px!important;max-height:28px!important;flex:0 0 48px!important;cursor:pointer!important}
+.settings-screen .settings-card-updates .switch input{position:absolute!important;inset:0!important;z-index:2!important;width:100%!important;height:100%!important;min-width:100%!important;min-height:100%!important;opacity:0!important;margin:0!important;cursor:pointer!important;appearance:none!important}
+.settings-screen .settings-card-updates .switch span{position:absolute!important;inset:0!important;pointer-events:none!important;z-index:1!important}
+.settings-screen .settings-card-updates .switch input:focus-visible+span{outline:3px solid rgba(99,102,241,.62)!important;outline-offset:3px!important}
 .settings-screen .settings-version{justify-self:end!important;align-self:center!important;padding:6px 8px!important;border-radius:8px!important;background:var(--im-surface-strong)!important;color:var(--im-muted)!important;font-size:10px!important;font-weight:700!important}
 .settings-screen .settings-card:focus-within{border-color:rgba(99,102,241,.4)!important}
-.dark .settings-screen .settings-brand-card{background:linear-gradient(115deg,rgba(99,102,241,.16),rgba(136,92,255,.11) 55%,rgba(20,184,166,.09))!important}
 .dark .settings-screen .settings-card{box-shadow:none!important}
 @media(max-width:760px){
  .settings-page-head{width:calc(100% - 30px)!important;padding:22px 0 12px!important;grid-template-columns:auto minmax(0,1fr)!important;gap:13px!important}
  .settings-heading h1{font-size:32px!important}.settings-page-head .privacy{grid-column:2!important;justify-self:start!important;font-size:10px!important}
  .settings-screen{width:calc(100% - 30px)!important;grid-template-columns:minmax(0,1fr)!important;gap:10px!important;padding-bottom:calc(84px + env(safe-area-inset-bottom))!important}
- .settings-brand-card{padding:17px!important;gap:12px!important;border-radius:18px!important}.settings-brand-mark{width:46px!important;height:46px!important;flex-basis:46px!important}.settings-brand-copy b{font-size:17px!important}.settings-brand-tag{font-size:8px!important;padding:6px 8px!important;white-space:normal!important;text-align:center!important;max-width:112px!important}
+ 
  .settings-screen .settings-card{padding:16px!important;border-radius:16px!important}.settings-screen .settings-card-processing{grid-row:auto!important}
 }
-@media(max-width:390px){.settings-screen .settings-card{grid-template-columns:36px minmax(0,1fr) auto!important;gap:10px!important;padding:14px!important}.settings-screen .settings-icon{width:36px!important;height:36px!important}.settings-screen .settings-brand-tag{display:none!important}.settings-screen .settings-card-processing{grid-template-columns:36px minmax(0,1fr)!important}}
+@media(max-width:390px){.settings-screen .settings-card{grid-template-columns:36px minmax(0,1fr) auto!important;gap:10px!important;padding:14px!important}.settings-screen .settings-icon{width:36px!important;height:36px!important}.settings-screen .settings-card-processing{grid-template-columns:36px minmax(0,1fr)!important}.settings-screen .settings-card-updates{grid-template-columns:36px minmax(0,1fr) 48px!important}}
 @media(prefers-reduced-motion:reduce){.settings-screen *{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+
+/* Stage 3 — Settings mobile viewport: keep content scrollable above the primary nav. */
+@media(max-width:760px){
+  .shell.settings-view-shell{
+    height:100vh!important;
+    height:100dvh!important;
+    min-height:0!important;
+    display:flex!important;
+    flex-direction:column!important;
+    overflow:hidden!important;
+    padding-bottom:0!important;
+  }
+  .settings-view-shell>.editorial-topbar{
+    position:relative!important;
+    top:auto!important;
+    flex:0 0 auto!important;
+  }
+  .settings-view-shell>main{
+    flex:1 1 auto!important;
+    min-height:0!important;
+    overflow-x:hidden!important;
+    overflow-y:auto!important;
+    overscroll-behavior-y:contain;
+    -webkit-overflow-scrolling:touch;
+    padding-bottom:12px!important;
+  }
+  .settings-view-shell .settings-page-head{
+    margin-top:12px!important;
+    margin-bottom:10px!important;
+  }
+  .settings-view-shell .settings-screen{
+    padding-bottom:12px!important;
+    margin-bottom:12px!important;
+  }
+  .settings-view-shell .mobile-bottom-nav{
+    position:relative!important;
+    left:auto!important;
+    right:auto!important;
+    bottom:auto!important;
+    transform:none!important;
+    width:100%!important;
+    max-width:none!important;
+    min-width:0!important;
+    align-self:stretch!important;
+    flex:0 0 auto!important;
+    margin:0!important;
+    border:0!important;
+    border-top:1px solid var(--im-line)!important;
+    border-radius:0!important;
+    padding:7px 12px calc(7px + env(safe-area-inset-bottom,0px))!important;
+    background:rgba(255,255,255,.97)!important;
+    box-shadow:none!important;
+    backdrop-filter:blur(16px)!important;
+    -webkit-backdrop-filter:blur(16px)!important;
+  }
+  .settings-view-shell .mobile-bottom-nav button{min-height:44px!important}
+  .settings-view-shell.dark .mobile-bottom-nav{
+    background:rgba(11,18,32,.97)!important;
+    border-top-color:rgba(181,197,225,.13)!important;
+  }
+}
+
+
+/* Stage 3 — keep the shared wordmark legible on the dark Settings surface. */
+.shell.settings-view-shell.dark .editorial-topbar .brand-copy .brand-wordmark .brand-word-image{
+  color:#f3f6ff!important;
+  -webkit-text-fill-color:#f3f6ff!important;
+  background:none!important;
+}
+.shell.settings-view-shell.dark .editorial-topbar .brand-copy .brand-wordmark .brand-word-mate{
+  color:#c4b5fd!important;
+  -webkit-text-fill-color:#c4b5fd!important;
+  background:none!important;
+}

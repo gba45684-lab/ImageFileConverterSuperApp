@@ -1,0 +1,18 @@
+name: ImageMate OSV Dependency Scan
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
+jobs:
+  scan-lockfile:
+    name: Scan locked dependencies for known vulnerabilities
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.7.0
+    with:
+      scan-args: |-
+        --lockfile=./package-lock.json

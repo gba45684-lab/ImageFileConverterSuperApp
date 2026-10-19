@@ -35,10 +35,10 @@ jobs:
           echo "Building ImageMate v${VERSION}"
 
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
 
-      - name: Test update popup behavior
-        run: npm test
+      - name: Run lint, regression tests, and security audit
+        run: npm run lint && npm test && npm audit --audit-level=high
 
       - name: Inject Android version into web updater
         env:
@@ -571,7 +571,7 @@ jobs:
             if (!"https".equalsIgnoreCase(uri.getScheme())) return false;
             if (!"github.com".equalsIgnoreCase(uri.getHost())) return false;
             String path = uri.getPath();
-            return path != null && path.matches("^/gba45684-lab/ImageFileConverterSuperApp/releases/download/[^/]+/ImageMate\\.apk$");
+            return path != null && (path.matches("^/gba45684-lab/ImageFileConverterSuperApp/releases/download/[^/]+/ImageMate\\.apk$") || path.equals("/gba45684-lab/ImageFileConverterSuperApp/releases/latest/download/ImageMate.apk"));
           } catch (Exception ignored) {
             return false;
           }
