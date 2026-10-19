@@ -56,8 +56,12 @@ export async function initGitHubOta({ force = false } = {}) {
       checksum,
     });
     await LiveUpdate.setNextBundle({ bundleId });
-    console.info('[ImageMate OTA] Update downloaded and queued:', bundleId);
-    // Apply on the next normal app launch; don't interrupt file processing.
+    console.info('[ImageMate OTA] Web update downloaded and queued:', bundleId);
+
+    // This check runs during native app startup, before users can start a file task.
+    // Reload the WebView now so compatible HTML/CSS/JS updates take effect without
+    // opening Android's APK installer or asking the user to reinstall the app.
+    await LiveUpdate.reload();
   } catch (error) {
     console.debug('[ImageMate OTA] Update check skipped:', error);
   } finally {
