@@ -95,3 +95,14 @@ main,section,.workspace,.settings-screen,.tools-catalog,.catalog-tool-copy,.sett
   .native-android .shell main{padding-bottom:calc(82px + env(safe-area-inset-bottom))!important}
   .native-android main{padding-bottom:calc(70px + env(safe-area-inset-bottom))!important}
 }
+
+/* UI audit follow-up: keep fixed-nav clearance on main, not inside long content sections. */
+@media(max-width:800px){
+  .shell main .tools-catalog,
+  .shell main .settings-screen{
+    padding-bottom:12px!important;
+    margin-bottom:12px!important;
+  }
+  .shell main .tools-catalog{padding-bottom:12px!important}
+  .shell main .settings-screen{padding-bottom:12px!important}
+}
