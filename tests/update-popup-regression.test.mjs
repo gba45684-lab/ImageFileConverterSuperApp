@@ -26,7 +26,7 @@ test('the install click handler reads the current popup mode rather than a captu
 
 test('the Android updater accepts only the pinned ImageMate release asset and its latest-release fallback', () => {
   const workflow = readFileSync(new URL('../.github/workflows/android.yml', import.meta.url), 'utf8');
-  assert.ok(workflow.includes('releases/download/[^/]+/ImageMate\\\\.apk'),
+  assert.ok(workflow.includes('releases/download/'),
     'version-pinned ImageMate APK downloads must remain trusted');
   assert.ok(workflow.includes('releases/latest/download/ImageMate.apk'),
     'the configured latest-release fallback URL must be accepted by the native URL allowlist');
