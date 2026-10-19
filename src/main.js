@@ -239,7 +239,11 @@ function showInstantUpdatePopup(version, mode='download'){
           if(statusText)statusText.textContent='Allow ImageMate to install unknown apps in Android settings, then tap Install now again.';
           return;
         }
-        overlay.remove();
+        // Keep the update dialog mounted behind Android's installer. If installation
+        // is cancelled or rejected, the user returns to a visible retry action.
+        btn.disabled=false;
+        btn.textContent='Try install again';
+        if(statusText)statusText.textContent='Android installer opened. If installation does not complete, return here and tap Try install again. The update remains available.';
         return;
       }
       await downloadLatestAndroidUpdate(latestUpdateUrl,version);
@@ -314,8 +318,10 @@ async function checkForAndroidUpdate(force=false){
         localStorage.removeItem('imagemate-update-installing');
         localStorage.removeItem('imagemate-update-install-started-at');
       }else{
-        if(b){b.hidden=true;b.disabled=true}
-        return 'installing';
+        // Never strand users without an update action if the installer was cancelled,
+        // rejected by Android, or the app resumed after the installer closed.
+        localStorage.removeItem('imagemate-update-installing');
+        localStorage.removeItem('imagemate-update-install-started-at');
       }
     }
 
@@ -407,7 +413,16 @@ function startUpdateMonitor(){
       localStorage.removeItem('imagemate-update-installing');
       localStorage.removeItem('imagemate-update-install-started-at');
     }
-    checkForAndroidUpdate();
+    // Re-check immediately on return from Android's package installer. This makes
+    // Update available / Install update reappear after a failed or cancelled install.
+    checkForAndroidUpdate(true);
+  });
+  window.addEventListener('pageshow',()=>{
+    if(localStorage.getItem('imagemate-update-installing')==='1'){
+      localStorage.removeItem('imagemate-update-installing');
+      localStorage.removeItem('imagemate-update-install-started-at');
+    }
+    if(document.visibilityState==='visible')checkForAndroidUpdate(true);
   });
   setInterval(()=>{if(document.visibilityState==='visible')checkForAndroidUpdate()},60000);
 }
