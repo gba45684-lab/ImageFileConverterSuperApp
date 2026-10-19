@@ -186,3 +186,12 @@
   visibility:visible!important;
   opacity:1!important;
 }
+
+
+/* Ensure the actual catalog input remains a full 44px touch target at tablet widths too. */
+.tools-catalog .catalog-toolbar .catalog-search #catalog-search{
+  height:100%!important;
+  min-height:44px!important;
+  align-self:stretch!important;
+  box-sizing:border-box!important;
+}
