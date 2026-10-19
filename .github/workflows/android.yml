@@ -571,7 +571,7 @@ jobs:
             if (!"https".equalsIgnoreCase(uri.getScheme())) return false;
             if (!"github.com".equalsIgnoreCase(uri.getHost())) return false;
             String path = uri.getPath();
-            return path != null && path.matches("^/gba45684-lab/ImageFileConverterSuperApp/releases/download/[^/]+/ImageMate\\.apk$");
+            return path != null && (path.matches("^/gba45684-lab/ImageFileConverterSuperApp/releases/download/[^/]+/ImageMate\\.apk$") || path.equals("/gba45684-lab/ImageFileConverterSuperApp/releases/latest/download/ImageMate.apk"));
           } catch (Exception ignored) {
             return false;
           }
