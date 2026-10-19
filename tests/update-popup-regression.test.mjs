@@ -34,3 +34,13 @@ test('the web-content updater applies a verified bundle without invoking the APK
   assert.doesNotMatch(ota, /installDownloadedAndroidUpdate|downloadLatestAndroidUpdate/,
     'web-content updates must not invoke the APK installer flow');
 });
+
+
+test('a failed or cancelled APK install keeps a retry action visible', () => {
+  assert.match(source, /btn\.textContent='Try install again'/,
+    'the install popup must keep a retry action after opening the installer');
+  assert.match(source, /checkForAndroidUpdate\(true\)/,
+    'the app must force an update check when returning from Android installer');
+  assert.doesNotMatch(source, /if\(installing\)[\s\S]*?if\(b\)\{b\.hidden=true;b\.disabled=true\}[\s\S]*?return ['"]installing['"]/,
+    'a stale installing flag must not hide the update action');
+});
