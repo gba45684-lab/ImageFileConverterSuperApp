@@ -104,3 +104,7 @@ main,section,.workspace,.settings-screen,.tools-catalog,.catalog-tool-copy,.sett
     margin-bottom:0!important;
   }
 }
+
+
+/* Final spacing pass: keep the content-to-bottom-ad gap minimal on every screen. */
+.shared-ad-slot-bottom{margin-top:2px!important}
