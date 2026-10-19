@@ -20,7 +20,8 @@ export async function initNativeAds() {
       adId: TEST_BANNER_ID,
       adSize: admob.BannerAdSize.BANNER,
       position: admob.BannerAdPosition.BOTTOM_CENTER,
-      margin: 0,
+      // Keep the native banner above ImageMate's fixed bottom navigation.
+      margin: 66,
       isTesting: true
     });
     initialized = true;
