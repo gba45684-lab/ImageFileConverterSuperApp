@@ -156,6 +156,17 @@ jobs:
               s=s[:release_open]+"\n            signingConfig signingConfigs.release"+s[release_open:]
           p.write_text(s)
 
+          # Restrict installed Android APKs to Android 11 (API 30) and newer.
+          variables=Path('android/variables.gradle')
+          if not variables.exists():
+              raise SystemExit("Capacitor Android variables.gradle is missing; cannot enforce Android 11 minimum.")
+          vs=variables.read_text()
+          updated, count = re.subn(r'(minSdkVersion\\s*=\\s*)\\d+', r'\\g<1>30', vs, count=1)
+          if count != 1:
+              raise SystemExit("Could not set minSdkVersion=30 in android/variables.gradle")
+          variables.write_text(updated)
+          print("Configured minimum Android SDK 30 (Android 11).")
+
           manifest=Path('android/app/src/main/AndroidManifest.xml')
           text=manifest.read_text()
           if 'android.permission.REQUEST_INSTALL_PACKAGES' not in text:
@@ -1066,6 +1077,12 @@ jobs:
           PACKAGE_ID="$("$APKANALYZER" manifest application-id "$APK")"
           VERSION_NAME="$("$APKANALYZER" manifest version-name "$APK")"
           VERSION_CODE="$("$APKANALYZER" manifest version-code "$APK")"
+          MIN_SDK="$(\"$APKANALYZER\" manifest min-sdk \"$APK\")"
+          echo "APK minimum Android SDK: $MIN_SDK (Android 11 is API 30)"
+          if [[ "$MIN_SDK" != "30" ]]; then
+            echo "::error::APK must require Android 11/API 30 or newer; found minSdkVersion=$MIN_SDK."
+            exit 1
+          fi
           if [[ "$PACKAGE_ID" != "com.gba45684.imagemate" ]]; then
             echo "::error::Unexpected APK application ID: $PACKAGE_ID"
             exit 1
@@ -1143,7 +1160,7 @@ jobs:
           APK_RELATIVE_PATH: ${{ steps.apk-validation.outputs.apk_path }}
           BASELINE_APK: ${{ steps.update-baseline.outputs.apk_path }}
         with:
-          api-level: 35
+          api-level: 30
           target: google_apis
           arch: x86_64
           profile: pixel_2
