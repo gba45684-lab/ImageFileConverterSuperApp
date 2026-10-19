@@ -98,10 +98,36 @@ jobs:
           await page.evaluate(() => localStorage.setItem('imagemate-dark', '1'));
           await page.reload({ waitUntil: 'networkidle' });
           await page.screenshot({ path: 'ui-evidence/home-mobile-dark.png', fullPage: true });
-          for (const width of [320, 360, 390, 768, 1440]) {
+          for (const width of [320, 360, 390, 412, 768, 1440]) {
             await page.setViewportSize({ width, height: 844 });
-            const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
-            if (overflow) throw new Error('Horizontal overflow at viewport width ' + width + 'px.');
+            const audit = await page.evaluate(() => {
+              const home = document.querySelector('.editorial-home');
+              const cards = [...document.querySelectorAll('.editorial-tool:not([hidden])')];
+              const pager = document.querySelector('.hero-page-dot');
+              const navButtons = [...document.querySelectorAll('.mobile-bottom-nav button')];
+              const card = cards[0];
+              const label = card?.querySelector('b');
+              const rect = (el) => el ? el.getBoundingClientRect() : null;
+              const cr = rect(card), pr = rect(pager), nr = rect(navButtons[0]);
+              return {
+                overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+                homeVisible: !!home,
+                visiblePopularCards: cards.length,
+                gridColumns: home ? getComputedStyle(document.querySelector('.editorial-tool-grid')).gridTemplateColumns.split(' ').length : 0,
+                cardWidth: cr ? cr.width : 0,
+                cardHeight: cr ? cr.height : 0,
+                labelFontSize: label ? parseFloat(getComputedStyle(label).fontSize) : 0,
+                pagerTarget: pr ? { width: pr.width, height: pr.height } : null,
+                navTarget: nr ? { width: nr.width, height: nr.height } : null
+              };
+            });
+            if (audit.overflow) throw new Error('Horizontal overflow at viewport width ' + width + 'px.');
+            if (!audit.homeVisible || audit.visiblePopularCards !== 6) throw new Error('Home popular tools must show six cards at ' + width + 'px.');
+            if (width <= 360 && audit.gridColumns !== 3) throw new Error('Home must retain its 3-column reference grid at ' + width + 'px.');
+            if (width <= 360 && audit.labelFontSize < 11) throw new Error('Home labels are too small at ' + width + 'px: ' + audit.labelFontSize + 'px.');
+            if (audit.cardWidth < 44 || audit.cardHeight < 44) throw new Error('Home tool card touch target is too small at ' + width + 'px.');
+            if (!audit.pagerTarget || audit.pagerTarget.width < 44 || audit.pagerTarget.height < 44) throw new Error('Home pager target is smaller than 44x44 at ' + width + 'px.');
+            if (width <= 768 && (!audit.navTarget || audit.navTarget.height < 44)) throw new Error('Mobile navigation touch target is smaller than 44px at ' + width + 'px.');
           }
           if (errors.length) throw new Error('Browser errors: ' + errors.join(' | '));
           await browser.close();
