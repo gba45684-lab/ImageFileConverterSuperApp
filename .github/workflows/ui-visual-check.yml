@@ -210,9 +210,18 @@ jobs:
               switchRects: [...document.querySelectorAll('.settings-screen .switch')].map(el => {
                 const r = el.getBoundingClientRect(); return { width: Math.round(r.width), height: Math.round(r.height) };
               }),
+              preferenceToggles: ['#settings-theme-toggle','#update-setting'].map(id => {
+                const input = document.querySelector(id);
+                const label = input?.closest('.switch');
+                const track = label?.querySelector('span');
+                const r = label?.getBoundingClientRect();
+                const t = track?.getBoundingClientRect();
+                return { id, width: r ? Math.round(r.width) : 0, height: r ? Math.round(r.height) : 0, trackWidth: t ? Math.round(t.width) : 0, trackHeight: t ? Math.round(t.height) : 0 };
+              }),
               formatWidth: Math.round(document.querySelector('#default-format')?.getBoundingClientRect().width || 0)
             }));
             if (controls.actionHeights.some(h => h < 44)) throw new Error('Settings action below 44px at ' + width + 'px: ' + controls.actionHeights);
+            if (controls.preferenceToggles.some(t => t.width !== 48 || t.height < 44 || t.trackWidth !== 48 || t.trackHeight !== 28)) throw new Error('Appearance/Automatic Updates toggle size mismatch at ' + width + 'px: ' + JSON.stringify(controls.preferenceToggles));
             if (controls.formatWidth && controls.formatWidth > width) throw new Error('Settings format control exceeds viewport at ' + width + 'px.');
           }
 
