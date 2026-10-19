@@ -1,6 +1,8 @@
 name: ImageMate UI visual checks
 
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main, 'redesign/stage-1-home-option-7']
     paths:
@@ -102,6 +104,63 @@ jobs:
             if (overflow) throw new Error('Horizontal overflow at viewport width ' + width + 'px.');
           }
           if (errors.length) throw new Error('Browser errors: ' + errors.join(' | '));
+          await browser.close();
+          NODE
+      - name: Audit mobile layout spacing and component geometry
+        run: |
+          node --input-type=module <<'NODE'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+          const browser = await chromium.launch({ headless: true });
+          const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
+          await page.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
+          const report = [];
+          async function audit(screen) {
+            const data = await page.evaluate((screen) => {
+              const rect = (el) => {
+                if (!el) return null;
+                const r = el.getBoundingClientRect();
+                const css = getComputedStyle(el);
+                return { selector: el.tagName.toLowerCase() + (el.className && typeof el.className === 'string' ? '.' + el.className.trim().replace(/\\s+/g,'.') : ''),
+                  top: Math.round(r.top + scrollY), bottom: Math.round(r.bottom + scrollY),
+                  height: Math.round(r.height), marginTop: css.marginTop, marginBottom: css.marginBottom,
+                  paddingTop: css.paddingTop, paddingBottom: css.paddingBottom };
+              };
+              const main = document.querySelector('.shell main');
+              const footer = main?.querySelector(':scope > footer');
+              const ad = main?.querySelector('.shared-ad-slot-bottom');
+              const content = main ? [...main.children].filter(el => el !== footer && !el.classList.contains('shared-ad-slot-bottom')) : [];
+              const lastContent = content.at(-1);
+              const cr = lastContent?.getBoundingClientRect();
+              const ar = ad?.getBoundingClientRect();
+              const fr = footer?.getBoundingClientRect();
+              const nav = document.querySelector('.mobile-bottom-nav');
+              return {
+                screen, viewport: { width: innerWidth, height: innerHeight },
+                content: rect(lastContent), ad: rect(ad), footer: rect(footer), nav: rect(nav),
+                gapContentToAd: cr && ar ? Math.round(ar.top - cr.bottom) : null,
+                gapAdToFooter: ar && fr ? Math.round(fr.top - ar.bottom) : null,
+                horizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth
+              };
+            }, screen);
+            report.push(data);
+            if (data.horizontalOverflow) throw new Error(screen + ': horizontal overflow');
+            if (data.gapContentToAd !== null && data.gapContentToAd > 140) {
+              throw new Error(screen + ': excessive content-to-ad gap ' + data.gapContentToAd + 'px');
+            }
+            if (data.gapAdToFooter !== null && (data.gapAdToFooter < -2 || data.gapAdToFooter > 32)) {
+              throw new Error(screen + ': unexpected ad-to-footer gap ' + data.gapAdToFooter + 'px');
+            }
+          }
+          await audit('Home');
+          await page.locator('#see-all-tools').click();
+          await page.getByRole('heading', { name: /all tools/i }).waitFor();
+          await audit('Tools');
+          await page.locator('[data-mobile-tab="settings"]').click();
+          await page.getByRole('heading', { name: /^settings$/i }).waitFor();
+          await audit('Settings');
+          fs.mkdirSync('ui-evidence', { recursive: true });
+          fs.writeFileSync('ui-evidence/layout-audit.json', JSON.stringify(report, null, 2));
           await browser.close();
           NODE
       - name: Upload visual evidence
