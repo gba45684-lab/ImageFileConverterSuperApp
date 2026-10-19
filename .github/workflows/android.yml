@@ -1077,7 +1077,7 @@ jobs:
           PACKAGE_ID="$("$APKANALYZER" manifest application-id "$APK")"
           VERSION_NAME="$("$APKANALYZER" manifest version-name "$APK")"
           VERSION_CODE="$("$APKANALYZER" manifest version-code "$APK")"
-          MIN_SDK="$(\"$APKANALYZER\" manifest min-sdk \"$APK\")"
+          MIN_SDK="$("$APKANALYZER" manifest min-sdk "$APK")"
           echo "APK minimum Android SDK: $MIN_SDK (Android 11 is API 30)"
           if [[ "$MIN_SDK" != "30" ]]; then
             echo "::error::APK must require Android 11/API 30 or newer; found minSdkVersion=$MIN_SDK."
