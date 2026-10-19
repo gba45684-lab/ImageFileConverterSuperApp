@@ -453,6 +453,8 @@ function bind(){
     const copy=document.querySelector('#home-hero-copy');
     if(!title||!copy)return;
     hero?.classList.add('is-changing');
+    title.classList.remove('hero-slide-animate');
+    copy.classList.remove('hero-slide-animate');
     requestAnimationFrame(()=>{
       title.textContent=slide.title;
       copy.textContent=slide.copy;
@@ -461,7 +463,15 @@ function bind(){
         dot.classList.toggle('active',active);
         dot.setAttribute('aria-pressed',active?'true':'false');
       });
-      requestAnimationFrame(()=>hero?.classList.remove('is-changing'));
+      /* Restart the full 2-second transition on every manual slide change. */
+      void title.offsetWidth;
+      title.classList.add('hero-slide-animate');
+      copy.classList.add('hero-slide-animate');
+      hero?.classList.remove('is-changing');
+      window.setTimeout(()=>{
+        title.classList.remove('hero-slide-animate');
+        copy.classList.remove('hero-slide-animate');
+      },2000);
     });
   });
   const catalogSearch=document.querySelector('#catalog-search');
