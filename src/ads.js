@@ -108,7 +108,7 @@ export async function initNativeAds() {
       adSize: plugin.BannerAdSize.BANNER,
       position: plugin.BannerAdPosition.BOTTOM_CENTER,
       // Keep the banner above ImageMate's fixed bottom navigation.
-      margin: 66
+      margin: 76
     });
     bannerShown = true;
     lastBannerError = '';
@@ -117,7 +117,7 @@ export async function initNativeAds() {
       adUnitId: TEST_AD_UNITS.banner,
       isTesting: true,
       loadedEventReceived: bannerLoaded,
-      marginDp: 66
+      marginDp: 76
     });
     // Some native SDK failures arrive asynchronously after showBanner resolves.
     // If neither load nor failure callback arrives, clear the pending state and retry
