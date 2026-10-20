@@ -96,6 +96,8 @@ export async function initNativeAds() {
     bannerRequestInFlight = true;
     await plugin.AdMob.showBanner({
       adId: TEST_AD_UNITS.banner,
+      // Explicitly force test treatment as well as using Google's dedicated test unit.
+      isTesting: true,
       // The configured Google demo unit is a fixed-size 320x50 banner.
       // Do not request ADAPTIVE_BANNER with a fixed-size test unit.
       adSize: plugin.BannerAdSize.BANNER,
@@ -105,7 +107,30 @@ export async function initNativeAds() {
     });
     bannerShown = true;
     lastBannerError = '';
-    console.info('[ImageMate ads] Google fixed-size test banner requested.', TEST_APP_ID);
+    console.info('[ImageMate ads] Google fixed-size test banner requested.', {
+      appId: TEST_APP_ID,
+      adUnitId: TEST_AD_UNITS.banner,
+      isTesting: true,
+      loadedEventReceived: bannerLoaded,
+      marginDp: 66
+    });
+    // Some native SDK failures arrive asynchronously after showBanner resolves.
+    // If neither load nor failure callback arrives, clear the pending state and retry
+    // so the banner cannot remain silently stuck for the rest of the app session.
+    if (!bannerLoaded && !bannerRetryTimer) {
+      bannerRetryTimer = setTimeout(() => {
+        bannerRetryTimer = null;
+        if (!bannerLoaded && bannerShown && !bannerRequestInFlight) {
+          bannerShown = false;
+          lastBannerError = 'Banner request timed out before a load/failure callback.';
+          console.warn('[ImageMate ads]', lastBannerError);
+          if (bannerRetryCount < 2) {
+            bannerRetryCount += 1;
+            initNativeAds();
+          }
+        }
+      }, 8000);
+    }
     return { shown: true, loaded: bannerLoaded };
   } catch (error) {
     lastBannerError = String(error?.message || error);
