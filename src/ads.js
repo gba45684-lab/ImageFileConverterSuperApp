@@ -68,6 +68,11 @@ async function registerBannerDiagnostics(plugin) {
     await plugin.AdMob.addListener(plugin.BannerAdPluginEvents.AdImpression, () => {
       console.info('[ImageMate ads] Banner impression recorded.');
     });
+    if (plugin.BannerAdPluginEvents.SizeChanged) {
+      await plugin.AdMob.addListener(plugin.BannerAdPluginEvents.SizeChanged, info => {
+        console.info('[ImageMate ads] Native banner size changed:', info);
+      });
+    }
   } catch (error) {
     console.warn('[ImageMate ads] Could not register banner diagnostics:', error);
   }
