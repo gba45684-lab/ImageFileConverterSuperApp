@@ -151,7 +151,10 @@ function render(){
   const refreshAdDiagnosticStatus=()=>{
     if(!adDiagnosticStatus)return;
     const status=getNativeAdStatus();
-    adDiagnosticStatus.textContent='SDK: '+(status.initialized?'initialized':'not initialized')+' · Banner: '+(status.bannerLoaded?'loaded':status.bannerRequestInFlight?'requesting':status.bannerShown?'requested':'not visible')+(status.lastBannerError?' · Error: '+status.lastBannerError:'');
+    const bannerState=status.bannerLoaded?'loaded':status.bannerRequestInFlight?'requesting':status.bannerShown?'requested':'not visible';
+    const errorText=String(status.lastBannerError||'');
+    const javascriptEngineError=/javascriptengine/i.test(errorText);
+    adDiagnosticStatus.textContent='SDK: '+(status.initialized?'initialized':'not initialized')+' · Banner: '+bannerState+(errorText?' · Error: '+errorText:'')+(javascriptEngineError?' · Try: disable Private DNS/ad blockers/VPN/proxy; switch Wi-Fi to mobile data; update Android System WebView and Chrome, then retry.':'');
   };
   if(adDiagnosticStatus) refreshAdDiagnosticStatus();
   const adDiagnosticRetry=document.querySelector('#ad-diagnostic-retry');
