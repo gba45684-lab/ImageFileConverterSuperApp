@@ -11,6 +11,7 @@ import './results-refresh.css';
 import './responsive-a11y-refresh.css';
 import { createIcons, icons } from 'lucide';
 import { initGitHubOta } from './ota.js';
+import { runPdfTool, PDF_SUITE_TOOLS, PDF_SUITE_PDF_INPUTS } from './pdf-suite.js';
 
 const app=document.querySelector('#app');
 if(isNativeAndroid()) document.documentElement.classList.add('native-android');
@@ -38,6 +39,29 @@ const tools=[
   ['ocr','scan-text','OCR Text','Extract text from images','DOCUMENT'],
   ['background','eraser','Remove Background','Clean simple backgrounds','IMAGE'],
   ['pdfmerge','files','Merge PDFs','Combine multiple PDFs into one','DOCUMENT'],
+  ['pdfalternate','shuffle','Alternate & Mix PDFs','Interleave pages from multiple PDFs','DOCUMENT'],
+  ['pdforganize','list-ordered','Organize PDF Pages','Reorder pages in a PDF','DOCUMENT'],
+  ['pdfextract','files','Extract PDF Pages','Save selected pages','DOCUMENT'],
+  ['pdfsplitpages','scissors','Split PDF by Pages','Split into page groups','DOCUMENT'],
+  ['pdfsplitbookmarks','bookmark','Split by Bookmarks','Split at PDF bookmark sections','DOCUMENT'],
+  ['pdfsplithalf','columns-2','Split PDF in Half','Create first and second halves','DOCUMENT'],
+  ['pdfsplitsize','file-archive','Split PDF by Size','Make smaller page groups','DOCUMENT'],
+  ['pdfsplittext','search','Split PDF by Text','Separate pages matching text','DOCUMENT'],
+  ['pdfedit','file-pen-line','Edit PDF — Add Text','Place new text over selected pages','DOCUMENT'],
+  ['pdfsign','signature','Fill & Sign PDF','Add typed signature and date','DOCUMENT'],
+  ['pdfforms','form-input','Create Fillable Form','Generate a PDF with interactive fields','DOCUMENT'],
+  ['pdfdelete','file-minus','Delete PDF Pages','Remove selected pages','DOCUMENT'],
+  ['pdfcompress','file-down','Compress PDF','Lossless document compression','DOCUMENT'],
+  ['pdfprotect','lock-keyhole','Protect PDF','Encrypt with an opening password','DOCUMENT'],
+  ['pdfunlock','lock-keyhole-open','Unlock PDF','Remove password after verification','DOCUMENT'],
+  ['pdfwatermark','stamp','Watermark PDF','Stamp text across PDF pages','DOCUMENT'],
+  ['pdfflatten','layers','Flatten PDF','Flatten form and annotation appearances','DOCUMENT'],
+  ['pdfexcel','file-spreadsheet','PDF to Excel','Extract PDF text into spreadsheet rows','DOCUMENT'],
+  ['pdfppt','presentation','PDF to PowerPoint','Create one visual slide per PDF page','DOCUMENT'],
+  ['pdftext','file-text','PDF to Text','Extract selectable PDF text','DOCUMENT'],
+  ['pdftoword','file-type','PDF to Word','Export extracted text as DOCX','DOCUMENT'],
+  ['htmltopdf','file-code','HTML to PDF','Convert HTML text content to PDF','DOCUMENT'],
+  ['wordtopdf','file-output','Word to PDF','Convert DOCX text content to PDF','DOCUMENT'],
   ['editor','sliders-horizontal','Photo Editor','Brightness, contrast & rotate','IMAGE']
 ];
 const savedFormat=localStorage.getItem('imagemate-format');
@@ -54,12 +78,13 @@ function render(){
   document.querySelectorAll('#queue img').forEach(imgEl=>{const src=imgEl.currentSrc||imgEl.src;if(src)URL.revokeObjectURL(src)});
   const tool=tools.find(x=>x[0]===S.tool)||tools[0];
   const home=S.view==='tools', task=S.view==='tool', toolsScreen=S.view==='catalog', downloads=S.view==='downloads', settingsScreen=S.view==='settings';
-  const accept=S.tool==='pdf2image'||S.tool==='pdfmerge'?'application/pdf':'image/*,.heic,.heif';
+  const accept=(S.tool==='pdf2image'||S.tool==='pdfmerge'||PDF_SUITE_PDF_INPUTS.includes(S.tool))?'application/pdf,.pdf':S.tool==='htmltopdf'?'text/html,.html,.htm':S.tool==='wordtopdf'?'.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document':'image/*,.heic,.heif';
   const title=task?tool[2]:'All tools';
   const desc=task?tool[3]:'Choose a tool to get started';
-  const uploadLabel=(S.tool==='pdf2image'||S.tool==='pdfmerge')?'Choose PDFs':'Choose Images';
-  const dropLabel=(S.tool==='pdf2image'||S.tool==='pdfmerge')?'Drop PDF files here':'Drop images here';
-  const subLabel=(S.tool==='pdf2image'||S.tool==='pdfmerge')?'PDF files • Multiple pages supported':'JPG, PNG, WebP, AVIF • Batch supported';
+  const documentTool=S.tool==='pdf2image'||S.tool==='pdfmerge'||PDF_SUITE_PDF_INPUTS.includes(S.tool)||S.tool==='htmltopdf'||S.tool==='wordtopdf';
+  const uploadLabel=documentTool?(S.tool==='htmltopdf'?'Choose HTML file':S.tool==='wordtopdf'?'Choose DOCX file':'Choose PDFs'):'Choose Images';
+  const dropLabel=documentTool?(S.tool==='htmltopdf'?'Drop an HTML file here':S.tool==='wordtopdf'?'Drop a Word DOCX here':'Drop PDF files here'):'Drop images here';
+  const subLabel=documentTool?(S.tool==='htmltopdf'?'HTML / HTM file • Processed locally':S.tool==='wordtopdf'?'Word .docx file • Text and paragraphs supported':'PDF files • Multiple pages supported'):'JPG, PNG, WebP, AVIF • Batch supported';
 
   const header='<header class="topbar editorial-topbar"><div class="brand"><button id="brand-home" class="brand-mark" aria-label="ImageMate home"><svg class="imagemate-mark" viewBox="0 0 76 64" aria-hidden="true"><circle class="im-mark-dot" cx="15" cy="13" r="5.4"></circle><path class="im-mark-stem" d="M15 25V48"></path><path class="im-mark-m" d="M30 48V29C30 24 34 23 37 27L44 36L52 27C55 23 59 25 59 30V48"></path></svg></button><div class="brand-copy"><b class="brand-wordmark"><span class="brand-word-image">Image</span><span class="brand-word-mate">Mate</span></b><span>Private image & file tools</span></div></div><nav class="top-actions" aria-label="Application navigation"><button id="home-btn" class="nav-btn '+(home?'active':'')+'" title="Home" '+(home?'aria-current="page"':'')+'><i data-lucide="house"></i><span class="nav-text">Home</span></button><button id="tools-btn" class="nav-btn '+((toolsScreen||task)?'active':'')+'" title="All tools" '+((toolsScreen||task)?'aria-current="page"':'')+'><i data-lucide="grid-2x2"></i><span class="nav-text">Tools</span></button><button id="settings-btn" class="nav-btn '+(settingsScreen?'active':'')+'" title="Settings" '+(settingsScreen?'aria-current="page"':'')+'><i data-lucide="settings"></i><span class="nav-text">Settings</span></button><button id="refresh-update-btn" class="nav-btn update-refresh" title="Refresh update check" aria-label="Refresh update check" ' + (isNativeAndroid() ? '' : 'hidden') + '><i data-lucide="refresh-cw"></i><span class="nav-text">Refresh</span></button><button id="update-btn" class="update-btn" hidden>Update</button></nav></header>';
 
@@ -517,10 +542,11 @@ function load(list){
 }
 function queue(){
   const q=document.querySelector('#queue');if(!q)return;
+  const documentInput=S.tool==='pdf2image'||S.tool==='pdfmerge'||PDF_SUITE_PDF_INPUTS.includes(S.tool)||S.tool==='htmltopdf'||S.tool==='wordtopdf';
   q.querySelectorAll('img').forEach(imgEl=>{const src=imgEl.currentSrc||imgEl.src;if(src)URL.revokeObjectURL(src)});
-  q.innerHTML=S.files.map((f,i)=>'<div class="file-row"><div class="thumb">'+((S.tool==='pdf2image'||S.tool==='pdfmerge')?'<i data-lucide="file-text"></i>':'<img src="'+URL.createObjectURL(f)+'">')+'</div><div class="file-meta"><b>'+esc(f.name)+'</b><span>'+label(f.type)+' • '+size(f.size)+'</span></div><button class="remove" data-i="'+i+'" aria-label="Remove file"><i data-lucide="x"></i></button></div>').join('');createIcons({icons,attrs:{'stroke-width':1.8}});
+  q.innerHTML=S.files.map((f,i)=>'<div class="file-row"><div class="thumb">'+(documentInput?'<i data-lucide="file-text"></i>':'<img src="'+URL.createObjectURL(f)+'">')+'</div><div class="file-meta"><b>'+esc(f.name)+'</b><span>'+label(f.type)+' • '+size(f.size)+'</span></div><button class="remove" data-i="'+i+'" aria-label="Remove file"><i data-lucide="x"></i></button></div>').join('');createIcons({icons,attrs:{'stroke-width':1.8}});
   q.querySelectorAll('.remove').forEach(b=>b.onclick=()=>{S.files.splice(+b.dataset.i,1);queue()});
-  if(S.files.length){q.insertAdjacentHTML('beforeend','<div class="actionbar"><span><b>'+S.files.length+'</b> '+((S.tool==='pdf2image'||S.tool==='pdfmerge')?'PDF':'file')+(S.files.length>1?'s':'')+' ready</span><button id="clear" class="remove">Clear</button>'+(S.files.length>1&&!['pdf','pdf2image','pdfmerge','ocr','exif','background','editor'].includes(S.tool)?'<button id="zip" class="secondary">Download ZIP</button>':'')+'<button id="process" class="primary">'+(S.tool==='ocr'?'Extract Text':(S.tool==='pdf2image'||S.tool==='pdfmerge')?'Convert PDFs':'Process & Download')+'</button></div>');document.querySelector('#clear').onclick=()=>{S.files=[];queue()};const zip=document.querySelector('#zip');if(zip)zip.onclick=processBatchZip;document.querySelector('#process').onclick=process}
+  if(S.files.length||S.tool==='pdfforms'){const formOnly=S.tool==='pdfforms';q.insertAdjacentHTML('beforeend','<div class="actionbar"><span>'+(formOnly?'Create an interactive PDF form':('<b>'+S.files.length+'</b> '+((S.tool==='pdf2image'||S.tool==='pdfmerge'||PDF_SUITE_PDF_INPUTS.includes(S.tool))?'PDF':S.tool==='htmltopdf'?'HTML':S.tool==='wordtopdf'?'DOCX':'file')+(S.files.length>1?'s':'')+' ready'))+'</span>'+(formOnly?'':'<button id="clear" class="remove">Clear</button>')+(S.files.length>1&&!['pdf','pdf2image','pdfmerge','ocr','exif','background','editor',...PDF_SUITE_TOOLS].includes(S.tool)?'<button id="zip" class="secondary">Download ZIP</button>':'')+'<button id="process" class="primary">'+(S.tool==='ocr'?'Extract Text':(S.tool==='pdf2image'||S.tool==='pdfmerge')?'Convert PDFs':'Process & Download')+'</button></div>');const clear=document.querySelector('#clear');if(clear)clear.onclick=()=>{S.files=[];queue()};const zip=document.querySelector('#zip');if(zip)zip.onclick=processBatchZip;document.querySelector('#process').onclick=process}
   S.previewIndex=Math.max(0,Math.min(S.previewIndex||0,S.files.length-1));
   scheduleLivePreview();
 }
@@ -540,7 +566,31 @@ function settings(){
   if(S.tool==='ocr')h='<div class="info">OCR runs locally in your browser. Select an image, then click Extract Text.</div>';
   if(S.tool==='background')h='<div class="info">Removes a simple near-uniform background locally. Best on documents, signatures and product photos.</div>';
   if(S.tool==='editor')h='<label>Brightness <output id="bv">0</output><input id="brightness" type="range" min="-100" max="100" value="0"></label><label>Contrast <output id="cv">0</output><input id="contrast" type="range" min="-100" max="100" value="0"></label><label>Rotation<select id="rotation"><option value="0">0°</option><option value="90">90°</option><option value="180">180°</option><option value="270">270°</option></select></label><div class="info">Apply basic corrections locally, then export a clean JPG.</div>';
-  if(S.tool==='pdfmerge')h+='<div class="info">Select two or more PDFs to combine them in order.</div>';
+  if(S.tool==='pdfmerge')h+='<div class="info">Select two or more PDFs to combine them. Text and vector content are preserved.</div>';
+  const field=(label,id,key,value,type='text',placeholder='')=>'<label>'+label+'<input id="'+id+'" data-pdf-opt="'+key+'" type="'+type+'" value="'+esc(value)+'" placeholder="'+esc(placeholder)+'"></label>';
+  const info=message=>'<div class="info">'+message+'</div>';
+  if(S.tool==='pdfalternate')h+=info('Select two or more PDFs. Pages are interleaved in their original order.');
+  if(S.tool==='pdforganize')h+=field('Page order (example: 1,3,2,4)','pdf-page-order','pageOrder','1,2,3')+info('Rearrange the page sequence. Use page numbers or ranges like 1,3,5-7. Pages not listed will not be included.');
+  if(['pdfextract','pdfdelete'].includes(S.tool))h+=field(S.tool==='pdfdelete'?'Pages to delete':'Pages to extract','pdf-pages','pages',S.tool==='pdfdelete'?'2':'1-3')+info('Use page numbers or ranges, for example 1-3,5. The original file remains unchanged.');
+  if(S.tool==='pdfsplitpages')h+=field('Pages per output PDF','pdf-pages-per-file','pagesPerFile','1','number','1')+info('The results are bundled into one ZIP file.');
+  if(S.tool==='pdfsplitsize')h+=field('Approximate max size per PDF (MB)','pdf-max-mb','maxMb','5','number','5')+info('Page groups are estimated from single-page PDF sizes. Complex PDFs may exceed the chosen size.');
+  if(S.tool==='pdfsplittext')h+=field('Text to find','pdf-match-text','matchText','','text','Enter a word or phrase')+info('Creates a PDF of matching pages and, when applicable, another PDF with the remaining pages.');
+  if(S.tool==='pdfedit')h+=field('Text to place on the PDF','pdf-annotation-text','annotationText','','text','Enter the text to add')+field('Page(s)','pdf-pages','pages','1')+field('Font size','pdf-font-size','fontSize','18','number','18')+info('Adds an overlay; it does not change existing PDF text.');
+  if(S.tool==='pdfsign')h+=field('Name / typed signature','pdf-signature-name','signatureName','','text','Full name')+field('Date','pdf-signature-date','signatureDate',new Date().toLocaleDateString())+field('Page(s)','pdf-pages','pages','1')+info('Adds a typed signature and date stamp. It is not a certificate-based digital signature.');
+  if(S.tool==='pdfforms')h+=field('Form title','pdf-form-title','formTitle','Fillable Form')+'<label>Field labels (one per line or comma-separated)<textarea id="pdf-form-labels" data-pdf-opt="formLabels" rows="5">Name, Email, Date, Comments</textarea></label>'+info('Creates a new PDF containing interactive text fields.');
+  if(S.tool==='pdfcompress')h+=info('Uses lossless PDF stream/object compression where supported; already-optimized PDFs may not get smaller.');
+  if(S.tool==='pdfprotect')h+=field('Open password (min. 6 characters)','pdf-password','password','','password','Choose a strong password')+field('Confirm password','pdf-confirm-password','confirmPassword','','password','Repeat password')+field('Owner password (optional)','pdf-owner-password','ownerPassword','','password','Leave blank to reuse open password')+info('Applies real PDF encryption locally. If you lose the password, ImageMate cannot recover it.');
+  if(S.tool==='pdfunlock')h+=field('Current PDF password','pdf-password','password','','password','Enter the existing password')+info('Only removes encryption after the correct password is provided. It cannot recover forgotten passwords.');
+  if(S.tool==='pdfwatermark')h+=field('Watermark text','pdf-watermark-text','watermarkText','CONFIDENTIAL')+field('Angle (degrees)','pdf-watermark-angle','watermarkAngle','-35','number','-35')+field('Font size','pdf-font-size','fontSize','28','number','28');
+  if(['pdftext','pdftoword','pdfexcel','pdfppt','pdfsplitbookmarks'].includes(S.tool))h+=field('PDF password (if protected)','pdf-password','password','','password','Optional');
+  if(S.tool==='pdftext')h+=info('Extracts selectable text. Scanned pages may need OCR first.');
+  if(S.tool==='pdftoword')h+=info('Exports extracted text to DOCX. Original page layout and graphics are not preserved.');
+  if(S.tool==='pdfexcel')h+=info('Reconstructs rows and columns using text positions; complex tables may need cleanup in Excel.');
+  if(S.tool==='pdfppt')h+=info('Each PDF page becomes a slide image. The slide appearance is preserved, but its text and objects are not individually editable.');
+  if(S.tool==='htmltopdf')h+=info('Creates a text-focused PDF from the HTML document. Advanced CSS, remote images and interactive content are not reproduced.');
+  if(S.tool==='wordtopdf')h+=info('Converts .docx paragraphs and text locally. Complex Word formatting, tables and embedded images are not preserved.');
+  if(S.tool==='pdfedit')h+=info('Choose one page or a page range. Text will be stamped on top of the existing PDF page.');
+  if(['pdf','pdfmerge','pdfalternate','pdforganize','pdfextract','pdfsplitpages','pdfsplitbookmarks','pdfsplithalf','pdfsplitsize','pdfsplittext','pdfedit','pdfsign','pdfdelete','pdfcompress','pdfprotect','pdfunlock','pdfwatermark','pdfflatten','pdfexcel','pdfppt','pdftext','pdftoword'].includes(S.tool))h+=info('PDF processing stays on this device.');
   s.innerHTML=h;
   const f=document.querySelector('#format');if(f)f.onchange=e=>{S.format=e.target.value;scheduleLivePreview()};
   const q=document.querySelector('#quality');if(q)q.oninput=e=>{S.quality=e.target.value/100;document.querySelector('#qv').textContent=e.target.value+'%';scheduleLivePreview()};
@@ -552,6 +602,7 @@ function settings(){
   const rot=document.querySelector('#rotation');if(rot)rot.onchange=e=>{S.rotation=+e.target.value;scheduleLivePreview()};
   const br=document.querySelector('#brightness');if(br)br.oninput=e=>{S.brightness=+e.target.value;const o=document.querySelector('#bv');if(o)o.textContent=e.target.value;scheduleLivePreview()};
   const co=document.querySelector('#contrast');if(co)co.oninput=e=>{S.contrast=+e.target.value;const o=document.querySelector('#cv');if(o)o.textContent=e.target.value;scheduleLivePreview()};
+  s.querySelectorAll('[data-pdf-opt]').forEach(el=>el.addEventListener(el.tagName==='SELECT'?'change':'input',()=>scheduleLivePreview()));
 }
 let livePreviewTimer=0;
 let livePreviewRevision=0;
@@ -648,6 +699,28 @@ async function updateLivePreview(revision){
   status.textContent='Updating live preview locally…';
   setLivePreviewMeta([]);
   try{
+    if(PDF_SUITE_PDF_INPUTS.includes(tool)){
+      const rendered=await renderPdfPreviewPage(file,0.9);
+      if(revision!==livePreviewRevision)return;
+      if(['pdfwatermark','pdfedit','pdfsign'].includes(tool)){
+        const context=rendered.canvas.getContext('2d');
+        const opt=id=>document.querySelector('[data-pdf-opt="'+id+'"]')?.value||'';
+        let text=tool==='pdfwatermark'?opt('watermarkText'):tool==='pdfsign'?[opt('signatureName'),opt('signatureDate')].filter(Boolean).join(' • '):opt('annotationText');
+        if(text&&context){context.save();context.globalAlpha=0.6;context.fillStyle='#777';context.textAlign='center';context.font='bold '+Math.max(12,Number(opt('fontSize')||24))+'px sans-serif';context.translate(rendered.canvas.width/2,rendered.canvas.height/2);if(tool==='pdfwatermark')context.rotate((Number(opt('watermarkAngle')||-35))*Math.PI/180);context.fillText(text.slice(0,140),0,0,rendered.canvas.width*0.8);context.restore();}
+      }
+      showLivePreviewElement(rendered.canvas);
+      status.textContent=['pdfwatermark','pdfedit','pdfsign'].includes(tool)?'Preview includes an approximate overlay. Press Process & Download to create the actual PDF.':'Source PDF page preview. Choose settings, then press Process & Download to generate the output.';
+      setLivePreviewMeta(['Source: PDF',rendered.width+' × '+rendered.height+' px','Page 1 of '+rendered.pages,S.files.length+' input file'+(S.files.length===1?'':'s')]);
+      return;
+    }
+    if(tool==='htmltopdf'||tool==='wordtopdf'){
+      const stage=document.querySelector('#live-preview-stage');
+      if(stage)stage.innerHTML='<div class="live-preview-empty"><span class="live-preview-empty-icon"><i data-lucide="file-text"></i></span><b>'+esc(file.name||'Selected document')+'</b><span>The document will be converted locally when you process it.</span></div>';
+      createIcons({icons,attrs:{'stroke-width':1.8}});
+      status.textContent='Source document selected. Output will be generated locally.';
+      setLivePreviewMeta(['Input: '+(tool==='htmltopdf'?'HTML':'DOCX'),size(file.size)]);
+      return;
+    }
     if(tool==='pdf'||tool==='pdfmerge'){
       const output=tool==='pdf'?await pdf(S.files,false):await mergePdfs(S.files,false);
       const rendered=await renderPdfPreviewPage(output,1.2);
@@ -872,7 +945,33 @@ async function processBatchZip(){
   if(S.tool==='pdf'||S.tool==='pdf2image'||S.tool==='pdfmerge')return alert('Batch ZIP is not available for this tool.');
   const btn=document.querySelector('#zip');if(!btn)return;
   btn.disabled=true;btn.textContent='Creating ZIP…';try{const {default:JSZip}=await import('jszip');const zip=new JSZip();for(const f of S.files){const i=await img(f);const [w,h]=toolDimensions(i);let type=S.tool==='convert'?S.format:'image/jpeg';let b=S.tool==='crop'?await cropBlob(i,w,h,S.rotation,type,S.quality):await blob(i,type,S.quality,w,h);if(S.tool==='target')b=await targetSizeBlob(i,S.target*1024,w,h);zip.file(name(f.name,label(type).toLowerCase()),b)}dl(await zip.generateAsync({type:'blob',compression:'DEFLATE'}),'imagemate-'+S.tool+'-batch.zip');await maybeShowTestInterstitial()}catch(e){console.error(e);alert('Could not create the ZIP. Please try fewer or smaller images.')}finally{btn.disabled=false;btn.textContent='Download ZIP'}}
+async function processPdfSuite(){
+  const btn=document.querySelector('#process');
+  if(btn){btn.disabled=true;btn.textContent='Processing PDF…'}
+  const wrap=document.querySelector('#progress-wrap');if(wrap)wrap.hidden=false;setProgress(3,'Processing locally');
+  try{
+    const options={};
+    document.querySelectorAll('#settings [data-pdf-opt]').forEach(el=>{options[el.dataset.pdfOpt]=el.value});
+    const outputs=await runPdfTool(S.tool,S.files,options);
+    if(!Array.isArray(outputs)||!outputs.length)throw new Error('No output was produced.');
+    let finalBlob,finalName,finalMime;
+    if(outputs.length===1){finalBlob=outputs[0].blob;finalName=outputs[0].name;finalMime=finalBlob.type||'application/octet-stream'}
+    else{
+      const {default:JSZip}=await import('jszip');const zip=new JSZip();
+      outputs.forEach(output=>zip.file(output.name,output.blob));
+      finalBlob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:5}});
+      finalName='imagemate-'+S.tool+'-results.zip';finalMime='application/zip';
+    }
+    await dl(finalBlob,finalName,finalMime);setProgress(100,'Complete');
+    const tool=tools.find(item=>item[0]===S.tool);
+    showResult('PDF tool complete','Your output is ready: <b>'+esc(finalName)+'</b>. '+outputs.length+' output file'+(outputs.length===1?'':'s')+' created. Files were processed on this device.');
+  }catch(error){
+    console.error(error);setProgress(0,'Could not finish');
+    alert('Could not process this PDF. '+(error?.message||'Please check the file and settings, then try again.'));
+  }finally{if(btn){btn.disabled=false;btn.textContent='Process & Download'}}
+}
 async function process(){
+  if(PDF_SUITE_TOOLS.includes(S.tool)){if(!S.files.length&&S.tool!=='pdfforms')return alert(S.tool==='htmltopdf'?'Choose an HTML file.':S.tool==='wordtopdf'?'Choose a DOCX file.':'Choose at least one PDF.');return processPdfSuite()}
   if(!S.files.length)return alert((S.tool==='pdf2image'||S.tool==='pdfmerge')?'Choose at least one PDF.':'Choose at least one file.');
   const btn=document.querySelector('#process');if(btn){btn.disabled=true;btn.textContent='Processing…'}
   const progress=document.querySelector('#progress-wrap');if(progress)progress.hidden=false;setProgress(0,'Processing');
@@ -929,30 +1028,13 @@ async function editBlob(i,brightness,contrast,rotation){
   return canvasToBlob(c,'image/jpeg',.92);
 }
 async function mergePdfs(files,download=true){
-  const {getDocument,GlobalWorkerOptions}=await import('pdfjs-dist');
-  const {jsPDF}=await import('jspdf');
-  GlobalWorkerOptions.workerSrc=new URL('pdfjs-dist/build/pdf.worker.mjs',import.meta.url).toString();
-  const doc=new jsPDF({unit:'mm',format:'a4'});
-  let added=0;
-  for(const file of files){
-    const source=await getDocument({data:await file.arrayBuffer()}).promise;
-    for(let pageNo=1;pageNo<=source.numPages;pageNo++){
-      const page=await source.getPage(pageNo);
-      const viewport=page.getViewport({scale:1.4});
-      const canvas=document.createElement('canvas');canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);
-      const context=canvas.getContext('2d');if(!context)throw new Error('Canvas processing is unavailable in this browser.');
-      await page.render({canvasContext:context,viewport}).promise;
-      if(added++)doc.addPage();
-      const maxW=190,maxH=277,scale=Math.min(maxW/canvas.width,maxH/canvas.height);
-      const width=canvas.width*scale,height=canvas.height*scale;
-      doc.addImage(canvas.toDataURL('image/jpeg',.9),'JPEG',(210-width)/2,(297-height)/2,width,height);
-    }
-  }
-  const output=doc.output('blob');
-  if(download)await dl(output,'imagemate-merged.pdf','application/pdf');
-  return output;
+  const {createPdfToolkit}=await import('pdfstudio');
+  const pdf=await createPdfToolkit();
+  const output=await pdf.merge(files);
+  const result=new Blob([output],{type:'application/pdf'});
+  if(download)await dl(result,'imagemate-merged.pdf','application/pdf');
+  return result;
 }
-
 function cropBlob(i,targetW,targetH,deg,type,q){
   const angle=((Number(deg)||0)%360+360)%360, swap=angle===90||angle===270;
   const rw=swap?i.naturalHeight:i.naturalWidth, rh=swap?i.naturalWidth:i.naturalHeight;
