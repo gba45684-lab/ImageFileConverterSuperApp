@@ -13,7 +13,7 @@ test('all 14 tools remain registered',()=>{
 test('all tool implementation routes remain present',()=>{
  assert.match(main,/async function process\(\)/);
  for(const id of ['pdf','pdfmerge','pdf2image','ocr','exif','background','convert','compress','resize','target','passport','signature','crop','editor'])assert.ok(main.includes("'"+id+"'"),'Missing '+id);
- assert.match(main,/async function mergePdfs\(files\)/);assert.match(main,/async function convertSpecial\(file,kind\)/);
+ assert.match(main,/async function mergePdfs\(files,download=true\)/);assert.match(main,/async function convertSpecial\(file,kind\)/);
  assert.match(main,/function editBlob\(i,brightness,contrast,rotation\)/);assert.match(main,/function cropBlob\(i,targetW,targetH,deg,type,q\)/);
  assert.match(main,/async function targetSizeBlob\(i,maxBytes,w,h\)/);
 });
