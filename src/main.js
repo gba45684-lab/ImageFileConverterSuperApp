@@ -534,9 +534,15 @@ function bind(){
 function isHeic(f){return /\.(heic|heif)$/i.test(f.name)||/image\/(heic|heif)/i.test(f.type)}
 function load(list){
   const files=[...list];
-  S.files=(S.tool==='pdf2image'||S.tool==='pdfmerge')
-    ? files.filter(f=>f.type==='application/pdf'||/\.pdf$/i.test(f.name))
-    : files.filter(f=>f.type.startsWith('image/')||isHeic(f));
+  if(S.tool==='pdf2image'||S.tool==='pdfmerge'||PDF_SUITE_PDF_INPUTS.includes(S.tool)){
+    S.files=files.filter(f=>f.type==='application/pdf'||/\.pdf$/i.test(f.name));
+  }else if(S.tool==='htmltopdf'){
+    S.files=files.filter(f=>f.type==='text/html'||/\.html?$/i.test(f.name));
+  }else if(S.tool==='wordtopdf'){
+    S.files=files.filter(f=>f.type==='application/vnd.openxmlformats-officedocument.wordprocessingml.document'||/\.docx$/i.test(f.name));
+  }else{
+    S.files=files.filter(f=>f.type.startsWith('image/')||isHeic(f));
+  }
   S.previewIndex=0;
   queue()
 }
