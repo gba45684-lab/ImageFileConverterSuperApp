@@ -570,7 +570,7 @@ function settings(){
   const field=(label,id,key,value,type='text',placeholder='')=>'<label>'+label+'<input id="'+id+'" data-pdf-opt="'+key+'" type="'+type+'" value="'+esc(value)+'" placeholder="'+esc(placeholder)+'"></label>';
   const info=message=>'<div class="info">'+message+'</div>';
   if(S.tool==='pdfalternate')h+=info('Select two or more PDFs. Pages are interleaved in their original order.');
-  if(S.tool==='pdforganize')h+=field('Page order (example: 1,3,2,4)','pdf-page-order','pageOrder','1,2,3')+info('Rearrange the page sequence. Use page numbers or ranges like 1,3,5-7. Pages not listed will not be included.');
+  if(S.tool==='pdforganize')h+=field('Page order (example: 1,3,2,4)','pdf-page-order','pageOrder','1-z','text','1,3,2')+info('Rearrange the page sequence. Use page numbers or ranges like 1,3,5-7. Pages not listed will not be included.');
   if(['pdfextract','pdfdelete'].includes(S.tool))h+=field(S.tool==='pdfdelete'?'Pages to delete':'Pages to extract','pdf-pages','pages',S.tool==='pdfdelete'?'2':'1-3')+info('Use page numbers or ranges, for example 1-3,5. The original file remains unchanged.');
   if(S.tool==='pdfsplitpages')h+=field('Pages per output PDF','pdf-pages-per-file','pagesPerFile','1','number','1')+info('The results are bundled into one ZIP file.');
   if(S.tool==='pdfsplitsize')h+=field('Approximate max size per PDF (MB)','pdf-max-mb','maxMb','5','number','5')+info('Page groups are estimated from single-page PDF sizes. Complex PDFs may exceed the chosen size.');
