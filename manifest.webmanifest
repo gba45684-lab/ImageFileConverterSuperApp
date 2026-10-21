@@ -1,10 +1,10 @@
 {
-  "name":"ImageMate — Image & File Converter",
+  "name":"ImageMate — PDF & Image Tools",
   "short_name":"ImageMate",
   "start_url":"/",
   "display":"standalone",
   "background_color":"#f8fafc",
   "theme_color":"#f8fafc",
-  "description":"Private, fast image conversion and file utility tools.",
+  "description":"Private PDF and image tools to merge, organize, split, sign, protect and convert documents locally.",
   "icons":[{"src":"/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
 }
