@@ -61,7 +61,7 @@ function render(){
   const dropLabel=(S.tool==='pdf2image'||S.tool==='pdfmerge')?'Drop PDF files here':'Drop images here';
   const subLabel=(S.tool==='pdf2image'||S.tool==='pdfmerge')?'PDF files • Multiple pages supported':'JPG, PNG, WebP, AVIF • Batch supported';
 
-  const header='<header class="topbar editorial-topbar"><div class="brand"><button id="brand-home" class="brand-mark" aria-label="ImageMate home"><svg class="imagemate-mark" viewBox="0 0 76 64" aria-hidden="true"><circle class="im-mark-dot" cx="15" cy="13" r="5.4"></circle><path class="im-mark-stem" d="M15 25V48"></path><path class="im-mark-m" d="M30 48V29C30 24 34 23 37 27L44 36L52 27C55 23 59 25 59 30V48"></path></svg></button><div class="brand-copy"><b class="brand-wordmark"><span class="brand-word-image">Image</span><span class="brand-word-mate">Mate</span></b><span>Private image & file tools</span></div></div><nav class="top-actions" aria-label="Application navigation"><button id="home-btn" class="nav-btn '+(home?'active':'')+'" title="Home" '+(home?'aria-current="page"':'')+'><i data-lucide="house"></i><span class="nav-text">Home</span></button><button id="tools-btn" class="nav-btn '+((toolsScreen||task)?'active':'')+'" title="All tools" '+((toolsScreen||task)?'aria-current="page"':'')+'><i data-lucide="grid-2x2"></i><span class="nav-text">Tools</span></button><button id="settings-btn" class="nav-btn '+(settingsScreen?'active':'')+'" title="Settings" '+(settingsScreen?'aria-current="page"':'')+'><i data-lucide="settings"></i><span class="nav-text">Settings</span></button><button id="refresh-update-btn" class="nav-btn update-refresh" title="Refresh update check" aria-label="Refresh update check" ' + (isNativeAndroid() ? '' : 'hidden') + '><i data-lucide="refresh-cw"></i><span class="nav-text">Refresh</span></button><button class="pro" title="Remove Ads"><span>Remove Ads</span><small>PRO</small></button><button id="update-btn" class="update-btn" hidden>Update</button></nav></header>';
+  const header='<header class="topbar editorial-topbar"><div class="brand"><button id="brand-home" class="brand-mark" aria-label="ImageMate home"><svg class="imagemate-mark" viewBox="0 0 76 64" aria-hidden="true"><circle class="im-mark-dot" cx="15" cy="13" r="5.4"></circle><path class="im-mark-stem" d="M15 25V48"></path><path class="im-mark-m" d="M30 48V29C30 24 34 23 37 27L44 36L52 27C55 23 59 25 59 30V48"></path></svg></button><div class="brand-copy"><b class="brand-wordmark"><span class="brand-word-image">Image</span><span class="brand-word-mate">Mate</span></b><span>Private image & file tools</span></div></div><nav class="top-actions" aria-label="Application navigation"><button id="home-btn" class="nav-btn '+(home?'active':'')+'" title="Home" '+(home?'aria-current="page"':'')+'><i data-lucide="house"></i><span class="nav-text">Home</span></button><button id="tools-btn" class="nav-btn '+((toolsScreen||task)?'active':'')+'" title="All tools" '+((toolsScreen||task)?'aria-current="page"':'')+'><i data-lucide="grid-2x2"></i><span class="nav-text">Tools</span></button><button id="settings-btn" class="nav-btn '+(settingsScreen?'active':'')+'" title="Settings" '+(settingsScreen?'aria-current="page"':'')+'><i data-lucide="settings"></i><span class="nav-text">Settings</span></button><button id="refresh-update-btn" class="nav-btn update-refresh" title="Refresh update check" aria-label="Refresh update check" ' + (isNativeAndroid() ? '' : 'hidden') + '><i data-lucide="refresh-cw"></i><span class="nav-text">Refresh</span></button><button id="update-btn" class="update-btn" hidden>Update</button></nav></header>';
 
   let content='';
   if(home){
@@ -183,8 +183,6 @@ function render(){
   if(back) back.onclick=()=>{S.files=[];if(toolsScreen||downloads){S.view='tools';S.mobileTab='home'}else if(task&&S.returnView==='catalog'){S.view='catalog';S.mobileTab='tools'}else{S.view='tools';S.mobileTab='home'}render()};
   const backSettings=document.querySelector('#back-settings');
   if(backSettings) backSettings.onclick=()=>{S.view='tools';S.mobileTab='home';S.files=[];render()};
-  const pro=document.querySelector('.pro');
-  if(pro) pro.onclick=()=>alert('ImageMate PRO is coming soon. All core tools are currently available for free.');
   if(downloads) renderDownloads();
   checkForAndroidUpdate(); startUpdateMonitor();
   if(isAndroidNative()) initNativeAds().then(async result=>{if(!result.shown)console.warn('[ImageMate ads] Banner not visible:',result.reason||'unknown reason'); else { await new Promise(resolve=>setTimeout(resolve, 1200)); await maybeShowTestAppOpen(); }});
@@ -751,14 +749,6 @@ async function mergePdfs(files){
   await dl(doc.output('blob'),'imagemate-merged.pdf','application/pdf');
 }
 
-function rotatedBlob(i,deg,type,q){
-  const swap=deg%180!==0,c=document.createElement('canvas');c.width=swap?i.naturalHeight:i.naturalWidth;c.height=swap?i.naturalWidth:i.naturalHeight;
-  const x=c.getContext('2d');if(!x)throw new Error('Canvas processing is unavailable in this browser.');
-  x.translate(c.width/2,c.height/2);x.rotate(deg*Math.PI/180);
-  if(type==='image/jpeg'){x.fillStyle='#fff';x.fillRect(-c.width/2,-c.height/2,c.width,c.height)}
-  x.drawImage(i,-i.naturalWidth/2,-i.naturalHeight/2);
-  return canvasToBlob(c,type,q);
-}
 function cropBlob(i,targetW,targetH,deg,type,q){
   const angle=((Number(deg)||0)%360+360)%360, swap=angle===90||angle===270;
   const rw=swap?i.naturalHeight:i.naturalWidth, rh=swap?i.naturalWidth:i.naturalHeight;

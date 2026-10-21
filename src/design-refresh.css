@@ -856,12 +856,6 @@ main{width:100%;max-width:none!important;min-width:0}
 .editorial-topbar .nav-btn:focus-visible,.editorial-topbar button:focus-visible{
   outline:3px solid rgba(99,102,241,.30)!important;outline-offset:3px!important;
 }
-.editorial-topbar .pro{
-  border:1px solid rgba(99,102,241,.20)!important;border-radius:12px!important;
-  color:#fff!important;background:linear-gradient(135deg,#6366f1,#885cff)!important;
-  box-shadow:0 6px 14px rgba(99,102,241,.18)!important;
-}
-.editorial-topbar .pro small{background:rgba(255,255,255,.2)!important;color:#fff!important}
 .editorial-topbar .update-btn{
   border:1px solid rgba(20,184,166,.28)!important;border-radius:12px!important;
   background:rgba(20,184,166,.10)!important;color:#0f766e!important;
@@ -1237,7 +1231,6 @@ button[hidden],.nav-btn[hidden]{display:none!important}
   .editorial-topbar .top-actions::-webkit-scrollbar{display:none}
   .editorial-topbar .nav-btn{padding:8px!important;min-width:36px!important}
   .editorial-topbar .nav-text{display:none!important}
-  .editorial-topbar .pro{display:none!important}
   .editorial-home{width:calc(100% - 30px)!important;padding-top:21px!important;gap:15px!important}
   .editorial-hero{grid-template-columns:minmax(0,1fr) minmax(145px,.62fr)!important;min-height:220px!important;padding:22px!important;column-gap:8px!important;border-radius:23px!important}
   .editorial-hero h1{font-size:clamp(28px,5.4vw,42px)!important}

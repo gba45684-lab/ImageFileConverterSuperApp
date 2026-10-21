@@ -5,8 +5,6 @@ export const TEST_AD_UNITS = Object.freeze({
   // 6300978111 is Google's fixed 320x50 banner demo; use the matching fixed size below.
   banner: 'ca-app-pub-3940256099942544/6300978111',
   interstitial: 'ca-app-pub-3940256099942544/1033173712',
-  rewarded: 'ca-app-pub-3940256099942544/5224354917',
-  nativeAdvanced: 'ca-app-pub-3940256099942544/2247696110',
   appOpen: 'ca-app-pub-3940256099942544/9257395921'
 });
 const TEST_APP_ID = 'ca-app-pub-3940256099942544~3347511713';
@@ -168,21 +166,6 @@ export async function maybeShowTestAppOpen() {
     console.info('[ImageMate ads] App Open test ad shown.');
   } catch (error) {
     console.warn('[ImageMate ads] Test App Open ad failed:', error);
-  }
-}
-
-// Call only from a clearly labelled, user-initiated "Watch ad" action.
-// Never grant an app feature or benefit merely because an ad was clicked.
-export async function showTestRewardedAd() {
-  if (!isAndroidNative()) return { shown: false, reason: 'not-android' };
-  try {
-    const plugin = await getAdMob();
-    await plugin.AdMob.prepareRewardVideoAd({ adId: TEST_AD_UNITS.rewarded });
-    const reward = await plugin.AdMob.showRewardVideoAd();
-    return { shown: true, reward };
-  } catch (error) {
-    console.warn('[ImageMate ads] Test rewarded ad failed:', error);
-    return { shown: false, reason: String(error?.message || error) };
   }
 }
 
