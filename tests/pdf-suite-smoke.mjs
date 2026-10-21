@@ -9,6 +9,7 @@ const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, acceptDownloads: true });
 page.setDefaultTimeout(30000);
 const dialogs = [];
+let lastDownloadedBytes = null;
 page.on('dialog', async dialog => { dialogs.push(dialog.message()); await dialog.dismiss(); });
 page.on('pageerror', error => { throw error; });
 
@@ -66,6 +67,7 @@ async function runTool(id, files, configure, expected) {
   const path = await download.path();
   assert.ok(path && fs.existsSync(path), id + ' did not create a readable download');
   const bytes = fs.readFileSync(path);
+  lastDownloadedBytes = bytes;
   const filename = download.suggestedFilename();
   if (expected === 'pdf') assert.ok(bytes.length > 4 && bytes.subarray(0, 4).toString() === '%PDF', id + ' output is not a PDF: ' + filename);
   else if (expected === 'zip' || expected === 'docx' || expected === 'xlsx' || expected === 'pptx') {
@@ -106,28 +108,12 @@ try {
   tests.push(await runTool('pdfdelete', pdfMulti, async()=>page.locator('[data-pdf-opt="pages"]').fill('2'), 'pdf'));
   tests.push(await runTool('pdfcompress', pdfMulti, null, 'pdf'));
 
-  const protectedOutput = await runTool('pdfprotect', pdfMulti, async()=>{
+  tests.push(await runTool('pdfprotect', pdfMulti, async()=>{
     await page.locator('[data-pdf-opt="password"]').fill('test-password-2026');
     await page.locator('[data-pdf-opt="confirmPassword"]').fill('test-password-2026');
-  }, 'pdf');
-  const protectedPath = await page.locator('.download-item').first().getAttribute('data-path').catch(()=>null);
-  // Read the most recent browser download using Playwright's download event path; retain a fresh copy for unlock.
-  await openTool('pdfprotect');
-  await page.locator('#file').setInputFiles(filePayload('source.pdf','application/pdf',pdfMulti));
-  await page.locator('[data-pdf-opt="password"]').fill('test-password-2026');
-  await page.locator('[data-pdf-opt="confirmPassword"]').fill('test-password-2026');
-  let protectedDlPath;
-  {
-    const d = page.waitForEvent('download', { timeout: 90000 });
-    await page.locator('#process').click();
-    const file = await d;
-    protectedDlPath = await file.path();
-  }
-  assert.ok(protectedDlPath && fs.existsSync(protectedDlPath), 'Protected PDF was not saved');
-  protectedBytes = fs.readFileSync(protectedDlPath);
-  await page.locator('#tools-btn').click();
-  await page.locator('.catalog-tool-row').first().waitFor();
-
+  }, 'pdf'));
+  protectedBytes = lastDownloadedBytes;
+  assert.ok(protectedBytes?.subarray(0, 4).toString() === '%PDF', 'Protected PDF should be valid PDF bytes');
   tests.push(await runTool('pdfunlock', filePayload('source-protected.pdf','application/pdf',protectedBytes), async()=>page.locator('[data-pdf-opt="password"]').fill('test-password-2026'), 'pdf'));
   tests.push(await runTool('pdfwatermark', pdfMulti, async()=>page.locator('[data-pdf-opt="watermarkText"]').fill('CONFIDENTIAL'), 'pdf'));
   tests.push(await runTool('pdfflatten', pdfMulti, null, 'pdf'));
