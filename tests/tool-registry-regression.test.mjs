@@ -50,3 +50,20 @@ test('expanded PDF suite is locally processed through pdfstudio/qpdf and documen
  assert.match(suite,/createPdfToolkit/);assert.match(suite,/pdf\.lock\(source/);assert.match(suite,/pdf\.unlock\(source/);assert.match(suite,/pdf\.compress\(source/);assert.match(suite,/pdf\.flatten\(source/);
  assert.match(suite,/async function createPptx\(/);assert.match(suite,/async function createDocx\(/);assert.match(suite,/async function createXlsx\(/);
 });
+
+
+test('every registered tool belongs to exactly one workflow group and catalog search supports task aliases',()=>{
+ const groupsMatch=main.match(/const catalogGroups=(\\[[\\s\\S]*?\\]);\\nconst catalogGroupByTool=/);
+ assert.ok(groupsMatch,'Workflow categories should be declared in the app');
+ const groups=JSON.parse(groupsMatch[1]);
+ const groupIds=groups.flatMap(group=>group.tools);
+ const def=main.match(/const tools=\\[([\\s\\S]*?)\\];/);assert.ok(def,'tools array is required');
+ const ids=[...def[1].matchAll(/^\\s*\\['([^']+)'/gm)].map(m=>m[1]);
+ assert.equal(groupIds.length,ids.length,'All tools must have one category assignment');
+ assert.equal(new Set(groupIds).size,groupIds.length,'A tool cannot appear in multiple catalog groups');
+ assert.deepEqual([...groupIds].sort(),[...ids].sort(),'Each registered tool must appear in the workflow groups');
+ for(const label of ['PDF essentials','Organize & split','Edit & sign','Security & optimize','PDF conversion','Text & OCR','Image tools'])assert.ok(groups.some(group=>group.label===label),'Missing group '+label);
+ assert.match(main,/const catalogSearchAliases=/);
+ assert.match(main,/const queryMatch=!q/);
+ assert.match(main,/catalog-group/);
+});
