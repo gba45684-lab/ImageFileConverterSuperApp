@@ -290,7 +290,7 @@ export async function runPdfTool(tool, files = [], options = {}) {
       String(options.annotationText || '').trim();
     if (!text) throw new Error(tool === 'pdfedit' ? 'Enter text to add to the PDF.' : 'Enter the watermark or signature text.');
     const stamp = pdfTextStamp(text, { fontSize: options.fontSize, angle: tool === 'pdfwatermark' ? options.watermarkAngle ?? -35 : 0 });
-    const config = tool === 'pdfwatermark' ? { repeat: 1 } : { to: splitRange(options.pages || '1') };
+    const config = tool === 'pdfwatermark' ? { repeat: 1 } : { to: splitRange(options.pages || '1'), repeat: 1 };
     const output = await pdf.watermark(source, stamp, config);
     return [await saveFromToolkit(output, stem + (tool === 'pdfwatermark' ? '-watermarked.pdf' : tool === 'pdfsign' ? '-signed.pdf' : '-annotated.pdf'))];
   }
