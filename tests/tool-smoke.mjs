@@ -65,8 +65,10 @@ try{
   if(item.id==='resize'){
     await page.waitForFunction(()=>document.querySelector('#live-preview-meta')?.textContent.includes('320 × 140'));
     await page.locator('#width').fill('400');
+    await page.locator('#height').fill('175');
     await page.waitForFunction(()=>document.querySelector('#live-preview-meta')?.textContent.includes('400 × 175'));
     await page.locator('#width').fill('320');
+    await page.locator('#height').fill('140');
     await page.waitForFunction(()=>document.querySelector('#live-preview-meta')?.textContent.includes('320 × 140'));
   }
   if(item.id==='editor')await page.waitForFunction(()=>document.querySelector('#live-preview-meta')?.textContent.includes('280 × 640'));
