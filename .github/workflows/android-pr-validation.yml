@@ -56,6 +56,50 @@ jobs:
           npx cap add android
           npx cap sync android
 
+      - name: Configure the required Google test AdMob application ID
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          import xml.etree.ElementTree as ET
+
+          manifest = Path("android/app/src/main/AndroidManifest.xml")
+          tree = ET.parse(manifest)
+          root = tree.getroot()
+          android = "{http://schemas.android.com/apk/res/android}"
+          app = root.find("application")
+          if app is None:
+              raise SystemExit("AndroidManifest.xml has no application element")
+
+          # Ensure there is exactly one explicit, valid Google sample app ID.
+          for node in list(app.findall("meta-data")):
+              if node.get(android + "name") == "com.google.android.gms.ads.APPLICATION_ID":
+                  app.remove(node)
+          ET.SubElement(app, "meta-data", {
+              android + "name": "com.google.android.gms.ads.APPLICATION_ID",
+              android + "value": "@string/admob_app_id"
+          })
+          ET.indent(tree, space="    ")
+          tree.write(manifest, encoding="utf-8", xml_declaration=True)
+
+          values = Path("android/app/src/main/res/values/strings.xml")
+          values.parent.mkdir(parents=True, exist_ok=True)
+          if values.exists():
+              st = ET.parse(values)
+              sr = st.getroot()
+          else:
+              sr = ET.Element("resources")
+              st = ET.ElementTree(sr)
+          for node in list(sr.findall("string")):
+              if node.get("name") == "admob_app_id":
+                  sr.remove(node)
+          ET.SubElement(sr, "string", {"name": "admob_app_id"}).text = "ca-app-pub-3940256099942544~3347511713"
+          ET.indent(st, space="    ")
+          st.write(values, encoding="utf-8", xml_declaration=True)
+          print("Configured Google’s official sample AdMob app ID for emulator testing.")
+          PY
+
       - name: Build debug APK
         working-directory: android
         run: |
