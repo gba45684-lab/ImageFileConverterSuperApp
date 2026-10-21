@@ -64,6 +64,10 @@ jobs:
           import re
           import xml.etree.ElementTree as ET
 
+          # Preserve the canonical android: prefix when ElementTree serializes
+          # the manifest; otherwise Android's manifest merger rejects the XML.
+          ET.register_namespace("android", "http://schemas.android.com/apk/res/android")
+
           manifest = Path("android/app/src/main/AndroidManifest.xml")
           tree = ET.parse(manifest)
           root = tree.getroot()
