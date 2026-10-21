@@ -1,6 +1,6 @@
-# ImageMate — Image & File Converter SuperApp
+# ImageMate — PDF & Image Workspace
 
-A privacy-first image and file utility app for local browser processing, PWA use and Android/Capacitor packaging.
+A privacy-first PDF, image and document utility app for local browser processing, PWA use and Android/Capacitor packaging.
 
 ## Current build
 - JPG / PNG / WebP / AVIF conversion where browser support exists
@@ -66,3 +66,30 @@ The expanded PDF tools run locally using PDF.js, jsPDF, JSZip and the qpdf WebAs
 - The Edit and Fill & Sign tools add visible text or a typed signature/date stamp. They do not modify existing PDF text or create a certificate-based digital signature.
 - Split-by-size uses approximate page sizes and cannot guarantee every result will be below the target for complex PDFs.
 - Password tools require the correct password. ImageMate cannot recover forgotten passwords.
+
+## Workflow-based tool organization
+
+The All Tools screen groups the 37 utilities by the job users are trying to complete:
+
+- **PDF essentials:** image-to-PDF, PDF-to-image, merge and alternate/mix.
+- **Organize & split:** reorder, extract/delete pages, split by count, bookmarks, half, approximate size or text.
+- **Edit & sign:** add text, typed signature/date stamp, watermark and new fillable forms.
+- **Security & optimize:** password protect/unlock, lossless compression and flattening.
+- **PDF conversion:** PDF-to-Excel, PDF-to-PowerPoint, PDF-to-Word, HTML-to-PDF and Word-to-PDF.
+- **Text & OCR:** extract selectable PDF text and recognize text in images.
+- **Image tools:** convert, compress, resize, target size, ID photos, metadata, signatures, crop, background removal and photo editing.
+
+Categories can be filtered directly and the search indexes task aliases (for example, “join” finds Merge PDFs, “password” finds Protect/Unlock, and “pages” finds page-management tools).
+
+## Open-source PDF stack and design references
+
+ImageMate uses established open-source libraries selected for each task instead of copying a server-based application into a mobile web app:
+
+- [Mozilla PDF.js](https://github.com/mozilla/pdf.js) using the pdfjs-dist package — PDF page rendering, preview, page text extraction and text-position reading.
+- [pdfstudio](https://github.com/fayazara/pdfstudio) — qpdf compiled to WebAssembly for PDF-aware merge, collate, split/extract, page deletion, password encryption/decryption, compression, watermarking and flattening. These operations preserve PDF structure rather than rasterizing source pages.
+- [jsPDF](https://github.com/parallax/jsPDF) — create new PDFs, form-field documents and text-overlay assets.
+- [JSZip](https://github.com/Stuk/jszip) — package multi-output operations into one ZIP download.
+- [Tesseract.js](https://github.com/naptha/tesseract.js) — on-device OCR workflow.
+- [Stirling-PDF](https://github.com/Stirling-Tools/Stirling-PDF) — open-source product feature reference for grouping common PDF tasks; its server and desktop architecture is not copied into the client-only workflow.
+
+Existing dependencies are reused to keep the app smaller and avoid adding overlapping PDF engines unnecessarily. Review each dependency's upstream licence and notices before distributing modified builds. ImageMate keeps its own UI and branding.
