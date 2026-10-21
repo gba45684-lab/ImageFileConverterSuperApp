@@ -46,7 +46,7 @@ test('live preview mounts, responds to settings, and renders PDF outputs locally
 test('expanded PDF suite is locally processed through pdfstudio/qpdf and document conversion helpers',()=>{
  const suite=readFileSync(new URL('../src/pdf-suite.js',import.meta.url),'utf8');
  assert.match(main,/import \{ runPdfTool, PDF_SUITE_TOOLS, PDF_SUITE_PDF_INPUTS \} from '\.\/pdf-suite\.js'/);
- for(const id of ['pdfalternate','pdforganize','pdfextract','pdfsplitpages','pdfsplitbookmarks','pdfsplithalf','pdfsplitsize','pdfsplittext','pdfedit','pdfsign','pdfforms','pdfdelete','pdfcompress','pdfprotect','pdfunlock','pdfwatermark','pdfflatten','pdfexcel','pdfppt','pdftext','pdftoword','htmltopdf','wordtopdf'])assert.ok(suite.includes("tool === '"+id+"'")||suite.includes("tool === '"+id+"'"), 'Missing handler for '+id);
+ for(const id of ['pdfalternate','pdforganize','pdfextract','pdfsplitpages','pdfsplitbookmarks','pdfsplithalf','pdfsplitsize','pdfsplittext','pdfedit','pdfsign','pdfforms','pdfdelete','pdfcompress','pdfprotect','pdfunlock','pdfwatermark','pdfflatten','pdfexcel','pdfppt','pdftext','pdftoword','htmltopdf','wordtopdf'])assert.ok(suite.includes("tool === '"+id+"'"), 'Missing handler for '+id);
  assert.match(suite,/createPdfToolkit/);assert.match(suite,/pdf\.lock\(source/);assert.match(suite,/pdf\.unlock\(source/);assert.match(suite,/pdf\.compress\(source/);assert.match(suite,/pdf\.flatten\(source/);
- assert.match(suite,/client/i.test('Client-side')? /createPptx/ : /createPptx/);
+ assert.match(suite,/async function createPptx\(/);assert.match(suite,/async function createDocx\(/);assert.match(suite,/async function createXlsx\(/);
 });
