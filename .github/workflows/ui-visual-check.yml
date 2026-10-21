@@ -45,7 +45,7 @@ jobs:
           done
           cat /tmp/imagemate-preview.log
           exit 1
-      - name: Exercise all 14 tool processing workflows
+      - name: Exercise core workflows and verify expanded 37-tool catalog
         run: node tests/tool-smoke.mjs
       - name: Capture Home and Tools screenshots and test core navigation
         run: |
@@ -63,7 +63,7 @@ jobs:
           await page.locator('#see-all-tools').click();
           await page.getByRole('heading', { name: /all tools/i }).waitFor();
           await page.screenshot({ path: 'ui-evidence/tools-desktop.png', fullPage: true });
-          if (await page.locator('.catalog-tool-row').count() !== 14) throw new Error('Expected all 14 catalog tools.');
+          if (await page.locator('.catalog-tool-row').count() !== 37) throw new Error('Expected all 37 catalog tools.');
           const search = page.locator('#catalog-search');
           await search.waitFor({ state: 'visible' });
           await search.fill('pdf');
