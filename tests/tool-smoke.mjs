@@ -42,7 +42,7 @@ try{
  {id:'editor',kind:'image',mime:'image/jpeg',configure:async()=>{await setRange('#brightness',15);await setRange('#contrast',10);await page.locator('#rotation').selectOption('90')}}
  ];
  const report=[];
- async function catalog(){if(await page.locator('.catalog-tool-row').count()!==14){await page.locator('#tools-btn').click();await page.locator('.catalog-tool-row').first().waitFor()}}
+ async function catalog(){if(await page.locator('.catalog-tool-row').count()!==37){await page.locator('#tools-btn').click();await page.locator('.catalog-tool-row').first().waitFor()}}
  async function enter(id){await catalog();await page.locator('.catalog-tool-row[data-tool="'+id+'"]').click();await page.locator('#file').waitFor({state:'attached'})}
  async function leaveTool(){await page.locator('#tools-btn').click();await page.locator('.catalog-tool-row').first().waitFor()}
  async function attach(kind){
@@ -57,7 +57,7 @@ try{
   if(expected!=='text/plain')assert.ok(b.length>100,'Output bytes too small');
   return{filename:d.suggestedFilename(),bytes:b.length,type:actual};
  }
- await page.locator('#see-all-tools').click();assert.equal(await page.locator('.catalog-tool-row').count(),14);
+ await page.locator('#see-all-tools').click();assert.equal(await page.locator('.catalog-tool-row').count(),37);
  for(const item of cases){
   const before=downloads.length;await enter(item.id);if(item.configure)await item.configure();await attach(item.kind);
   assert.equal(await page.locator('#queue .file-row').count(),item.kind==='pdfs'?2:1,item.id+' input queue count');
