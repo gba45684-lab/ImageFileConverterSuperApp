@@ -40,7 +40,7 @@ async function readPdfPages(file, password = '') {
 }
 function splitRange(pages) {
   const value = String(pages || '').trim();
-  if (!value || !/^[\d\s,;:-]+$/.test(value)) throw new Error('Enter page numbers or ranges such as 1-3,5.');
+  if (!value || !/^[\d\s,;:rxz-]+$/i.test(value)) throw new Error('Enter page numbers or ranges such as 1-3,5. You can use z for the last page.');
   return value.replace(/;/g, ',').replace(/\s+/g, '');
 }
 async function saveFromToolkit(bytes, name) { return toPdf(bytes, name); }
