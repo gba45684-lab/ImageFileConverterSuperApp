@@ -27,3 +27,17 @@ test('native delete is limited to tracked private files and browser deletion is 
 test('CI executes the all-tool browser processing smoke test',()=>{
  assert.match(visual,/name: Exercise all 14 tool processing workflows/);assert.match(visual,/run: node tests\/tool-smoke\.mjs/);
 });
+
+
+test('live preview mounts, responds to settings, and renders PDF outputs locally',()=>{
+ assert.match(main,/id="live-preview"/);
+ assert.match(main,/async function updateLivePreview\(revision\)/);
+ assert.match(main,/function scheduleLivePreview/);
+ assert.match(main,/scheduleLivePreview\(\)/);
+ assert.match(main,/renderPdfPreviewPage\(output,1\.2\)/);
+ assert.match(main,/renderPdfPreviewPage\(file,S\.pdfScale\)/);
+ assert.match(main,/id="live-preview-meta"/);
+ assert.match(main,/label\(output\.type\)/);
+ assert.match(main,/async function pdf\(files,download=true\)/);
+ assert.match(main,/async function mergePdfs\(files,download=true\)/);
+});

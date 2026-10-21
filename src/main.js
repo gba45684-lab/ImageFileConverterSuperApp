@@ -44,7 +44,7 @@ const savedFormat=localStorage.getItem('imagemate-format');
 const allowedFormats=['image/webp','image/jpeg','image/png','image/avif'];
 const storedQuality=Number(localStorage.getItem('imagemate-quality'));
 const safeQuality=Number.isFinite(storedQuality)?Math.min(1,Math.max(.1,storedQuality)):.88;
-const S={tool:'convert',files:[],format:allowedFormats.includes(savedFormat)?savedFormat:'image/webp',quality:safeQuality,width:'',height:'',target:100,pdfFormat:'image/png',pdfScale:1.5,rotation:0,brightness:0,contrast:0,dark:localStorage.getItem('imagemate-dark')==='1',catalogCategory:'All',mobileTab:'home',view:'tools'};
+const S={tool:'convert',files:[],format:allowedFormats.includes(savedFormat)?savedFormat:'image/webp',quality:safeQuality,width:'',height:'',target:100,pdfFormat:'image/png',pdfScale:1.5,rotation:0,brightness:0,contrast:0,previewIndex:0,dark:localStorage.getItem('imagemate-dark')==='1',catalogCategory:'All',mobileTab:'home',view:'tools'};
 
 const esc=s=>String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const label=t=>t==='application/pdf'?'PDF':t==='image/jpeg'?'JPG':t==='image/png'?'PNG':t==='image/webp'?'WebP':t==='image/avif'?'AVIF':t==='image/heic'?'HEIC':t==='image/heif'?'HEIF':t==='text/plain'||String(t).startsWith('text/')?'TXT':t==='application/zip'?'ZIP':'Image';
@@ -73,7 +73,7 @@ function render(){
   }else if(downloads){
     content='<section class="screen-head"><button id="back-home" class="secondary back-btn" type="button"><i data-lucide="arrow-left"></i><span>Home</span></button><div><p class="eyebrow">FILE LIBRARY</p><h1>Downloaded files</h1><p>Open, share or save another copy of files created by ImageMate.</p></div><span class="privacy"><i data-lucide="shield-check"></i> Files stay on your device</span></section><section class="workspace downloads-workspace"><div id="download-library"><div class="empty-downloads">Loading files…</div></div></section>';
   }else{
-    content='<section class="screen-head"><button id="back-home" class="secondary back-btn" type="button"><i data-lucide="arrow-left"></i><span>All tools</span></button><div class="screen-title"><p class="eyebrow">DEDICATED TOOL</p><div class="screen-title-row"><span class="screen-title-icon"><i data-lucide="'+tool[1]+'"></i></span><h1>'+title+'</h1></div><p>'+desc+'</p></div><span class="privacy"><i data-lucide="shield-check"></i> Local processing</span></section><section class="workspace"><div class="workspace-head"><p class="eyebrow">WORKSPACE</p></div><div id="drop" class="dropzone"><input id="file" type="file" accept="'+accept+'" multiple hidden><div class="upload-icon"><i data-lucide="upload-cloud"></i></div><h3>'+dropLabel+'</h3><p>or choose files from your device</p><button id="choose" class="primary"><i data-lucide="folder-open"></i><span>'+uploadLabel+'</span></button><small>'+subLabel+'</small></div><div id="queue"></div><div id="progress-wrap" class="progress-wrap" hidden><div class="progress-top"><b class="progress-text">Processing 0%</b><span>Local</span></div><div class="progress-track"><div class="progress-bar" style="width:0%"></div></div></div><div id="settings"></div></section>';
+    content='<section class="screen-head"><button id="back-home" class="secondary back-btn" type="button"><i data-lucide="arrow-left"></i><span>All tools</span></button><div class="screen-title"><p class="eyebrow">DEDICATED TOOL</p><div class="screen-title-row"><span class="screen-title-icon"><i data-lucide="'+tool[1]+'"></i></span><h1>'+title+'</h1></div><p>'+desc+'</p></div><span class="privacy"><i data-lucide="shield-check"></i> Local processing</span></section><section class="workspace"><div class="workspace-head"><p class="eyebrow">WORKSPACE</p></div><div id="drop" class="dropzone"><input id="file" type="file" accept="'+accept+'" multiple hidden><div class="upload-icon"><i data-lucide="upload-cloud"></i></div><h3>'+dropLabel+'</h3><p>or choose files from your device</p><button id="choose" class="primary"><i data-lucide="folder-open"></i><span>'+uploadLabel+'</span></button><small>'+subLabel+'</small></div><div id="queue"></div><div id="progress-wrap" class="progress-wrap" hidden><div class="progress-top"><b class="progress-text">Processing 0%</b><span>Local</span></div><div class="progress-track"><div class="progress-bar" style="width:0%"></div></div></div><div id="settings"></div><section id="live-preview" class="live-preview" aria-label="Live file preview"><div class="live-preview-heading"><div><p class="eyebrow">LIVE PREVIEW</p><h2 id="live-preview-title">Preview your changes</h2><p id="live-preview-status" aria-live="polite">Choose a file to see an on-device preview. No file is downloaded until you process it.</p></div><label class="live-preview-picker" for="preview-file">Preview file<select id="preview-file" hidden></select></label></div><div id="live-preview-stage" class="live-preview-stage"><div class="live-preview-empty"><span class="live-preview-empty-icon"><i data-lucide="eye"></i></span><b>Your preview will appear here</b><span>Select an image or PDF to begin.</span></div></div><div id="live-preview-meta" class="live-preview-meta" aria-live="polite"></div><p class="live-preview-footnote"><i data-lucide="shield-check"></i> Preview is processed locally on this device.</p></section></section>';
   }
 
   const mobileActive=settingsScreen?'settings':downloads?'files':(task||toolsScreen)?'tools':(S.mobileTab==='tools'?'tools':'home');
@@ -512,6 +512,7 @@ function load(list){
   S.files=(S.tool==='pdf2image'||S.tool==='pdfmerge')
     ? files.filter(f=>f.type==='application/pdf'||/\.pdf$/i.test(f.name))
     : files.filter(f=>f.type.startsWith('image/')||isHeic(f));
+  S.previewIndex=0;
   queue()
 }
 function queue(){
@@ -520,6 +521,8 @@ function queue(){
   q.innerHTML=S.files.map((f,i)=>'<div class="file-row"><div class="thumb">'+((S.tool==='pdf2image'||S.tool==='pdfmerge')?'<i data-lucide="file-text"></i>':'<img src="'+URL.createObjectURL(f)+'">')+'</div><div class="file-meta"><b>'+esc(f.name)+'</b><span>'+label(f.type)+' • '+size(f.size)+'</span></div><button class="remove" data-i="'+i+'" aria-label="Remove file"><i data-lucide="x"></i></button></div>').join('');createIcons({icons,attrs:{'stroke-width':1.8}});
   q.querySelectorAll('.remove').forEach(b=>b.onclick=()=>{S.files.splice(+b.dataset.i,1);queue()});
   if(S.files.length){q.insertAdjacentHTML('beforeend','<div class="actionbar"><span><b>'+S.files.length+'</b> '+((S.tool==='pdf2image'||S.tool==='pdfmerge')?'PDF':'file')+(S.files.length>1?'s':'')+' ready</span><button id="clear" class="remove">Clear</button>'+(S.files.length>1&&!['pdf','pdf2image','pdfmerge','ocr','exif','background','editor'].includes(S.tool)?'<button id="zip" class="secondary">Download ZIP</button>':'')+'<button id="process" class="primary">'+(S.tool==='ocr'?'Extract Text':(S.tool==='pdf2image'||S.tool==='pdfmerge')?'Convert PDFs':'Process & Download')+'</button></div>');document.querySelector('#clear').onclick=()=>{S.files=[];queue()};const zip=document.querySelector('#zip');if(zip)zip.onclick=processBatchZip;document.querySelector('#process').onclick=process}
+  S.previewIndex=Math.max(0,Math.min(S.previewIndex||0,S.files.length-1));
+  scheduleLivePreview();
 }
 function settings(){
   const s=document.querySelector('#settings');if(!s)return;let h='';
@@ -539,17 +542,169 @@ function settings(){
   if(S.tool==='editor')h='<label>Brightness <output id="bv">0</output><input id="brightness" type="range" min="-100" max="100" value="0"></label><label>Contrast <output id="cv">0</output><input id="contrast" type="range" min="-100" max="100" value="0"></label><label>Rotation<select id="rotation"><option value="0">0°</option><option value="90">90°</option><option value="180">180°</option><option value="270">270°</option></select></label><div class="info">Apply basic corrections locally, then export a clean JPG.</div>';
   if(S.tool==='pdfmerge')h+='<div class="info">Select two or more PDFs to combine them in order.</div>';
   s.innerHTML=h;
-  const f=document.querySelector('#format');if(f)f.onchange=e=>S.format=e.target.value;
-  const q=document.querySelector('#quality');if(q)q.oninput=e=>{S.quality=e.target.value/100;document.querySelector('#qv').textContent=e.target.value+'%'};
-  const w=document.querySelector('#width');if(w)w.oninput=e=>S.width=e.target.value;
-  const ht=document.querySelector('#height');if(ht)ht.oninput=e=>S.height=e.target.value;
-  const t=document.querySelector('#target');if(t)t.onchange=e=>S.target=+e.target.value;
-  const pf=document.querySelector('#pdfFormat');if(pf)pf.onchange=e=>S.pdfFormat=e.target.value;
-  const ps=document.querySelector('#pdfScale');if(ps)ps.onchange=e=>S.pdfScale=+e.target.value;
-  const rot=document.querySelector('#rotation');if(rot)rot.onchange=e=>S.rotation=+e.target.value;
-  const br=document.querySelector('#brightness');if(br)br.oninput=e=>{S.brightness=+e.target.value;const o=document.querySelector('#bv');if(o)o.textContent=e.target.value};
-  const co=document.querySelector('#contrast');if(co)co.oninput=e=>{S.contrast=+e.target.value;const o=document.querySelector('#cv');if(o)o.textContent=e.target.value};
+  const f=document.querySelector('#format');if(f)f.onchange=e=>{S.format=e.target.value;scheduleLivePreview()};
+  const q=document.querySelector('#quality');if(q)q.oninput=e=>{S.quality=e.target.value/100;document.querySelector('#qv').textContent=e.target.value+'%';scheduleLivePreview()};
+  const w=document.querySelector('#width');if(w)w.oninput=e=>{S.width=e.target.value;scheduleLivePreview()};
+  const ht=document.querySelector('#height');if(ht)ht.oninput=e=>{S.height=e.target.value;scheduleLivePreview()};
+  const t=document.querySelector('#target');if(t)t.onchange=e=>{S.target=+e.target.value;scheduleLivePreview()};
+  const pf=document.querySelector('#pdfFormat');if(pf)pf.onchange=e=>{S.pdfFormat=e.target.value;scheduleLivePreview()};
+  const ps=document.querySelector('#pdfScale');if(ps)ps.onchange=e=>{S.pdfScale=+e.target.value;scheduleLivePreview()};
+  const rot=document.querySelector('#rotation');if(rot)rot.onchange=e=>{S.rotation=+e.target.value;scheduleLivePreview()};
+  const br=document.querySelector('#brightness');if(br)br.oninput=e=>{S.brightness=+e.target.value;const o=document.querySelector('#bv');if(o)o.textContent=e.target.value;scheduleLivePreview()};
+  const co=document.querySelector('#contrast');if(co)co.oninput=e=>{S.contrast=+e.target.value;const o=document.querySelector('#cv');if(o)o.textContent=e.target.value;scheduleLivePreview()};
 }
+let livePreviewTimer=0;
+let livePreviewRevision=0;
+
+function scheduleLivePreview(delay=180){
+  if(livePreviewTimer)clearTimeout(livePreviewTimer);
+  const revision=++livePreviewRevision;
+  livePreviewTimer=setTimeout(()=>{livePreviewTimer=0;updateLivePreview(revision)},delay);
+}
+
+function setLivePreviewMeta(items){
+  const meta=document.querySelector('#live-preview-meta');
+  if(!meta)return;
+  meta.innerHTML=items.filter(Boolean).map(item=>'<span class="live-preview-chip">'+esc(item)+'</span>').join('');
+}
+
+function showLivePreviewElement(element){
+  const stage=document.querySelector('#live-preview-stage');
+  if(stage)stage.replaceChildren(element);
+}
+
+function makePreviewImage(blob,alt){
+  const image=document.createElement('img');
+  const url=URL.createObjectURL(blob);
+  image.className='live-preview-image';
+  image.alt=alt;
+  image.onload=()=>URL.revokeObjectURL(url);
+  image.onerror=()=>URL.revokeObjectURL(url);
+  image.src=url;
+  return image;
+}
+
+async function renderPdfPreviewPage(file,scale=1.2){
+  const {getDocument,GlobalWorkerOptions}=await import('pdfjs-dist');
+  GlobalWorkerOptions.workerSrc=new URL('pdfjs-dist/build/pdf.worker.mjs',import.meta.url).toString();
+  const documentProxy=await getDocument({data:await file.arrayBuffer()}).promise;
+  const page=await documentProxy.getPage(1);
+  const viewport=page.getViewport({scale});
+  const canvas=document.createElement('canvas');
+  canvas.className='live-preview-canvas';
+  canvas.width=Math.max(1,Math.ceil(viewport.width));
+  canvas.height=Math.max(1,Math.ceil(viewport.height));
+  const context=canvas.getContext('2d');
+  if(!context)throw new Error('Canvas preview is unavailable in this browser.');
+  await page.render({canvasContext:context,viewport}).promise;
+  return {canvas,pages:documentProxy.numPages,width:canvas.width,height:canvas.height};
+}
+
+async function backgroundBlob(image){
+  const canvas=document.createElement('canvas');
+  canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;
+  const context=canvas.getContext('2d');
+  if(!context)throw new Error('Canvas processing is unavailable in this browser.');
+  context.drawImage(image,0,0);
+  const data=context.getImageData(0,0,canvas.width,canvas.height),pixels=data.data;
+  const samples=[];
+  for(const [x,y] of [[0,0],[canvas.width-1,0],[0,canvas.height-1],[canvas.width-1,canvas.height-1]]){
+    const offset=(y*canvas.width+x)*4;samples.push([pixels[offset],pixels[offset+1],pixels[offset+2]]);
+  }
+  const background=samples.reduce((sum,pixel)=>sum.map((value,index)=>value+pixel[index]/samples.length),[0,0,0]);
+  for(let offset=0;offset<pixels.length;offset+=4){
+    const distance=Math.abs(pixels[offset]-background[0])+Math.abs(pixels[offset+1]-background[1])+Math.abs(pixels[offset+2]-background[2]);
+    if(distance<42)pixels[offset+3]=0;
+  }
+  context.putImageData(data,0,0);
+  return canvasToBlob(canvas,'image/png');
+}
+
+async function updateLivePreview(revision){
+  const stage=document.querySelector('#live-preview-stage');
+  const status=document.querySelector('#live-preview-status');
+  const picker=document.querySelector('#preview-file');
+  if(!stage||!status)return;
+  const tool=S.tool;
+  if(!S.files.length){
+    stage.innerHTML='<div class="live-preview-empty"><span class="live-preview-empty-icon"><i data-lucide="eye"></i></span><b>Your preview will appear here</b><span>Select an image or PDF to begin.</span></div>';
+    createIcons({icons,attrs:{'stroke-width':1.8}});
+    setLivePreviewMeta([]);
+    status.textContent='Choose a file to see an on-device preview. No file is downloaded until you process it.';
+    if(picker)picker.hidden=true;
+    return;
+  }
+
+  const isWholePdfOutput=tool==='pdf'||tool==='pdfmerge';
+  const multiFilePreview=S.files.length>1&&!isWholePdfOutput;
+  const previewIndex=multiFilePreview?Math.max(0,Math.min(Number(S.previewIndex)||0,S.files.length-1)):0;
+  const file=S.files[previewIndex];
+  if(picker){
+    picker.hidden=!multiFilePreview;
+    picker.innerHTML=multiFilePreview?S.files.map((item,index)=>'<option value="'+index+'">'+esc(item.name||('File '+(index+1)))+'</option>').join(''):'';
+    picker.value=String(previewIndex);
+    picker.onchange=()=>{S.previewIndex=Number(picker.value)||0;scheduleLivePreview(0)};
+  }
+  status.textContent='Updating live preview locally…';
+  setLivePreviewMeta([]);
+  try{
+    if(tool==='pdf'||tool==='pdfmerge'){
+      const output=tool==='pdf'?await pdf(S.files,false):await mergePdfs(S.files,false);
+      const rendered=await renderPdfPreviewPage(output,1.2);
+      if(revision!==livePreviewRevision)return;
+      showLivePreviewElement(rendered.canvas);
+      status.textContent=tool==='pdf'?'Previewing page 1 of the PDF that will be created.':'Previewing page 1 of the merged PDF.';
+      setLivePreviewMeta(['Output: PDF','A4 page','Page 1 of '+rendered.pages,size(output.size),S.files.length+' input file'+(S.files.length===1?'':'s')]);
+      return;
+    }
+    if(tool==='pdf2image'){
+      const rendered=await renderPdfPreviewPage(file,S.pdfScale);
+      const output=await canvasToBlob(rendered.canvas,S.pdfFormat,S.pdfFormat==='image/jpeg'?.92:undefined);
+      if(revision!==livePreviewRevision)return;
+      showLivePreviewElement(rendered.canvas);
+      status.textContent='Previewing page 1 of '+rendered.pages+' from '+(file.name||'the selected PDF')+'.';
+      setLivePreviewMeta(['Output: '+label(output.type),rendered.width+' × '+rendered.height+' px',size(output.size),'Scale: '+S.pdfScale+'×']);
+      return;
+    }
+
+    const image=await img(file);
+    let output,width,height;
+    if(tool==='editor'){
+      output=await editBlob(image,S.brightness,S.contrast,S.rotation);
+    }else if(tool==='crop'){
+      [width,height]=toolDimensions(image);
+      output=await cropBlob(image,width,height,S.rotation,'image/jpeg',S.quality);
+    }else if(tool==='background'){
+      output=await backgroundBlob(image);
+    }else if(tool==='exif'||tool==='ocr'){
+      output=await canvasToBlob(canvasFor(image),'image/png');
+    }else if(tool==='target'){
+      [width,height]=toolDimensions(image);
+      output=await targetSizeBlob(image,S.target*1024,width,height);
+    }else{
+      [width,height]=toolDimensions(image);
+      const type=tool==='convert'?S.format:'image/jpeg';
+      output=await blob(image,type,S.quality,width,height);
+    }
+    if(revision!==livePreviewRevision)return;
+    const previewImage=await img(output);
+    if(revision!==livePreviewRevision)return;
+    showLivePreviewElement(makePreviewImage(output,'Live preview of '+(file.name||'the selected file')));
+    const items=['Output: '+label(output.type),previewImage.naturalWidth+' × '+previewImage.naturalHeight+' px',size(output.size)];
+    if(tool==='target')items.push('Target: '+S.target+' KB');
+    if(tool==='background')items.push('Transparent PNG preview');
+    if(tool==='exif')items.push('Metadata stripped by re-encoding');
+    if(multiFilePreview)items.push('File '+(previewIndex+1)+' of '+S.files.length);
+    status.textContent=tool==='ocr'?'Source image preview. Recognised text appears after you choose Extract Text.':'Preview refreshes as you change settings. Processing has not started yet.';
+    setLivePreviewMeta(items);
+  }catch(error){
+    if(revision!==livePreviewRevision)return;
+    stage.innerHTML='<div class="live-preview-error"><b>Preview unavailable</b><span>'+esc(error?.message||'This file cannot be previewed in the browser.')+'</span></div>';
+    setLivePreviewMeta([]);
+    status.textContent='Change the settings or try another file. Your original file has not been changed.';
+  }
+}
+
 async function normalizeImageFile(file){
   if(!isHeic(file))return file;
   const {default:heic2any}=await import('heic2any');
@@ -653,7 +808,23 @@ function canvasFor(i,w,h,fillWhite=false){
   if(fillWhite){ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height)}
   ctx.drawImage(i,0,0,c.width,c.height);return c
 }
-async function pdf(files){const {jsPDF}=await import('jspdf');const doc=new jsPDF({unit:'mm',format:'a4'});for(let n=0;n<files.length;n++){if(n)doc.addPage();const i=await img(files[n]);const fit=Math.min(1,1800/i.naturalWidth,2600/i.naturalHeight);const c=canvasFor(i,Math.max(1,Math.round(i.naturalWidth*fit)),Math.max(1,Math.round(i.naturalHeight*fit)),true);const maxW=190,maxH=277,scale=Math.min(maxW/c.width,maxH/c.height);const w=c.width*scale,h=c.height*scale;const x=(210-w)/2,y=(297-h)/2;const data=c.toDataURL('image/jpeg',.92);doc.addImage(data,'JPEG',x,y,w,h)}await dl(doc.output('blob'),'imagemate-images.pdf','application/pdf')}
+async function pdf(files,download=true){
+  const {jsPDF}=await import('jspdf');
+  const doc=new jsPDF({unit:'mm',format:'a4'});
+  for(let n=0;n<files.length;n++){
+    if(n)doc.addPage();
+    const image=await img(files[n]);
+    const fit=Math.min(1,1800/image.naturalWidth,2600/image.naturalHeight);
+    const canvas=canvasFor(image,Math.max(1,Math.round(image.naturalWidth*fit)),Math.max(1,Math.round(image.naturalHeight*fit)),true);
+    const maxW=190,maxH=277,scale=Math.min(maxW/canvas.width,maxH/canvas.height);
+    const width=canvas.width*scale,height=canvas.height*scale;
+    const x=(210-width)/2,y=(297-height)/2;
+    doc.addImage(canvas.toDataURL('image/jpeg',.92),'JPEG',x,y,width,height);
+  }
+  const output=doc.output('blob');
+  if(download)await dl(output,'imagemate-images.pdf','application/pdf');
+  return output;
+}
 function name(n,e){return n.replace(/\.[^.]+$/,'')+'.'+e}
 function toolDimensions(i){
   const width=Number(S.width)||0;
@@ -757,7 +928,7 @@ async function editBlob(i,brightness,contrast,rotation){
   x.drawImage(i,-i.naturalWidth/2,-i.naturalHeight/2);
   return canvasToBlob(c,'image/jpeg',.92);
 }
-async function mergePdfs(files){
+async function mergePdfs(files,download=true){
   const {getDocument,GlobalWorkerOptions}=await import('pdfjs-dist');
   const {jsPDF}=await import('jspdf');
   GlobalWorkerOptions.workerSrc=new URL('pdfjs-dist/build/pdf.worker.mjs',import.meta.url).toString();
@@ -769,14 +940,17 @@ async function mergePdfs(files){
       const page=await source.getPage(pageNo);
       const viewport=page.getViewport({scale:1.4});
       const canvas=document.createElement('canvas');canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);
-      await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;
+      const context=canvas.getContext('2d');if(!context)throw new Error('Canvas processing is unavailable in this browser.');
+      await page.render({canvasContext:context,viewport}).promise;
       if(added++)doc.addPage();
       const maxW=190,maxH=277,scale=Math.min(maxW/canvas.width,maxH/canvas.height);
-      const w=canvas.width*scale,h=canvas.height*scale;
-      doc.addImage(canvas.toDataURL('image/jpeg',.9),'JPEG',(210-w)/2,(297-h)/2,w,h);
+      const width=canvas.width*scale,height=canvas.height*scale;
+      doc.addImage(canvas.toDataURL('image/jpeg',.9),'JPEG',(210-width)/2,(297-height)/2,width,height);
     }
   }
-  await dl(doc.output('blob'),'imagemate-merged.pdf','application/pdf');
+  const output=doc.output('blob');
+  if(download)await dl(output,'imagemate-merged.pdf','application/pdf');
+  return output;
 }
 
 function cropBlob(i,targetW,targetH,deg,type,q){
@@ -831,13 +1005,7 @@ async function convertSpecial(file,kind){
     return;
   }
   if(kind==='background'){
-    const i=await img(file),c=document.createElement('canvas');c.width=i.naturalWidth;c.height=i.naturalHeight;
-    const x=c.getContext('2d');if(!x)throw new Error('Canvas processing is unavailable in this browser.');
-    x.drawImage(i,0,0);const d=x.getImageData(0,0,c.width,c.height),p=d.data;
-    const samples=[];for(const [xx,yy] of [[0,0],[c.width-1,0],[0,c.height-1],[c.width-1,c.height-1]]){const n=(yy*c.width+xx)*4;samples.push([p[n],p[n+1],p[n+2]])}
-    const bg=samples.reduce((a,b)=>a.map((v,j)=>v+b[j]/samples.length),[0,0,0]);
-    for(let n=0;n<p.length;n+=4){const dist=Math.abs(p[n]-bg[0])+Math.abs(p[n+1]-bg[1])+Math.abs(p[n+2]-bg[2]);if(dist<42)p[n+3]=0}
-    x.putImageData(d,0,0);const out=await canvasToBlob(c,'image/png');
+    const i=await img(file),out=await backgroundBlob(i);
     await dl(out,file.name.replace(/\.[^.]+$/,'')+'-background-removed.png','image/png');
   }
 }

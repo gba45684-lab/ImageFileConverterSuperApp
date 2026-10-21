@@ -61,6 +61,15 @@ try{
  for(const item of cases){
   const before=downloads.length;await enter(item.id);if(item.configure)await item.configure();await attach(item.kind);
   assert.equal(await page.locator('#queue .file-row').count(),item.kind==='pdfs'?2:1,item.id+' input queue count');
+  await page.locator('#live-preview-stage .live-preview-image, #live-preview-stage .live-preview-canvas').waitFor({state:'visible',timeout:45000});
+  if(item.id==='resize'){
+    await page.waitForFunction(()=>document.querySelector('#live-preview-meta')?.textContent.includes('320 × 140'));
+    await page.locator('#width').fill('400');
+    await page.waitForFunction(()=>document.querySelector('#live-preview-meta')?.textContent.includes('400 × 175'));
+    await page.locator('#width').fill('320');
+    await page.waitForFunction(()=>document.querySelector('#live-preview-meta')?.textContent.includes('320 × 140'));
+  }
+  if(item.id==='editor')await page.waitForFunction(()=>document.querySelector('#live-preview-meta')?.textContent.includes('280 × 640'));
   if(item.id==='ocr'){
    await page.locator('#process').click();await page.locator('#ocr-output').waitFor({state:'visible',timeout:120000});
    const outputText=await page.locator('#ocr-output').inputValue();assert.ok(outputText.trim());assert.match(outputText,/IMAGE|MATE|TEST|123/i,'OCR should recognize the sample text');
