@@ -118,3 +118,7 @@
 .live-preview-footnote svg{width:14px!important;height:14px!important;flex:0 0 auto!important}
 @media(max-width:760px){.live-preview{padding:12px!important;gap:11px!important}.live-preview-heading{flex-direction:column!important;gap:10px!important}.live-preview-picker{width:100%!important;min-width:0!important}.live-preview-picker select{max-width:100%!important}.live-preview-stage{min-height:190px!important;max-height:420px!important;padding:10px!important}.live-preview-image,.live-preview-canvas{max-height:380px!important}.live-preview-chip{font-size:10px!important}}
 @media(prefers-reduced-motion:reduce){.live-preview *{scroll-behavior:auto!important}}
+
+
+/* Form builder creates a new document and does not require an upload. */
+.dropzone.form-builder-no-upload{display:none!important}
