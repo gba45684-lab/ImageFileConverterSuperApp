@@ -42,7 +42,8 @@ async function openTool(id) {
     await page.locator('.catalog-tool-row').first().waitFor();
   }
   await page.locator('.catalog-tool-row[data-tool="' + id + '"]').click();
-  await page.locator('#process').waitFor({ state: 'visible' });
+  await page.locator('#file').waitFor({ state: 'attached' });
+  if (id === 'pdfforms') await page.locator('#process').waitFor({ state: 'visible' });
 }
 async function attachPdfs(buffers = [pdfMulti]) {
   await page.locator('#file').setInputFiles(buffers.map((buffer, index) => filePayload(index ? 'source-' + (index + 1) + '.pdf' : 'source.pdf', 'application/pdf', buffer)));
