@@ -172,6 +172,10 @@ function render(){
         else if(apkResult==='disabled') alert('Automatic updates are disabled. Manual update check was not run.');
         else if(apkResult==='checking') alert('An update check is already running. Please wait a moment.');
         else if(apkResult==='recently-checked') alert('You just checked for updates. Please try again in a few seconds.');
+        else if(apkResult==='available' && !document.querySelector('#update-popup')) alert('An update is available. Follow the update prompt, or tap Update in the top bar to download it.');
+        else if(apkResult==='downloading') alert('The update is downloading. Keep ImageMate open and check the Update button for progress.');
+        else if(apkResult==='unsupported') alert('Manual app updates are available only in the installed Android app.');
+        else if(!['available','downloading'].includes(apkResult)) alert('Update check finished: '+apkResult+'. If this looks unexpected, check your internet connection and try again.');
       }else{
         alert('Update refresh is available in the Android app.');
       }
