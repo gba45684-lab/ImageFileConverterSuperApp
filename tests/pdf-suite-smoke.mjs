@@ -56,6 +56,8 @@ async function runTool(id, files, configure, expected) {
     // Form-builder creates a new document and does not require a source file.
   } else if (Array.isArray(files)) {
     await page.locator('#file').setInputFiles(files);
+  } else if (files && typeof files === 'object' && 'buffer' in files) {
+    await page.locator('#file').setInputFiles(files);
   } else {
     await page.locator('#file').setInputFiles(filePayload('source.pdf', 'application/pdf', files || pdfMulti));
   }
