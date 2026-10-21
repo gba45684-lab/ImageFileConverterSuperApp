@@ -9,9 +9,10 @@ const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, acceptDownloads: true });
 page.setDefaultTimeout(30000);
 const dialogs = [];
+const pageErrors = [];
 let lastDownloadedBytes = null;
 page.on('dialog', async dialog => { dialogs.push(dialog.message()); await dialog.dismiss(); });
-page.on('pageerror', error => { throw error; });
+page.on('pageerror', error => { pageErrors.push(error.message); });
 
 function makePdf(texts = ['ALPHA MATCH', 'BETA OTHER', 'GAMMA OTHER'], withBookmarks = false) {
   const doc = new jsPDF({ unit: 'pt', format: [300, 220] });
@@ -60,9 +61,11 @@ async function runTool(id, files, configure, expected) {
   }
   if (configure) await configure();
   const before = dialogs.length;
-  const downloadPromise = page.waitForEvent('download', { timeout: 90000 });
+  const downloadPromise = page.waitForEvent('download', { timeout: 45000 }).then(download => ({ download })).catch(error => ({ error }));
   await page.locator('#process').click();
-  const download = await downloadPromise;
+  const outcome = await downloadPromise;
+  if (outcome.error) throw new Error(id + ' produced no download. Dialogs: ' + dialogs.slice(priorDialogCount).join(' | ') + '. JavaScript errors: ' + pageErrors.join(' | ') + '. ' + outcome.error.message);
+  const download = outcome.download;
   await page.locator('.result-card').waitFor({ state: 'visible', timeout: 30000 });
   assert.equal(dialogs.length, before, id + ' showed an error dialog: ' + dialogs.slice(priorDialogCount).join(' | '));
   const path = await download.path();
