@@ -74,13 +74,13 @@ jobs:
           if (await page.locator('.catalog-tool-row:visible').count() !== 0) throw new Error('No-match search should hide all tool rows.');
           if (await page.locator('#catalog-empty').isHidden()) throw new Error('Empty-state message should appear for no matches.');
           await search.fill('');
-          await page.locator('[data-tool-category="Image"]').click();
+          await page.locator('[data-tool-category="image"]').click();
           if (await page.locator('.catalog-tool-row:visible').count() === 0) throw new Error('Image category filter returned no tools.');
-          if (await page.locator('[data-tool-category="Image"]').getAttribute('aria-pressed') !== 'true') throw new Error('Image category did not reflect active state.');
-          await page.locator('[data-tool-category="Document"]').click();
+          if (await page.locator('[data-tool-category="image"]').getAttribute('aria-pressed') !== 'true') throw new Error('Image category did not reflect active state.');
+          await page.locator('[data-tool-category="pdf-core"]').click();
           await search.waitFor({ state: 'visible' });
           await search.fill('pdf');
-          if (await page.locator('.catalog-tool-row:visible').count() === 0) throw new Error('Combined Document category and PDF search returned no tools.');
+          if (await page.locator('.catalog-tool-row:visible').count() === 0) throw new Error('Combined PDF essentials category and PDF search returned no tools.');
           await search.fill('');
           await page.locator('[data-tool-category="All"]').click();
           await page.locator('#back-home').click();
@@ -242,7 +242,7 @@ jobs:
             const minSearchWidth = width <= 320 ? 150 : 180;
             if (!searchRect || searchRect.height < 44 || searchRect.width < minSearchWidth) throw new Error('Tool search field is too small at ' + width + 'px: ' + (searchRect?.width ?? 0) + 'px (minimum ' + minSearchWidth + 'px).');
           }
-          await page.locator('[data-tool-category="Document"]').click();
+          await page.locator('[data-tool-category="pdf-core"]').click();
           if (await page.locator('.catalog-tool-row:visible').count() < 1) throw new Error('Document category filter returned no tools.');
           await page.locator('[data-tool-category="All"]').click();
           await page.locator('#catalog-search').fill('convert');
