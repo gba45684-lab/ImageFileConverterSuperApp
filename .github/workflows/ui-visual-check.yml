@@ -47,6 +47,8 @@ jobs:
           exit 1
       - name: Exercise core workflows and verify expanded 37-tool catalog
         run: node tests/tool-smoke.mjs
+      - name: Exercise all 23 new PDF tools, including password round trip
+        run: node tests/pdf-suite-smoke.mjs
       - name: Capture Home and Tools screenshots and test core navigation
         run: |
           mkdir -p ui-evidence
