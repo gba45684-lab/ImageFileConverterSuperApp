@@ -1,0 +1,173 @@
+name: ImageMate Android PR validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'index.html'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'capacitor.config.*'
+      - '.github/workflows/android-pr-validation.yml'
+      - '.github/scripts/android-emulator-smoke-test.sh'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: imagemate-android-pr-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android-pr:
+    name: Build, validate and install debug APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build production web bundle
+        run: npm run build
+
+      - name: Initialize Capacitor Android project
+        run: |
+          npx cap init ImageMate com.gba45684.imagemate --web-dir dist
+          npx cap add android
+          npx cap sync android
+
+      - name: Configure the required Google test AdMob application ID
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          import xml.etree.ElementTree as ET
+
+          # Preserve the canonical android: prefix when ElementTree serializes
+          # the manifest; otherwise Android's manifest merger rejects the XML.
+          ET.register_namespace("android", "http://schemas.android.com/apk/res/android")
+
+          manifest = Path("android/app/src/main/AndroidManifest.xml")
+          tree = ET.parse(manifest)
+          root = tree.getroot()
+          android = "{http://schemas.android.com/apk/res/android}"
+          app = root.find("application")
+          if app is None:
+              raise SystemExit("AndroidManifest.xml has no application element")
+
+          # Ensure there is exactly one explicit, valid Google sample app ID.
+          for node in list(app.findall("meta-data")):
+              if node.get(android + "name") == "com.google.android.gms.ads.APPLICATION_ID":
+                  app.remove(node)
+          ET.SubElement(app, "meta-data", {
+              android + "name": "com.google.android.gms.ads.APPLICATION_ID",
+              android + "value": "@string/admob_app_id"
+          })
+          ET.indent(tree, space="    ")
+          tree.write(manifest, encoding="utf-8", xml_declaration=True)
+
+          values = Path("android/app/src/main/res/values/strings.xml")
+          values.parent.mkdir(parents=True, exist_ok=True)
+          if values.exists():
+              st = ET.parse(values)
+              sr = st.getroot()
+          else:
+              sr = ET.Element("resources")
+              st = ET.ElementTree(sr)
+          for node in list(sr.findall("string")):
+              if node.get("name") == "admob_app_id":
+                  sr.remove(node)
+          ET.SubElement(sr, "string", {"name": "admob_app_id"}).text = "ca-app-pub-3940256099942544~3347511713"
+          ET.indent(st, space="    ")
+          st.write(values, encoding="utf-8", xml_declaration=True)
+          print("Configured Google’s official sample AdMob app ID for emulator testing.")
+          PY
+
+      - name: Build debug APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon --stacktrace assembleDebug
+
+      - name: Validate APK metadata and archive
+        id: apk
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          unzip -t "$APK" >/dev/null
+          if ! unzip -l "$APK" | grep -q 'AndroidManifest.xml'; then
+            echo "::error::APK does not contain AndroidManifest.xml"
+            exit 1
+          fi
+          if ! command -v apkanalyzer >/dev/null 2>&1; then
+            SDK_APKANALYZER="$(find "$ANDROID_HOME" -type f -name apkanalyzer 2>/dev/null | sort -V | tail -n 1)"
+            if [[ -z "$SDK_APKANALYZER" ]]; then
+              echo "::error::apkanalyzer was not found in the Android SDK."
+              exit 1
+            fi
+            APKANALYZER="$SDK_APKANALYZER"
+          else
+            APKANALYZER="$(command -v apkanalyzer)"
+          fi
+          PACKAGE="$("$APKANALYZER" manifest application-id "$APK")"
+          echo "APK package ID: $PACKAGE"
+          [[ "$PACKAGE" == "com.gba45684.imagemate" ]] || {
+            echo "::error::Unexpected APK package ID: $PACKAGE"
+            exit 1
+          }
+          echo "apk_path=$APK" >> "$GITHUB_OUTPUT"
+          sha256sum "$APK"
+
+      - name: Enable KVM
+        shell: bash
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          [[ ! -c /dev/kvm ]] || ls -l /dev/kvm
+
+      - name: Install and launch APK in Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          APK_RELATIVE_PATH: ${{ steps.apk.outputs.apk_path }}
+        with:
+          api-level: 30
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          emulator-boot-timeout: 900
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: bash "$GITHUB_WORKSPACE/.github/scripts/android-emulator-smoke-test.sh"
+
+      - name: Upload debug APK for diagnosis (not a release)
+        if: always() && steps.apk.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ImageMate-PR-debug-apk-DO-NOT-USE-FOR-UPDATES
+          path: ${{ steps.apk.outputs.apk_path }}
+          if-no-files-found: warn
+          retention-days: 7
