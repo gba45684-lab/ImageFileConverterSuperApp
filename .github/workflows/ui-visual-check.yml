@@ -63,7 +63,7 @@ jobs:
           await page.locator('[data-hero-slide="2"]').click();
           if (await page.locator('[data-hero-slide="2"]').getAttribute('aria-pressed') !== 'true') throw new Error('Home highlight control did not update aria-pressed.');
           await page.locator('#see-all-tools').click();
-          await page.getByRole('heading', { name: /all tools/i }).waitFor();
+          await page.getByRole('heading', { name: /PDF & image tools/i }).waitFor();
           await page.screenshot({ path: 'ui-evidence/tools-desktop.png', fullPage: true });
           if (await page.locator('.catalog-tool-row').count() !== 37) throw new Error('Expected all 37 catalog tools.');
           const search = page.locator('#catalog-search');
@@ -87,7 +87,7 @@ jobs:
           await page.locator('.editorial-home').waitFor();
           await page.setViewportSize({ width: 390, height: 844 });
           await page.locator('#see-all-tools').click();
-          await page.getByRole('heading', { name: /all tools/i }).waitFor();
+          await page.getByRole('heading', { name: /PDF & image tools/i }).waitFor();
           await page.waitForTimeout(250);
           await page.screenshot({ path: 'ui-evidence/tools-mobile.png', fullPage: true });
           await page.locator('[data-tool="pdf"]').first().click();
@@ -190,7 +190,7 @@ jobs:
           }
           await audit('Home');
           await page.locator('#see-all-tools').click();
-          await page.getByRole('heading', { name: /all tools/i }).waitFor();
+          await page.getByRole('heading', { name: /PDF & image tools/i }).waitFor();
           await audit('Tools');
           await page.locator('[data-mobile-tab="settings"]').click();
           await page.getByRole('heading', { name: /^settings$/i }).waitFor();
@@ -232,7 +232,7 @@ jobs:
           // The mobile tab bar is intentionally hidden at desktop/tablet breakpoints.
           await page.setViewportSize({ width: 390, height: 844 });
           await page.locator('[data-mobile-tab="tools"]').click();
-          await page.getByRole('heading', { name: /all tools/i }).waitFor();
+          await page.getByRole('heading', { name: /PDF & image tools/i }).waitFor();
           for (const width of widths) {
             await page.setViewportSize({ width, height: 844 });
             await assertNoOverflow('Tools catalog');
