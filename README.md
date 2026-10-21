@@ -7,7 +7,12 @@ A privacy-first image and file utility app for local browser processing, PWA use
 - Image compression and target-size compression (20 / 50 / 100 / 200 KB)
 - Resize, passport / ID photo sizing and signature preparation
 - Image → PDF and PDF → image workflows
-- PDF merge, metadata cleaning and simple background removal
+- PDF merge and alternate/mix with PDF structure preserved
+- PDF page organization, extraction, split by page count/bookmarks/half/approximate size/text, and page deletion
+- PDF lossless compression, watermarks, text overlay, typed-signature stamp, flattening, and password protect/unlock
+- Interactive PDF form-field creation
+- PDF → text, DOCX, XLSX and slide-image PPTX exports; HTML and DOCX → PDF
+- Metadata cleaning and simple background removal
 - Crop / rotate and basic photo editor
 - Local OCR with Tesseract.js
 - Batch ZIP export where supported
@@ -50,3 +55,14 @@ Matching copies live under `.claude/skills/` for Claude Code. Keep both copies i
   - `VITE_ADSENSE_SLOT` — the numeric ad-unit/slot ID
 - AdSense must approve the website and serve the ad unit before real ads can appear. Never click your own ads. Do not replace these values with invented IDs; they cannot serve real ads or earn revenue.
 - Before an Android production release, create a real AdMob app and ad units, configure the matching App ID/ad-unit IDs, and implement the consent flow required for your audience and regions.
+
+## PDF conversion notes
+
+The expanded PDF tools run locally using PDF.js, jsPDF, JSZip and the qpdf WebAssembly engine (pdfstudio). ImageMate does not upload PDFs or passwords to a conversion server.
+
+- PDF merge, page operations, password encryption/removal, lossless compression and flattening use the local PDF engine.
+- PDF-to-Word exports extracted text to DOCX, PDF-to-Excel reconstructs rows from text positions, and PDF-to-PowerPoint places each page as a slide image. These are conversion aids, not exact layout reconstruction; PowerPoint pages are not individually editable.
+- HTML-to-PDF and Word-to-PDF currently convert document text and paragraphs. They do not reproduce all CSS, embedded media, tables or advanced Word layout.
+- The Edit and Fill & Sign tools add visible text or a typed signature/date stamp. They do not modify existing PDF text or create a certificate-based digital signature.
+- Split-by-size uses approximate page sizes and cannot guarantee every result will be below the target for complex PDFs.
+- Password tools require the correct password. ImageMate cannot recover forgotten passwords.
