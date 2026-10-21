@@ -569,8 +569,15 @@ async function img(file){
 function canvasToBlob(canvas,type,quality){
   return new Promise((resolve,reject)=>{
     canvas.toBlob(blobValue=>{
-      if(blobValue)resolve(blobValue);
-      else reject(new Error(type==='image/avif'?'AVIF is not supported by this browser. Choose WebP, JPG or PNG.':'The browser could not create the requested output file.'));
+      if(!blobValue){
+        reject(new Error(type==='image/avif'?'AVIF is not supported by this browser. Choose WebP, JPG or PNG.':'The browser could not create the requested output file.'));
+        return;
+      }
+      if(blobValue.type!==type){
+        reject(new Error(type==='image/avif'?'AVIF encoding is not supported by this browser. Choose WebP, JPG or PNG.':'The browser returned '+(blobValue.type||'an unknown format')+' instead of '+type+'. Choose another output format.'));
+        return;
+      }
+      resolve(blobValue);
     },type,quality);
   });
 }
@@ -589,6 +596,26 @@ function addHistory(name,tool,sizeBytes,extra={}){const h=history();h.unshift({n
 async function nativeDownloadedFiles(){if(!isNativeAndroid())return history();try{const r=await ImageMateUpdaterList();return r?.files||[]}catch{return history()}}
 async function ImageMateUpdaterList(){return (await import('./updater.js')).listDownloadedFiles()}
 async function openDownloadedFile(path){try{await (await import('./updater.js')).openDownloadedFile(path)}catch(e){console.error(e);const msg=e?.message||e?.errorMessage||'No compatible app is installed for this file type.';alert('Unable to open this file.\\n\\n'+msg)}}
+async function deleteNativeDownloadedFile(path,name){
+  if(!confirm('Permanently delete "'+name+'" from this device? This cannot be undone.'))return;
+  try{
+    const result=await (await import('./updater.js')).deleteDownloadedFile(path);
+    if(!result?.deleted)throw new Error('The file was not deleted.');
+    await renderDownloads();
+  }catch(e){
+    console.error(e);
+    const msg=e?.message||e?.errorMessage||'Storage error';
+    alert('Unable to delete this file.\\n\\n'+msg);
+  }
+}
+function removeBrowserHistory(index,name){
+  if(!confirm('Remove "'+name+'" from ImageMate history? The downloaded file in your browser or Downloads folder will not be deleted.'))return;
+  const entries=history(),position=Number(index);
+  if(!Number.isInteger(position)||position<0||position>=entries.length)return;
+  entries.splice(position,1);
+  localStorage.setItem('imagemate-history',JSON.stringify(entries));
+  renderDownloads();
+}
 async function shareDownloadedFile(path){try{await (await import('./updater.js')).shareDownloadedFile(path)}catch(e){console.error(e);const msg=e?.message||e?.errorMessage||'No compatible sharing app is available.';alert('Unable to share this file.\\n\\n'+msg)}}
 async function exportDownloadedFile(path,name,mime){
   try{
@@ -601,18 +628,21 @@ async function exportDownloadedFile(path,name,mime){
   }
 }
 async function renderDownloads(){
-  const workspace=document.querySelector('#download-library'); if(!workspace)return;
-  workspace.innerHTML='<div class="downloads-head"><div><p class="eyebrow">YOUR FILES</p><h2>File library</h2><p class="downloads-sub">Open, share or save another copy of files created by ImageMate.</p></div><button id="refresh-downloads" class="secondary">Refresh</button></div><div id="downloaded-list" class="downloaded-list"><div class="empty-downloads">Loading files…</div></div>';
-  const list=await nativeDownloadedFiles(); const el=document.querySelector('#downloaded-list'); if(!el)return;
+  const workspace=document.querySelector('#download-library');if(!workspace)return;
+  workspace.innerHTML='<div class="downloads-head"><div><p class="eyebrow">YOUR FILES</p><h2>File library</h2><p class="downloads-sub">Delete saved files on Android, or remove browser history entries on the web.</p></div><button id="refresh-downloads" class="secondary">Refresh</button></div><div id="downloaded-list" class="downloaded-list"><div class="empty-downloads">Loading files…</div></div>';
+  const list=await nativeDownloadedFiles();const el=document.querySelector('#downloaded-list');if(!el)return;
   if(!list.length){el.innerHTML='<div class="empty-downloads"><b>No downloaded files yet</b><span>Processed files will appear here automatically.</span></div>';return}
   const nativeLibrary=isNativeAndroid();
-  el.innerHTML=list.map((f,i)=>'<article class="download-item"><div class="download-icon"><i data-lucide="file-check-2"></i></div><div class="download-info"><b>'+esc(f.name||('File '+(i+1)))+'</b><span>'+(f.mime?label(f.mime)+' • ':'')+(f.size?size(+f.size)+' • ':'')+(f.at?new Date(f.at).toLocaleString():'')+'</span></div><div class="download-actions">'+(nativeLibrary?'<button class="secondary open-file" data-path="'+esc(f.path)+'">Open</button><button class="secondary share-file" data-path="'+esc(f.path)+'">Share</button><button class="primary save-copy" data-path="'+esc(f.path)+'" data-name="'+esc(f.name||'ImageMate-file')+'" data-mime="'+esc(f.mime||'application/octet-stream')+'">Download again</button>':'<span class="browser-history-note">Browser download history</span>')+'</div></article>').join('');
+  el.innerHTML=list.map((f,i)=>'<article class="download-item"><div class="download-icon"><i data-lucide="file-check-2"></i></div><div class="download-info"><b>'+esc(f.name||('File '+(i+1)))+'</b><span>'+(f.mime?label(f.mime)+' • ':'')+(f.size?size(+f.size)+' • ':'')+(f.at?new Date(f.at).toLocaleString():'')+'</span></div><div class="download-actions">'+(nativeLibrary?'<button class="secondary open-file" data-path="'+esc(f.path)+'">Open</button><button class="secondary share-file" data-path="'+esc(f.path)+'">Share</button><button class="primary save-copy" data-path="'+esc(f.path)+'" data-name="'+esc(f.name||'ImageMate-file')+'" data-mime="'+esc(f.mime||'application/octet-stream')+'">Download again</button><button class="secondary delete-file" data-path="'+esc(f.path)+'" data-name="'+esc(f.name||'ImageMate-file')+'" aria-label="Delete '+esc(f.name||'file')+'">Delete</button>':'<span class="browser-history-note">Browser download history — the browser does not allow sites to delete downloaded files</span><button class="secondary remove-history" data-index="'+i+'" data-name="'+esc(f.name||('File '+(i+1)))+'">Remove history</button>')+'</div></article>').join('');
   if(nativeLibrary){
     el.querySelectorAll('.open-file').forEach(b=>b.onclick=()=>openDownloadedFile(b.dataset.path));
     el.querySelectorAll('.share-file').forEach(b=>b.onclick=()=>shareDownloadedFile(b.dataset.path));
     el.querySelectorAll('.save-copy').forEach(b=>b.onclick=()=>exportDownloadedFile(b.dataset.path,b.dataset.name,b.dataset.mime));
+    el.querySelectorAll('.delete-file').forEach(b=>b.onclick=()=>deleteNativeDownloadedFile(b.dataset.path,b.dataset.name));
+  }else{
+    el.querySelectorAll('.remove-history').forEach(b=>b.onclick=()=>removeBrowserHistory(b.dataset.index,b.dataset.name));
   }
-  const rb=document.querySelector('#refresh-downloads'); if(rb)rb.onclick=renderDownloads;
+  const rb=document.querySelector('#refresh-downloads');if(rb)rb.onclick=renderDownloads;
 }
 function setProgress(percent,label='Processing'){const q=document.querySelector('#progress-wrap');if(!q)return;const p=Math.max(0,Math.min(100,Math.round(percent)));const bar=q.querySelector('.progress-bar');const text=q.querySelector('.progress-text');if(bar)bar.style.width=p+'%';if(text)text.textContent=label+' '+p+'%'}
 function blobBase64(blob){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result).split(',')[1]||'');r.onerror=reject;r.readAsDataURL(blob)})}

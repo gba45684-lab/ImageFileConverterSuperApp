@@ -45,6 +45,8 @@ jobs:
           done
           cat /tmp/imagemate-preview.log
           exit 1
+      - name: Exercise all 14 tool processing workflows
+        run: node tests/tool-smoke.mjs
       - name: Capture Home and Tools screenshots and test core navigation
         run: |
           mkdir -p ui-evidence

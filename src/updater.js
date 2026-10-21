@@ -49,3 +49,4 @@ export async function listDownloadedFiles() { if (!isNativeAndroid()) return { s
 export async function openDownloadedFile(path) { if (!isNativeAndroid()) return { supported:false }; return ImageMateUpdater.openDownloadedFile({ path }); }
 export async function shareDownloadedFile(path) { if (!isNativeAndroid()) return { supported:false }; return ImageMateUpdater.shareDownloadedFile({ path }); }
 export async function exportDownloadedFile(path,name,mime) { if (!isNativeAndroid()) return { supported:false }; return ImageMateUpdater.exportDownloadedFile({ path,name,mime }); }
+export async function deleteDownloadedFile(path) { if (!isNativeAndroid()) return { supported:false, deleted:false }; return ImageMateUpdater.deleteDownloadedFile({ path }); }
