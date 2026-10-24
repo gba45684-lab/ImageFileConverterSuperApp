@@ -147,3 +147,13 @@
 .settings-screen .switch input:focus-visible+span{outline:3px solid rgba(99,102,241,.38)!important;outline-offset:3px!important}
 .dark .settings-screen .switch span{border-color:rgba(165,180,252,.22)!important;background:linear-gradient(135deg,rgba(71,85,105,.8),rgba(51,65,85,.66))!important}
 @media(prefers-reduced-motion:reduce){.settings-screen .switch span,.settings-screen .switch span:before{transition:none!important}}
+
+/* Settings brand card (Stage 3 contract): iM mark, ImageMate wordmark and tagline. */
+.settings-brand-card{display:flex;align-items:center;gap:14px;min-width:0;padding:16px;border:1px solid var(--im-line);border-radius:18px;background:var(--im-surface-strong);box-shadow:var(--im-shadow)}
+.settings-brand-mark{display:grid;place-items:center;flex:0 0 52px;width:52px;height:52px;border-radius:14px;background:#fff!important;border:1px solid var(--im-line)}
+.settings-brand-mark svg{width:34px;height:30px}
+.settings-brand-copy{display:grid;gap:4px;min-width:0}
+.settings-brand-copy .brand-wordmark{font-size:20px;line-height:1.1}
+.settings-brand-copy>span:last-child{color:var(--im-muted);font-size:13px;overflow-wrap:anywhere}
+.settings-brand-copy .brand-word-image{color:var(--im-ink)}
+.settings-brand-copy .brand-word-mate{color:var(--im-accent)}

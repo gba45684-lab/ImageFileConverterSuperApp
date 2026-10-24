@@ -32,6 +32,10 @@ Branch: `redesign/v2` (not merged to `main`).
   Automated check: `tests/ui/tools-audit.mjs` (7 checks). Open decision: the runbook says
   "14 utilities", but the app has 37 rows. This commit keeps all 37, since the preservation
   rules forbid removing features.
+- Stage 3 (Settings): brand card added (iM mark, ImageMate, "Simple. Powerful. Yours.").
+  Fixed a default bug: a new install's quality was 10% (Number(null) = 0, clamped to the
+  minimum) instead of 88%. Automated check: `tests/ui/settings-audit.mjs` (11 checks).
+  Not covered by automation: "Check now" (needs the native updater/network).
 - Milestone 1: tokens written, unwired. Nothing visible has changed yet.
 - Visual parity against the Option 7 reference: **not verified** (no browser or reference
   image available in the build environment).
