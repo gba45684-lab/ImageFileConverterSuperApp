@@ -93,3 +93,4 @@ ImageMate uses established open-source libraries selected for each task instead 
 - [Stirling-PDF](https://github.com/Stirling-Tools/Stirling-PDF) — open-source product feature reference for grouping common PDF tasks; its server and desktop architecture is not copied into the client-only workflow.
 
 Existing dependencies are reused to keep the app smaller and avoid adding overlapping PDF engines unnecessarily. Review each dependency's upstream licence and notices before distributing modified builds. ImageMate keeps its own UI and branding.
+ 
