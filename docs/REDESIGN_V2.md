@@ -27,6 +27,11 @@ Branch: `redesign/v2` (not merged to `main`).
 - Automated Home audit: `tests/ui/home-audit.mjs` (21 checks: overflow, accessible names,
   44px targets, focus, reduced motion, card order, indicators, console errors). Run it with a
   Chromium binary and `puppeteer-core` available (see the script header). Not in `package.json`.
+- Stage 2 (Tools catalog): chips are All / Image / Document / Other (mapped from the workflow
+  groups; Text & OCR counts as Other). Workflow group headings kept. All 37 tool rows kept.
+  Automated check: `tests/ui/tools-audit.mjs` (7 checks). Open decision: the runbook says
+  "14 utilities", but the app has 37 rows. This commit keeps all 37, since the preservation
+  rules forbid removing features.
 - Milestone 1: tokens written, unwired. Nothing visible has changed yet.
 - Visual parity against the Option 7 reference: **not verified** (no browser or reference
   image available in the build environment).

@@ -66,7 +66,8 @@ const tools=[
 ];
 const catalogGroups=[{"id":"pdf-core","label":"PDF essentials","title":"PDF essentials","description":"Merge, mix, create PDFs from images, or export PDF pages as images.","tools":["pdf","pdf2image","pdfmerge","pdfalternate"]},{"id":"pdf-organize","label":"Organize & split","title":"Organize & split","description":"Reorder pages, extract or remove pages, and split long documents into smaller files.","tools":["pdforganize","pdfextract","pdfdelete","pdfsplitpages","pdfsplitbookmarks","pdfsplithalf","pdfsplitsize","pdfsplittext"]},{"id":"pdf-edit","label":"Edit & sign","title":"Edit & sign","description":"Add text or a typed signature, apply watermarks, and create fillable forms.","tools":["pdfedit","pdfsign","pdfforms","pdfwatermark"]},{"id":"pdf-secure","label":"Security & optimize","title":"Security & optimize","description":"Protect or unlock documents, compress PDFs, and flatten form and annotation appearances.","tools":["pdfprotect","pdfunlock","pdfcompress","pdfflatten"]},{"id":"pdf-convert","label":"PDF conversion","title":"PDF conversion","description":"Move content between PDF, Word, Excel, PowerPoint and HTML.","tools":["pdfexcel","pdfppt","pdftoword","htmltopdf","wordtopdf"]},{"id":"text","label":"Text & OCR","title":"Text & OCR","description":"Extract selectable text from PDFs or recognize text inside images.","tools":["pdftext","ocr"]},{"id":"image","label":"Image tools","title":"Image tools","description":"Convert, compress, resize, crop, edit and prepare photos, signatures and images.","tools":["convert","compress","resize","target","passport","exif","signature","crop","background","editor"]}];
 const catalogGroupByTool={"pdf":"pdf-core","pdf2image":"pdf-core","pdfmerge":"pdf-core","pdfalternate":"pdf-core","pdforganize":"pdf-organize","pdfextract":"pdf-organize","pdfdelete":"pdf-organize","pdfsplitpages":"pdf-organize","pdfsplitbookmarks":"pdf-organize","pdfsplithalf":"pdf-organize","pdfsplitsize":"pdf-organize","pdfsplittext":"pdf-organize","pdfedit":"pdf-edit","pdfsign":"pdf-edit","pdfforms":"pdf-edit","pdfwatermark":"pdf-edit","pdfprotect":"pdf-secure","pdfunlock":"pdf-secure","pdfcompress":"pdf-secure","pdfflatten":"pdf-secure","pdfexcel":"pdf-convert","pdfppt":"pdf-convert","pdftoword":"pdf-convert","htmltopdf":"pdf-convert","wordtopdf":"pdf-convert","pdftext":"text","ocr":"text","convert":"image","compress":"image","resize":"image","target":"image","passport":"image","exif":"image","signature":"image","crop":"image","background":"image","editor":"image"};
-const catalogCategoryButtons=[{id:'All',label:'All tools'},...catalogGroups.map(group=>({id:group.id,label:group.label}))];
+const catalogBucketByGroup={'pdf-core':'document','pdf-organize':'document','pdf-edit':'document','pdf-secure':'document','pdf-convert':'document','text':'other','image':'image'};
+const catalogCategoryButtons=[{id:'All',label:'All'},{id:'image',label:'Image'},{id:'document',label:'Document'},{id:'other',label:'Other'}];
 const catalogSearchAliases={
   pdf:'make pdf from images photo to pdf jpg to pdf',pdf2image:'export pdf pages as png jpg image',pdfmerge:'join combine concatenate pdf documents',
   pdfalternate:'collate interleave alternating pages two-sided scan',pdforganize:'reorder rearrange sort page sequence',pdfextract:'save selected pages excerpt',
@@ -94,7 +95,7 @@ const size=n=>n<1024?n+' B':n<1048576?(n/1024).toFixed(1)+' KB':(n/1048576).toFi
 function catalogToolMarkup(t){
   const category=catalogGroupByTool[t[0]]||'other';
   const group=catalogGroups.find(item=>item.id===category);
-  return '<button type="button" class="catalog-tool-row" data-tool="'+t[0]+'" data-category="'+category+'" data-search="'+esc([t[0],group?.label||'',t[2],t[3],catalogSearchAliases[t[0]]||''].join(' '))+'"><span class="catalog-tool-icon"><i data-lucide="'+t[1]+'"></i></span><span class="catalog-tool-copy"><small>'+esc(group?.label||'TOOL')+'</small><b>'+esc(t[2])+'</b><span>'+esc(t[3])+'</span></span><i class="catalog-chevron" data-lucide="chevron-right"></i></button>';
+  return '<button type="button" class="catalog-tool-row" data-tool="'+t[0]+'" data-category="'+category+'" data-bucket="'+(catalogBucketByGroup[catalogGroupByTool[t[0]]]||'other')+'" data-search="'+esc([t[0],group?.label||'',t[2],t[3],catalogSearchAliases[t[0]]||''].join(' '))+'"><span class="catalog-tool-icon"><i data-lucide="'+t[1]+'"></i></span><span class="catalog-tool-copy"><small>'+esc(group?.label||'TOOL')+'</small><b>'+esc(t[2])+'</b><span>'+esc(t[3])+'</span></span><i class="catalog-chevron" data-lucide="chevron-right"></i></button>';
 }
 function catalogGroupMarkup(group){
   const subset=group.tools.map(id=>toolById[id]).filter(Boolean);
@@ -536,7 +537,7 @@ function bind(){
     const q=String(catalogSearch?.value||'').trim().toLowerCase();
     const category=S.catalogCategory||'All';let visible=0;
     document.querySelectorAll('.catalog-tool-row').forEach(b=>{
-      const categoryMatch=category==='All'||b.dataset.category===category;
+      const categoryMatch=category==='All'||b.dataset.bucket===category;
       const groupTitle=b.closest('.catalog-group')?.querySelector('.catalog-group-head')?.textContent||'';
       const queryMatch=!q||(b.textContent+' '+(b.dataset.search||'')+' '+groupTitle).toLowerCase().includes(q);
       b.hidden=!(categoryMatch&&queryMatch);if(!b.hidden)visible++;
