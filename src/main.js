@@ -1117,7 +1117,12 @@ async function convertSpecial(file,kind){
   }
   if(kind==='ocr'){
     const {createWorker}=await import('tesseract.js');
-    const worker=await createWorker('eng');
+    let worker;
+    try{
+      worker=await createWorker('eng');
+    }catch(loadError){
+      throw new Error('OCR engine could not load. It is downloaded the first time you use OCR, so check your internet connection and try again.');
+    }
     try{
       const result=await worker.recognize(await normalizeImageFile(file));
       const text=result.data.text.trim();

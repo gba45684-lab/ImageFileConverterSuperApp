@@ -122,3 +122,6 @@
 
 /* Form builder creates a new document and does not require an upload. */
 .dropzone.form-builder-no-upload{display:none!important}
+
+/* Hide the "Preview file" label when its select is hidden (single file). It overlapped the live-preview eyebrow. */
+.live-preview-picker:has(select[hidden]){display:none!important}

@@ -36,6 +36,13 @@ Branch: `redesign/v2` (not merged to `main`).
   Fixed a default bug: a new install's quality was 10% (Number(null) = 0, clamped to the
   minimum) instead of 88%. Automated check: `tests/ui/settings-audit.mjs` (11 checks).
   Not covered by automation: "Check now" (needs the native updater/network).
+- Stage 4 (tool workspaces), partial: `tests/ui/workspace-audit.mjs` uploads a generated
+  PNG and runs Compress (image), Image to PDF and OCR. Compress and PDF produce downloads.
+  OCR cannot finish offline: Tesseract loads its engine from cdn.jsdelivr.net on first use.
+  OCR now shows a clear "engine could not load" message instead of the generic one.
+  Fixed: the "Preview file" label overlapped the live-preview heading on desktop.
+  Open decisions: (1) OCR is not fully local until the engine and language data are bundled,
+  which adds large assets and needs approval; (2) the other 34 tools are not individually tested.
 - Milestone 1: tokens written, unwired. Nothing visible has changed yet.
 - Visual parity against the Option 7 reference: **not verified** (no browser or reference
   image available in the build environment).
