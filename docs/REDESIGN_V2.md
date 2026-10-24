@@ -22,6 +22,11 @@ Branch: `redesign/v2` (not merged to `main`).
    at 320/360/390/768/1440px in light and dark, once a browser is available.
 
 ## Status
+- Stage 1 (Home): contract copy, six-card grid, Popular Tools heading, carousel text unified.
+  Touch targets raised to 44px on phone and tablet (brand, See All, top nav).
+- Automated Home audit: `tests/ui/home-audit.mjs` (21 checks: overflow, accessible names,
+  44px targets, focus, reduced motion, card order, indicators, console errors). Run it with a
+  Chromium binary and `puppeteer-core` available (see the script header). Not in `package.json`.
 - Milestone 1: tokens written, unwired. Nothing visible has changed yet.
 - Visual parity against the Option 7 reference: **not verified** (no browser or reference
   image available in the build environment).

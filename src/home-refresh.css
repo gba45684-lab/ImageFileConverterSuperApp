@@ -75,3 +75,12 @@
 .slider-glass-switch:focus-visible{outline:3px solid rgba(129,140,248,.42)!important;outline-offset:3px!important}
 @media(max-width:760px){.slider-preference-card{padding:14px!important;gap:10px!important}.slider-glass-switch{width:52px!important;min-width:52px!important;height:30px!important}.slider-glass-switch:checked::before{transform:translateX(22px)!important}}
 @media(prefers-reduced-motion:reduce){.im-slide-enter#home-hero-title,.im-slide-enter#home-hero-copy,.im-slide-enter.hero-art{animation:none!important}.hero-image,.hero-art-orbit,.slider-glass-switch,.slider-glass-switch::before{transition:none!important}}
+
+/* Touch targets: minimum 44x44px for brand, settings and See All controls (UI_UX_GUIDELINES.md, WCAG 2.5.5). */
+.brand-mark,
+.editorial-view-all,
+.top-actions .nav-btn {
+  min-width: 44px !important;
+  min-height: 44px !important;
+  box-sizing: border-box;
+}
