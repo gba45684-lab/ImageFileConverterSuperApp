@@ -1,0 +1,106 @@
+/*
+ * ImageMate design tokens (redesign v2).
+ * Source of truth for brand palette, type, spacing, radius, elevation and motion.
+ * Not yet imported by the app; wire in per-screen during the redesign.
+ */
+
+:root {
+  /* Brand */
+  --im-navy: #10213f;
+  --im-amber-dot: #ffb32c;
+  --im-indigo: #6366f1;
+  --im-purple: #885cff;
+  --im-teal: #14b8a6;
+  --im-amber: #f59e0b;
+
+  /* Surfaces (light) */
+  --im-canvas: #f8fafc;
+  --im-surface: #ffffff;
+  --im-surface-muted: #f1f5f9;
+  --im-border: #e2e8f0;
+  --im-text: #10213f;
+  --im-text-muted: #475569;
+  --im-focus: #6366f1;
+
+  /* Semantic */
+  --im-primary: var(--im-indigo);
+  --im-primary-strong: #4f46e5;
+  --im-success: var(--im-teal);
+  --im-warning: var(--im-amber);
+  --im-danger: #dc2626;
+
+  /* Type */
+  --im-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --im-text-xs: 0.75rem;
+  --im-text-sm: 0.875rem;
+  --im-text-base: 1rem;
+  --im-text-lg: 1.125rem;
+  --im-text-xl: 1.5rem;
+  --im-text-2xl: 1.875rem;
+
+  /* Spacing (4px base) */
+  --im-space-1: 0.25rem;
+  --im-space-2: 0.5rem;
+  --im-space-3: 0.75rem;
+  --im-space-4: 1rem;
+  --im-space-5: 1.25rem;
+  --im-space-6: 1.5rem;
+  --im-space-8: 2rem;
+
+  /* Radius */
+  --im-radius-sm: 8px;
+  --im-radius-md: 12px;
+  --im-radius-lg: 16px;
+  --im-radius-pill: 999px;
+
+  /* Elevation */
+  --im-shadow-sm: 0 1px 2px rgb(16 33 63 / 0.06);
+  --im-shadow-md: 0 4px 12px rgb(16 33 63 / 0.08);
+
+  /* Motion (short, purposeful) */
+  --im-duration-fast: 180ms;
+  --im-duration-base: 260ms;
+  --im-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  /* Touch target minimum */
+  --im-touch-min: 44px;
+}
+
+/* Dark theme: same tokens, mapped to deep-navy surfaces. */
+:root[data-theme="dark"],
+:root:not([data-theme="light"]) {
+  color-scheme: dark;
+}
+
+:root[data-theme="dark"] {
+  --im-canvas: #0b1426;
+  --im-surface: #13213a;
+  --im-surface-muted: #1b2c4a;
+  --im-border: #27395a;
+  --im-text: #f1f5f9;
+  --im-text-muted: #94a3b8;
+  --im-focus: #a5b4fc;
+  --im-primary: #818cf8;
+  --im-primary-strong: #a5b4fc;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --im-canvas: #0b1426;
+    --im-surface: #13213a;
+    --im-surface-muted: #1b2c4a;
+    --im-border: #27395a;
+    --im-text: #f1f5f9;
+    --im-text-muted: #94a3b8;
+    --im-focus: #a5b4fc;
+    --im-primary: #818cf8;
+    --im-primary-strong: #a5b4fc;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --im-duration-fast: 0ms;
+    --im-duration-base: 0ms;
+  }
+}

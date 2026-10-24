@@ -1,0 +1,27 @@
+# ImageMate redesign v2 — plan and status
+
+Branch: `redesign/v2` (not merged to `main`).
+
+## Baseline (audited)
+- `main` builds (`npm run build`) and passes 12 tests (`npm test`).
+- Entry: `index.html` loads `src/main.js` (~1,100 lines) and `src/home-interactions.js`.
+- Styling is layered across 8 override stylesheets (`*-refresh.css`) on top of `style.css`.
+- Persisted keys in use (must be preserved): `imagemate-dark`, `imagemate-format`,
+  `imagemate-quality`, `imagemate-auto-update`, `imagemate-history`, `imagemate-last-used`,
+  `imagemate-last-update-check`, `imagemate-update-*`.
+- Android updater, AdMob and native bridges must keep working.
+
+## Milestones
+1. **Foundation (this commit):** design tokens in `src/design/tokens.css` (brand palette,
+   type, spacing, radius, elevation, motion, light/dark, reduced motion). Not yet imported.
+2. **Components:** buttons, cards, chips, list rows, dialogs, toasts, empty/loading/error states.
+3. **Shell:** Home / Tools / Files / Settings navigation with working back paths.
+4. **Tool workspaces:** the 14 existing tools on shared components; logic unchanged.
+5. **Files, Settings, updater:** rebuild on shared components; keep storage keys.
+6. **Verification:** build and tests on every commit; screenshots and manual flow checks
+   at 320/360/390/768/1440px in light and dark, once a browser is available.
+
+## Status
+- Milestone 1: tokens written, unwired. Nothing visible has changed yet.
+- Visual parity against the Option 7 reference: **not verified** (no browser or reference
+  image available in the build environment).
