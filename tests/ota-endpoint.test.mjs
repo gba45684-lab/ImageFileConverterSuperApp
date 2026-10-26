@@ -44,6 +44,15 @@ test('drafts and releases without a sha256 digest are skipped', () => {
   assert.equal(picked.tag, 'v1.3.8');
 });
 
+test('releases not newer than the device version are skipped, so an older stable release cannot hide a newer OTA', () => {
+  const picked = pickRelease([
+    release('v1.3.8'),
+    release('ota-1.3.8.42'),
+  ], '1.3.8.10');
+  assert.equal(picked.tag, 'ota-1.3.8.42');
+  assert.equal(pickRelease([release('v1.3.8')], '1.3.8'), null);
+});
+
 test('no usable release returns null instead of a partial update', () => {
   assert.equal(pickRelease([]), null);
   assert.equal(pickRelease(null), null);

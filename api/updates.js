@@ -30,14 +30,16 @@ export function isNewerVersion(candidate, current) {
   return false;
 }
 
-// Picks the newest release (GitHub returns newest first) that has a usable OTA bundle.
-export function pickRelease(releases) {
+// Picks the newest release (GitHub returns newest first) that carries a usable bundle and is newer than
+// the device's current version. Skipping older releases means a stable release can't hide a newer OTA prerelease.
+export function pickRelease(releases, current = '0.0.0') {
   if (!Array.isArray(releases)) return null;
   for (const release of releases) {
     if (!release || release.draft || !release.tag_name || !Array.isArray(release.assets)) continue;
     const asset = release.assets.find(item => item.name === BUNDLE);
     const digest = asset && SHA256_DIGEST.exec(String(asset.digest || ''));
     if (!asset || !asset.browser_download_url || !digest) continue;
+    if (!isNewerVersion(versionFromTag(release.tag_name), current)) continue;
     return {
       tag: String(release.tag_name),
       url: asset.browser_download_url,
@@ -47,7 +49,7 @@ export function pickRelease(releases) {
   return null;
 }
 
-async function latestRelease() {
+async function latestRelease(current) {
   const headers = { Accept: 'application/vnd.github+json', 'User-Agent': 'ImageMate-OTA' };
   if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
   const response = await fetch(`https://api.github.com/repos/${REPO}/releases?per_page=20`, { headers }).catch(() => null);
@@ -55,7 +57,7 @@ async function latestRelease() {
     console.error('update check: GitHub API failed with status', response ? response.status : 'network', 'token set:', !!process.env.GITHUB_TOKEN);
     return null;
   }
-  return pickRelease(await response.json());
+  return pickRelease(await response.json(), current);
 }
 
 async function sha256Of(url) {
@@ -81,7 +83,7 @@ export default async function handler(req, res) {
     }
     const current = String(info.version_name || '0.0.0').replace(/^v/i, '');
 
-    const release = await latestRelease();
+    const release = await latestRelease(current);
     if (!release) return res.status(200).json({ message: 'No update available', version: current });
 
     const version = versionFromTag(release.tag);

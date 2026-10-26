@@ -6,7 +6,7 @@
   "plugins": {
     "CapacitorUpdater": {
       "appId": "com.gba45684.imagemate",
-      "updateUrl": "https://REPLACE-WITH-IMAGEMATE-VERCEL-DOMAIN/api/updates",
+      "updateUrl": "https://imagemate.vercel.app/api/updates",
       "autoUpdate": "onlyDownload",
       "version": "1.0.0",
       "appReadyTimeout": 10000,

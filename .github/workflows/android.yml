@@ -62,9 +62,6 @@ jobs:
           # capacitor.config.json is committed (appId, webDir and CapacitorUpdater settings),
           # so the workflow no longer runs `cap init`, which would overwrite it.
           node -e "const c=require('./capacitor.config.json'); if(c.appId!=='com.gba45684.imagemate'||c.webDir!=='dist'){process.exit(1)}"
-          if grep -q "REPLACE-WITH-IMAGEMATE-VERCEL-DOMAIN" capacitor.config.json; then
-            echo "::warning::CapacitorUpdater updateUrl is still the placeholder; OTA checks will fail until it is set."
-          fi
 
       - name: Add Android
         run: npx cap add android
@@ -1267,21 +1264,22 @@ jobs:
           fi
           echo "Stable signed APK and OTA bundle published to GitHub Release v$APP_VERSION."
 
-      - name: Publish OTA-only GitHub Release
-        if: steps.signing.outputs.ready != 'true'
+      - name: Publish OTA prerelease GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
           APP_VERSION: ${{ steps.version.outputs.version }}
         shell: bash
         run: |
           set -euo pipefail
-          TAG="ota-$APP_VERSION"
+          # 4-part version (APP_VERSION.run number) so a web-only fix at the same APK version is newer than the device's bundle.
+          OTA_VERSION="$APP_VERSION.$GITHUB_RUN_NUMBER"
+          TAG="ota-$OTA_VERSION"
           gh release create "$TAG" ImageMate-ota.zip ImageMate-ota.sha256 \
             --repo "$GITHUB_REPOSITORY" \
-            --title "ImageMate OTA $APP_VERSION" \
+            --title "ImageMate OTA $OTA_VERSION" \
             --notes "Web-layer OTA bundle for ImageMate. Native Android changes are not included." \
             --prerelease
-          echo "OTA-only prerelease published as $TAG. The stable APK release remains unchanged."
+          echo "OTA prerelease published as $TAG. The stable APK release is unchanged."
 
       - name: Explain skipped stable release
         if: steps.signing.outputs.ready != 'true'
