@@ -1,0 +1,18 @@
+{
+  "appId": "com.gba45684.imagemate",
+  "appName": "ImageMate",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "plugins": {
+    "CapacitorUpdater": {
+      "appId": "com.gba45684.imagemate",
+      "updateUrl": "https://imagemate.vercel.app/api/updates",
+      "autoUpdate": "onlyDownload",
+      "version": "1.0.0",
+      "appReadyTimeout": 10000,
+      "autoDeleteFailed": true,
+      "autoDeletePrevious": true,
+      "periodCheckDelay": 600
+    }
+  }
+}
