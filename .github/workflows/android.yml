@@ -57,8 +57,14 @@ jobs:
       - name: Build web app
         run: npm run build
 
-      - name: Initialize Capacitor
-        run: npx cap init ImageMate com.gba45684.imagemate --web-dir dist
+      - name: Verify committed Capacitor config
+        run: |
+          # capacitor.config.json is committed (appId, webDir and CapacitorUpdater settings),
+          # so the workflow no longer runs `cap init`, which would overwrite it.
+          node -e "const c=require('./capacitor.config.json'); if(c.appId!=='com.gba45684.imagemate'||c.webDir!=='dist'){process.exit(1)}"
+          if grep -q "REPLACE-WITH-IMAGEMATE-VERCEL-DOMAIN" capacitor.config.json; then
+            echo "::warning::CapacitorUpdater updateUrl is still the placeholder; OTA checks will fail until it is set."
+          fi
 
       - name: Add Android
         run: npx cap add android

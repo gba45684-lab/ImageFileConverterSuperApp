@@ -25,12 +25,16 @@ test('the install click handler reads the current popup mode rather than a captu
 
 test('the web-content updater applies a verified bundle without invoking the APK installer', () => {
   const ota = readFileSync(new URL('../src/ota.js', import.meta.url), 'utf8');
-  assert.match(ota, /await LiveUpdate\.downloadBundle\(/,
-    'the updater must download the OTA bundle');
-  assert.match(ota, /await LiveUpdate\.setNextBundle\(\{ bundleId \}\)/,
+  assert.match(ota, /CapacitorUpdater\.addListener\(['"]downloadComplete['"]/,
+    'the updater must wait for the plugin to finish downloading and verifying the bundle');
+  assert.match(ota, /await CapacitorUpdater\.notifyAppReady\(\)/,
+    'the running bundle must be acknowledged so the plugin can roll back a bad bundle');
+  assert.match(ota, /await CapacitorUpdater\.next\(\{ id: bundle\.id \}\)/,
     'the downloaded bundle must be selected for activation');
-  assert.match(ota, /await LiveUpdate\.reload\(\)/,
+  assert.match(ota, /await CapacitorUpdater\.reload\(\)/,
     'the updater must reload the WebView to apply compatible web assets immediately');
+  assert.match(ota, /autoUpdateEnabled\(\)\s*\|\|\s*manualCheckRequested/,
+    'a downloaded bundle must only be applied when auto-update is on or the user asked for a check');
   assert.doesNotMatch(ota, /installDownloadedAndroidUpdate|downloadLatestAndroidUpdate/,
     'web-content updates must not invoke the APK installer flow');
 });

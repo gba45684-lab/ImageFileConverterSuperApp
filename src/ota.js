@@ -1,70 +1,86 @@
 import { Capacitor } from '@capacitor/core';
-import { LiveUpdate } from '@capawesome/capacitor-live-update';
+import { CapacitorUpdater } from '@capgo/capacitor-updater';
 
-const RELEASES_API = 'https://api.github.com/repos/gba45684-lab/ImageFileConverterSuperApp/releases?per_page=20';
-const OTA_ASSET = 'ImageMate-ota.zip';
+// Web-layer OTA via @capgo/capacitor-updater, configured in capacitor.config.json.
+// The plugin checks the update endpoint and downloads verified bundles (sha256 checksum).
+// Config uses autoUpdate "onlyDownload", so the plugin never applies a bundle by itself;
+// this module applies it (next + reload) only when the Settings toggle allows it.
+// Android still needs a user-approved APK install for native changes; this path never installs an APK.
+
+const AUTO_UPDATE_KEY = 'imagemate-auto-update';
 const UPDATE_CHECK_KEY = 'imagemate-github-ota-last-check';
+const MIN_CHECK_INTERVAL_MS = 10 * 60 * 1000;
 
-let checkInFlight = false;
+let listenersReady = false;
+let manualCheckRequested = false;
+let applying = false;
+
+function isAndroidNative() {
+  return Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
+}
+
+function autoUpdateEnabled() {
+  return localStorage.getItem(AUTO_UPDATE_KEY) !== '0';
+}
+
+async function applyBundle(bundle) {
+  if (!bundle || !bundle.id || applying) return;
+  applying = true;
+  try {
+    // Queue the downloaded bundle, then reload so compatible HTML/CSS/JS changes take effect
+    // without an APK install. Runs at startup or on an explicit user request, never mid-task.
+    await CapacitorUpdater.next({ id: bundle.id });
+    console.info('[ImageMate OTA] Web update queued:', bundle.version || bundle.id);
+    await CapacitorUpdater.reload();
+  } catch (error) {
+    console.debug('[ImageMate OTA] Could not apply bundle:', error);
+  } finally {
+    applying = false;
+  }
+}
+
+async function attachListeners() {
+  if (listenersReady) return;
+  listenersReady = true;
+  await CapacitorUpdater.addListener('downloadComplete', event => {
+    // A bundle is downloaded and verified. Apply it when auto-update is on or the user asked for a check.
+    if (autoUpdateEnabled() || manualCheckRequested) {
+      manualCheckRequested = false;
+      applyBundle(event && event.bundle);
+    }
+  });
+  await CapacitorUpdater.addListener('downloadFailed', event => {
+    manualCheckRequested = false;
+    console.debug('[ImageMate OTA] Download failed:', event);
+  });
+  await CapacitorUpdater.addListener('updateFailed', event => {
+    console.debug('[ImageMate OTA] Bundle failed and was rolled back:', event);
+  });
+}
 
 export async function initGitHubOta({ force = false } = {}) {
-  if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'android') return;
-  // The Settings toggle controls automatic OTA checks. A user-requested manual refresh may still run while it is off.
-  if (!force && localStorage.getItem('imagemate-auto-update') === '0') return;
-  if (checkInFlight) return;
-  checkInFlight = true;
-
+  if (!isAndroidNative()) return;
   try {
-    // Acknowledge the current bundle before attempting to download another one,
-    // so the plugin can safely roll back a bundle that fails on the next launch.
-    await LiveUpdate.ready();
+    await attachListeners();
 
+    // Acknowledge the running bundle first so the plugin can roll back a bundle that fails on launch.
+    await CapacitorUpdater.notifyAppReady();
+
+    if (force) {
+      // A user-requested check runs even when automatic checks are off.
+      manualCheckRequested = true;
+      localStorage.setItem(UPDATE_CHECK_KEY, String(Date.now()));
+      await CapacitorUpdater.triggerUpdateCheck();
+      return;
+    }
+
+    if (!autoUpdateEnabled()) return;
     const lastCheck = Number(localStorage.getItem(UPDATE_CHECK_KEY) || 0);
-    if (!force && Date.now() - lastCheck < 10 * 60 * 1000) return;
+    if (Date.now() - lastCheck < MIN_CHECK_INTERVAL_MS) return;
     localStorage.setItem(UPDATE_CHECK_KEY, String(Date.now()));
-
-    const response = await fetch(RELEASES_API, {
-      headers: { Accept: 'application/vnd.github+json' },
-      cache: 'no-store',
-    });
-    if (!response.ok) throw new Error(`GitHub Releases returned HTTP ${response.status}`);
-    const releases = await response.json();
-    if (!Array.isArray(releases)) return;
-
-    // Releases are returned newest-first. Pick the newest release that actually
-    // contains an OTA bundle; OTA-only releases are prereleases by design.
-    const release = releases.find(item =>
-      !item.draft && Array.isArray(item.assets) &&
-      item.assets.some(asset => asset.name === OTA_ASSET && /^sha256:[a-f0-9]{64}$/i.test(asset.digest || ''))
-    );
-    if (!release) return;
-
-    const asset = release.assets.find(item => item.name === OTA_ASSET);
-    const checksum = String(asset.digest).replace(/^sha256:/i, '').toLowerCase();
-    const bundleId = String(release.tag_name || '');
-    if (!bundleId || !asset.browser_download_url) return;
-
-    const [current, next] = await Promise.all([
-      LiveUpdate.getCurrentBundle().catch(() => ({ bundleId: null })),
-      LiveUpdate.getNextBundle().catch(() => ({ bundleId: null })),
-    ]);
-    if (current.bundleId === bundleId || next.bundleId === bundleId) return;
-
-    await LiveUpdate.downloadBundle({
-      url: asset.browser_download_url,
-      bundleId,
-      checksum,
-    });
-    await LiveUpdate.setNextBundle({ bundleId });
-    console.info('[ImageMate OTA] Web update downloaded and queued:', bundleId);
-
-    // This check runs during native app startup, before users can start a file task.
-    // Reload the WebView now so compatible HTML/CSS/JS updates take effect without
-    // opening Android's APK installer or asking the user to reinstall the app.
-    await LiveUpdate.reload();
+    await CapacitorUpdater.triggerUpdateCheck();
   } catch (error) {
+    manualCheckRequested = false;
     console.debug('[ImageMate OTA] Update check skipped:', error);
-  } finally {
-    checkInFlight = false;
   }
 }
